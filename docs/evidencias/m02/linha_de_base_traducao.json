@@ -1,0 +1,250 @@
+{
+ "arquivos": {
+  "32_584109550002000100010001.png": {
+   "bytes": 2823,
+   "sha256": "ffc3de76dc38bed95340765bbd42095fc56ed10e0ad23a1c85cf075c0e933225"
+  },
+  "32_584109550002000200010002.png": {
+   "bytes": 2214,
+   "sha256": "2cde5b7873bd412d75719fdeca4b8cf8f0e6587c403c0db9235ba9781434a8fc"
+  },
+  "64_584109550002000100010001.png": {
+   "bytes": 12057,
+   "sha256": "baa84add8cc8f6a4736128c0f78e036f8bb6f90b2f693cb0355b1cb14633fd4b"
+  },
+  "64_584109550002000200010002.png": {
+   "bytes": 9159,
+   "sha256": "b33f559e237e91907788f2f7473129df7b3a31e5c6af4d56b8e958a336bc5da8"
+  },
+  "Achievement_01.png": {
+   "bytes": 7771,
+   "sha256": "7381b13577c5aa137c9aea99eccbf197df3522aab00e6973396eb98294ccff74"
+  },
+  "Achievement_02.png": {
+   "bytes": 7514,
+   "sha256": "30cbdee752f60ce9f57f55ab38962052f49f8d88b6775bdde495c954d9b811e2"
+  },
+  "Achievement_03.png": {
+   "bytes": 5218,
+   "sha256": "58cd114122ed4dfc1e96d3feb557f6131b8a76fef691181bf144209e98c2c41a"
+  },
+  "Achievement_04.png": {
+   "bytes": 9638,
+   "sha256": "d283916a5caefff592641f818d57d8ae9261556b3be8a60ec8c7b21f570c2ba5"
+  },
+  "Achievement_05.png": {
+   "bytes": 7398,
+   "sha256": "628ab12dc482a08e0c6f259fe64d3ad75a5d0785bcaaf1ee4f185c109a594cb6"
+  },
+  "Achievement_06.png": {
+   "bytes": 7759,
+   "sha256": "b69ceaf340ebffde225f1a3139e79c5a2da94400a4f9f8ccae93459e7e827ca6"
+  },
+  "Achievement_07.png": {
+   "bytes": 8101,
+   "sha256": "d5692461482a75579b5a1152cc56ac41c78d3fe0a2bdf385214e2637d7acdef3"
+  },
+  "Achievement_08.png": {
+   "bytes": 6309,
+   "sha256": "7e009eb54912d7435afd2c64e49d68feb5d5b5f6bfa4374d73c47f722cce623b"
+  },
+  "Achievement_09.png": {
+   "bytes": 6386,
+   "sha256": "d23921717e9da049938a2c0b13da70939d52743556858d47f3c5e62fc28931bd"
+  },
+  "Achievement_10.png": {
+   "bytes": 5733,
+   "sha256": "0410901f2cf53e4ff0f7cc52851094a8569c4f8a0a49c388cd8241ed091559a4"
+  },
+  "Achievement_11.png": {
+   "bytes": 7319,
+   "sha256": "af24bca66b0747cdb4a4ea2949d15038a0c4e942c6f77a32a12823919bda4e89"
+  },
+  "Achievement_12.png": {
+   "bytes": 9767,
+   "sha256": "45eda03ada9eeb8c6a76b3fed62c812332df1db0dfc08c212b39f462071b14d2"
+  },
+  "ArcadeInfo.xml": {
+   "bytes": 7868,
+   "sha256": "4e6d1b1b1ac265a9d472fbf2ace092a67b2f0468265c3392ae7d8c73ff13b0ea"
+  },
+  "BanjoTooieIcon.png": {
+   "bytes": 10802,
+   "sha256": "7e3ab35f149c8150a4bb22e302659f2ca7194065437e32ad5c20b23fe4d36371"
+  },
+  "BanjoTooieMarketplace.png": {
+   "bytes": 77696,
+   "sha256": "1dd8b862fe245735dcf3a68c6b2f6f51ee2131352505abebba7a00ea3ecde811"
+  },
+  "RAWFiles/58410955033F0001": {
+   "bytes": 5206016,
+   "sha256": "ac6ed80c6f4fd6e2de7e49840a55501662149cb3036ade92273a23aae815f62e"
+  },
+  "RAWFiles/ArcadeNormal.ptc": {
+   "bytes": 101229,
+   "sha256": "fea0db9ead9a0f8f5b6229878dab472a06267fefc8eac322e80e28b4d21f511c"
+  },
+  "RAWFiles/ArcadeWide.ptc": {
+   "bytes": 99557,
+   "sha256": "ec9cad87ac8950f22d7d3ae611cb112c4a7c9a1546c16017bd694d7d4474e4d1"
+  },
+  "RAWFiles/X360_strings.dat": {
+   "bytes": 427089,
+   "sha256": "5920b7624634fc4e91e5fa7172972401df386de58a499bcfb64083e3e3f7cbe0"
+  },
+  "RAWFiles/banjo2_360.ctl": {
+   "bytes": 187992,
+   "sha256": "1d00246450587c0e170484c705afcf767466ba9aee9df1eb785633a259dcc808"
+  },
+  "RAWFiles/banjo2_360.tbl": {
+   "bytes": 14555180,
+   "sha256": "57e6ae4ec5a88860d6fe2634595f7fad00d071393453db004d617a43e9977d4f"
+  },
+  "RAWFiles/db360.cmp": {
+   "bytes": 12525322,
+   "sha256": "b68557023ae8bddd729009c7ff02eec28f61873888373472a3539fa819cd20e3"
+  },
+  "RAWFiles/db360.textures.cmp": {
+   "bytes": 50625264,
+   "sha256": "fb21dc86dd8bdee1f2bb6eaf7ec27a9fc90d2276e25bc8b8de3fcd94f7f68197"
+  },
+  "RAWFiles/xarialuni.ttf": {
+   "bytes": 6608540,
+   "sha256": "380f125e78756f118d60f8d76d93a7487884fbbfd7786aeaac585ac3fc7c5a28"
+  },
+  "Rating_CERO_B.png": {
+   "bytes": 4550,
+   "sha256": "f804490106e0a76aef69ea6e9afea68ac2b140466bf71107a6e806983c764627"
+  },
+  "Rating_ESRB_E.png": {
+   "bytes": 4514,
+   "sha256": "54bb6c37d28ca49f77fb3160471281fdaadbaeeb111a6134c24338100cc76953"
+  },
+  "Rating_GRB_ALL.png": {
+   "bytes": 4542,
+   "sha256": "a96a42327b2c3463db5f70a5363eee7f57e2df34492dbefa251e9c4b333ed705"
+  },
+  "Rating_OFLC_G.png": {
+   "bytes": 1122,
+   "sha256": "d725cc976bfe14b7754983110ef6e145a2be79b2aa3796dcde4b1b99f6f88462"
+  },
+  "Rating_PEGI_3.png": {
+   "bytes": 14168,
+   "sha256": "72c009171cd142e31407ae5020c5e082044069e5fb5e798e845221749b196816"
+  },
+  "Rating_PEGI_4.png": {
+   "bytes": 14094,
+   "sha256": "45acd7cbfbabe405b73b79b810c64d69104d8df37cac12674a8643df72fa8d21"
+  },
+  "Rating_USK_6.png": {
+   "bytes": 6000,
+   "sha256": "733144b41a7de2583b7258b96fa87034902a7deec3428425159c081ed0be3914"
+  },
+  "default.xex": {
+   "bytes": 7413760,
+   "sha256": "3efca627d60a6425af5c1891e3fe2666bf544b288c3e27e3259fa99ad50c1ee1"
+  }
+ },
+ "db360_memoria": {
+  "base_dados": 56128,
+  "bytes_altos_ptbr": {
+   "0x80": 9,
+   "0x81": 53,
+   "0x82": 8,
+   "0x83": 9,
+   "0x84": 7,
+   "0x85": 12,
+   "0x86": 152,
+   "0x87": 140,
+   "0xC0": 2,
+   "0xC1": 1186,
+   "0xC2": 45,
+   "0xC3": 1576,
+   "0xC7": 630,
+   "0xC9": 982,
+   "0xCA": 1120,
+   "0xCD": 365,
+   "0xD3": 588,
+   "0xD4": 81,
+   "0xD5": 84,
+   "0xDA": 187,
+   "0xDB": 1
+  },
+  "entradas": 14030,
+  "estrutura_igual": 2356,
+  "ordenadas": 12839,
+  "registros": 2356,
+  "registros_A": 1722,
+  "registros_B": 634,
+  "sha256_tabela_e_dados": "d493f814d83b211a80961b458cd9a858d240a9aecfe02632af523793effe0626",
+  "sha256_textos_ptbr": "47f70d0f497e21956cc41aeb20b523fc52b86fecf1f40e71d71353a71bc95c98",
+  "strings_ptbr": 9793,
+  "ultimo_asset": 50067130
+ },
+ "fonte": {
+  "codepoints": 34712,
+  "sha256": "380f125e78756f118d60f8d76d93a7487884fbbfd7786aeaac585ac3fc7c5a28",
+  "tabelas": 7
+ },
+ "x360": {
+  "idiomas": 6,
+  "ptbr": {
+   "8bits": 969,
+   "caracteres": 42610,
+   "nao_ascii": {
+    "U+000A": 177,
+    "U+007F": 2,
+    "U+0080": 8,
+    "U+0081": 66,
+    "U+0084": 7,
+    "U+0085": 37,
+    "U+0086": 33,
+    "U+0087": 42,
+    "U+0088": 65,
+    "U+0089": 8,
+    "U+00BA": 9,
+    "U+00C0": 15,
+    "U+00C1": 135,
+    "U+00C2": 13,
+    "U+00C3": 193,
+    "U+00C7": 120,
+    "U+00C9": 76,
+    "U+00CA": 96,
+    "U+00CD": 43,
+    "U+00D3": 107,
+    "U+00D4": 7,
+    "U+00D5": 24,
+    "U+00DA": 12,
+    "U+00E0": 3,
+    "U+00E1": 8,
+    "U+00E3": 23,
+    "U+00E7": 9,
+    "U+00E9": 3,
+    "U+00EA": 7,
+    "U+00ED": 7,
+    "U+00F3": 2
+   },
+   "sha256_textos": "d5bdbc0a8e70b4b63ff9eaf9e242a9b6eccdcd4ad182e2832b71112c7767f5a3",
+   "utf16": 66,
+   "vazias": 486
+  },
+  "sha256": "5920b7624634fc4e91e5fa7172972401df386de58a499bcfb64083e3e3f7cbe0",
+  "sha256_blocos": [
+   "7aa9c14db57aff03fddc603c77060d9c5d2095e5724e6cde577d97dcd12ccf03",
+   "998629724e691045a70204cb393341f3a0e4ba9793996d634151b9a5fa997216",
+   "3f40c353e83c70b36672b270e6f23003ed1ab18eaac20f335ad650f504792353",
+   "1c0630aff553f8e61552b2a132fbb8cc3bfe73207d392cbe99b014b1c1cde5ba",
+   "2a70a82334f8e12d6d2bafc2cc3e32bbe4ef644ef281afb40f5d36e29e75f5bf",
+   "fdc5bf0968656c02b8d503a70875c6c0b2a094c2a425e81aa45edbb8ed92f90c"
+  ],
+  "strings_por_idioma": 1521,
+  "tamanhos_blocos": [
+   46525,
+   52104,
+   50760,
+   47949,
+   47734,
+   27734
+  ]
+ }
+}

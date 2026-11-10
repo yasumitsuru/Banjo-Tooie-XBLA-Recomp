@@ -13,10 +13,12 @@ include(generated/rexglue.cmake)
 # Sources
 # MISSAO 01: banjotooie_app.cpp (ganchos do host) e port_diagnostics.cpp (preflight, relatorio
 # de boot, falhas, PNG) sao deste projeto; so instrumentacao, sem mudar o jogo.
+# MISSAO 02: port_test_input.cpp = controle virtual so para testes (--port_test_input).
 set(BANJOTOOIE_SOURCES
     src/main.cpp
     src/banjotooie_app.cpp
     src/port_diagnostics.cpp
+    src/port_test_input.cpp
 )
 
 if(WIN32)

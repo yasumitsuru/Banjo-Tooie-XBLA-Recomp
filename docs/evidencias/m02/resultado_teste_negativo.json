@@ -1,0 +1,156 @@
+{
+ "versao": 1,
+ "status": "PASS",
+ "casos": [
+  {
+   "caso": "controle_sem_defeito",
+   "defeito": "nenhuma verificacao falha",
+   "deviam_falhar": [],
+   "falharam": [],
+   "falhas_em_cascata": [],
+   "status": "PASS"
+  },
+  {
+   "caso": "x360_string_cortada_por_zero",
+   "defeito": "string 1: byte do meio trocado por 0",
+   "deviam_falhar": [
+    "B1",
+    "X5"
+   ],
+   "falharam": [
+    "B1",
+    "T2",
+    "X5"
+   ],
+   "falhas_em_cascata": [
+    "T2"
+   ],
+   "status": "PASS"
+  },
+  {
+   "caso": "x360_texto_perdido",
+   "defeito": "string 3 vazia",
+   "deviam_falhar": [
+    "B1",
+    "X8"
+   ],
+   "falharam": [
+    "B1",
+    "X7",
+    "X8"
+   ],
+   "falhas_em_cascata": [
+    "X7"
+   ],
+   "status": "PASS"
+  },
+  {
+   "caso": "x360_marcador_perdido",
+   "defeito": "string 381: um marcador removido",
+   "deviam_falhar": [
+    "B1",
+    "X9"
+   ],
+   "falharam": [
+    "B1",
+    "X9"
+   ],
+   "falhas_em_cascata": [],
+   "status": "PASS"
+  },
+  {
+   "caso": "x360_tamanho_inconsistente",
+   "defeito": "tamanho do bloco 0 + 1 no cabecalho",
+   "deviam_falhar": [
+    "X2"
+   ],
+   "falharam": [
+    "B1",
+    "X2",
+    "X4",
+    "X7",
+    "X9"
+   ],
+   "falhas_em_cascata": [
+    "B1",
+    "X4",
+    "X7",
+    "X9"
+   ],
+   "status": "PASS"
+  },
+  {
+   "caso": "x360_acento_trocado",
+   "defeito": "string 1: 0xC7 -> 0x43 (sem acento)",
+   "deviam_falhar": [
+    "B1"
+   ],
+   "falharam": [
+    "B1"
+   ],
+   "falhas_em_cascata": [],
+   "status": "PASS"
+  },
+  {
+   "caso": "x360_caractere_sem_glifo",
+   "defeito": "string UTF-16 24: 2o caractere -> U+E000",
+   "deviam_falhar": [
+    "B1",
+    "T2"
+   ],
+   "falharam": [
+    "B1",
+    "T2"
+   ],
+   "falhas_em_cascata": [],
+   "status": "PASS"
+  },
+  {
+   "caso": "db_dialogo_cortado",
+   "defeito": "registro +0x1014729: 0 no meio da 1a fala",
+   "deviam_falhar": [
+    "B1",
+    "D3"
+   ],
+   "falharam": [
+    "B1",
+    "D3"
+   ],
+   "falhas_em_cascata": [],
+   "status": "PASS"
+  },
+  {
+   "caso": "visual_configuracoes_trocada",
+   "defeito": "tela 3_menus/ajuda_e_opcoes.png no lugar de configuracoes",
+   "deviam_falhar": [
+    "regressao visual"
+   ],
+   "falharam": [
+    "IoU 0.3274, pixels 1824"
+   ],
+   "status": "PASS"
+  },
+  {
+   "caso": "visual_dialogo_intro_1_trocada",
+   "defeito": "tela 4_dialogo/dialogo_intro_2b.png no lugar de dialogo_intro_1",
+   "deviam_falhar": [
+    "regressao visual"
+   ],
+   "falharam": [
+    "IoU 0.3144, pixels 82940"
+   ],
+   "status": "PASS"
+  },
+  {
+   "caso": "visual_titulo_trocada",
+   "defeito": "tela 3_menus/menu_principal.png no lugar de titulo",
+   "deviam_falhar": [
+    "regressao visual"
+   ],
+   "falharam": [
+    "IoU 0.0, pixels 0"
+   ],
+   "status": "PASS"
+  }
+ ]
+}

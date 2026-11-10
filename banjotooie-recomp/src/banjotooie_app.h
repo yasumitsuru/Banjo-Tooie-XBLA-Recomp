@@ -14,6 +14,7 @@
 #include <memory>
 #include <string>
 #include <thread>
+#include <vector>
 
 #include <rex/rex_app.h>
 
@@ -39,11 +40,34 @@ class BanjotooieApp : public rex::ReXApp {
   void OnShutdown() override;
 
  private:
+  struct CaptureResult {
+    bool ok = false;
+    uint32_t width = 0;
+    uint32_t height = 0;
+    std::string detail;
+  };
+  struct ExtraShot {  // MISSAO 02: --port_test_shots
+    double at_s = 0.0;
+    std::string path;
+    bool taken = false;
+  };
+  struct DumpRange {  // MISSAO 02: --port_dump_ranges
+    uint32_t address = 0;
+    uint32_t size = 0;
+    std::string path;
+  };
+
   void MonitorLoop();
   void TakeScreenshotOnUiThread();
+  CaptureResult CaptureGuestPng(const std::string& path);
+  void DumpDbOnUiThread();      // MISSAO 02: diagnostico (--port_dump_db)
+  void DumpRangesOnUiThread();  // MISSAO 02: diagnostico (--port_dump_ranges)
   void RequestExitOnUiThread(int code, const std::string& reason);
   void StopMonitor();
 
+  std::vector<ExtraShot> extra_shots_;  // so lido/escrito pela thread do monitor
+  std::vector<DumpRange> dump_ranges_;
+  std::atomic<bool> extra_shot_pending_{false};
   bool automated_ = false;           // --screenshot / --smoke_seconds / --preflight_only
   void* previous_foreground_ = nullptr;
   std::thread monitor_;

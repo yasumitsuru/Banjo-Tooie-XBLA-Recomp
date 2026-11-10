@@ -12,8 +12,11 @@ emulador. Os arquivos do jogo não são copiados para o repositório nem alterad
 iguais antes e depois). Segundo a pessoa, o jogo **funciona normalmente**: o menu do próprio jogo
 (o "menu START"), a seleção de save, a introdução, o jogo, o controle/teclado e gravar/carregar.
 Ela também confirma a versão completa, a tradução aplicada, o original em 720p/30 e o uso só
-pessoal (`docs/DECISOES.md`). O teste automatizado do projeto vai até a abertura. **Ainda não
-feitos:** 4K (será pelo sistema gráfico do ReXGlue, por decisão da pessoa) e 60 FPS.
+pessoal (`docs/DECISOES.md`). **Missão 02 (tradução):** a tradução PT-BR foi conferida sem
+alterá-la: estrutura, acentos, fontes e leitura pelo jogo, mais 8 telas reais (abertura, menus,
+seleção de jogo, introdução) com regressão automática (`docs/MISSAO-02-TRADUCAO.md`); nenhuma
+correção foi necessária. **Ainda não feitos:** 4K (será pelo sistema gráfico do ReXGlue, por
+decisão da pessoa) e 60 FPS.
 
 ## Como compilar e rodar
 
@@ -25,6 +28,7 @@ git submodule update --init --recursive        (runtime ReXGlue fixado em 035aa2
 tools\build_port.cmd                           (VS 2022 Build Tools + Clang 19; ~5 min)
 banjotooie-recomp\out\build\win-amd64-release\banjotooie.exe --game_data_root "<pasta com default.xex e RAWFiles>"
 pwsh -File tools\smoke_port.ps1                (teste automatizado: preflight, jogo, captura, falha, hashes)
+pwsh -File tools\test_traducao.ps1             (Missão 02: integridade da tradução + telas PT-BR no jogo; ~5 min)
 ```
 
 Opções do port: `--preflight_only`, `--boot_report <json>`, `--screenshot <png>`,
@@ -33,6 +37,8 @@ Opções do port: `--preflight_only`, `--boot_report <json>`, `--screenshot <png
 
 ## Documentos
 
+- **Missão 02 (tradução PT-BR):** `docs/MISSAO-02-TRADUCAO.md`: arquivos traduzidos, como o jogo os
+  lê, verificações, telas no jogo, teste negativo, matriz e pendências (`docs/evidencias/m02/`)
 - **Missão 01 (port nativo):** `docs/MISSAO-01-PORT-NATIVO.md`: arquitetura, toolchain, mudanças,
   testes com evidências (`docs/evidencias/m01/`), matriz atualizada e pendências
 - **Respostas e decisões da pessoa:** `docs/DECISOES.md` (uso pessoal, versão completa, 720p/30,

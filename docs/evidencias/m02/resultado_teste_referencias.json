@@ -1,0 +1,88 @@
+{
+  "versao": 1,
+  "inicio": "2026-11-10T14:41:54",
+  "exe": "W:\\Decomp\\Banjo 3\\app\\out\\native\\banjotooie.exe",
+  "jogo": "W:\\Decomp\\Banjo 3\\Banjo Tooie BR",
+  "exe_sha256": "e2cb7d92f4f967d563b32f2e14f580123e97551675962bd0464b8e832e357028",
+  "passos": [
+    {
+      "passo": "1_inspecao_estatica_antes",
+      "status": "PASS",
+      "detalhe": "15 PASS, 0 FAIL, 3 PENDENTE"
+    },
+    {
+      "passo": "2_jogo_abertura_com_rastro",
+      "status": "PASS",
+      "detalhe": "codigo 0; 29 s; captura PNG gravado; quadros=826; brilho_medio=59.1; pixels_acesos=65.7%"
+    },
+    {
+      "passo": "2_inspecao_com_memoria_e_rastro",
+      "status": "PASS",
+      "detalhe": "26 PASS, 0 FAIL, 0 PENDENTE"
+    },
+    {
+      "passo": "3_menus_com_controle_virtual",
+      "status": "PASS",
+      "detalhe": "codigo 0; leituras_do_controle=1360 leituras_com_botao=49 apertos: start@26s=entregue down@31s=entregue down@32.5s=entregue down@34s=entregue a@36s=entregue down@41s=entregue down@42.5s=entregue a@44s=entregue"
+    },
+    {
+      "passo": "4_selecao_e_dialogo_com_controle_virtual",
+      "status": "PASS",
+      "detalhe": "codigo 0; leituras_do_controle=1972 leituras_com_botao=18 apertos: start@26s=entregue a@30s=entregue a@36s=entregue"
+    },
+    {
+      "passo": "5_regressao_visual_do_texto",
+      "status": "PENDENTE",
+      "detalhe": "titulo=REFERENCIA_GRAVADA; titulo_copyright=REFERENCIA_GRAVADA; menu_principal=REFERENCIA_GRAVADA; ajuda_e_opcoes=REFERENCIA_GRAVADA; configuracoes=REFERENCIA_GRAVADA; selecao_de_jogo=REFERENCIA_GRAVADA; dialogo_intro_1=REFERENCIA_GRAVADA; dialogo_intro_2=REFERENCIA_GRAVADA"
+    },
+    {
+      "passo": "6_arquivos_do_jogo_intactos",
+      "status": "PASS",
+      "detalhe": "36/36 arquivos com o mesmo sha256 antes e depois"
+    }
+  ],
+  "regressao_visual": [
+    {
+      "tela": "titulo",
+      "status": "REFERENCIA_GRAVADA",
+      "detalhe": "titulo.png (639 pixels de texto); conferir a leitura: PRESSIONE START PARA JOGAR"
+    },
+    {
+      "tela": "titulo_copyright",
+      "status": "REFERENCIA_GRAVADA",
+      "detalhe": "titulo.png (3373 pixels de texto); conferir a leitura: (C) 2009 MICROSOFT - JOAOHRS2. / TODOS OS DIREITOS RESERVADOS."
+    },
+    {
+      "tela": "menu_principal",
+      "status": "REFERENCIA_GRAVADA",
+      "detalhe": "menu_principal.png (1828 pixels de texto); conferir a leitura: JOGAR / CLASSIFICACOES / CONQUISTAS / AJUDA E OPCOES / VOLTAR A BIBLIOTECA DE JOGOS"
+    },
+    {
+      "tela": "ajuda_e_opcoes",
+      "status": "REFERENCIA_GRAVADA",
+      "detalhe": "ajuda_e_opcoes.png (1824 pixels de texto); conferir a leitura: COMO JOGAR / CONTROLES / CONFIGURACOES / CREDITOS"
+    },
+    {
+      "tela": "configuracoes",
+      "status": "REFERENCIA_GRAVADA",
+      "detalhe": "configuracoes.png (2287 pixels de texto); conferir a leitura: VOLUME DA MUSICA / VOLUME DOS EFEITOS SONOROS / RESTAURAR CONFIGURACOES PADRAO / INVERTER EIXO Y : NAO"
+    },
+    {
+      "tela": "selecao_de_jogo",
+      "status": "REFERENCIA_GRAVADA",
+      "detalhe": "selecao_de_jogo.png (4104 pixels de texto); conferir a leitura: PRESSIONE (A) PARA INICIAR O JOGO."
+    },
+    {
+      "tela": "dialogo_intro_1",
+      "status": "REFERENCIA_GRAVADA",
+      "detalhe": "dialogo_intro_1a.png (75574 pixels de texto); conferir a leitura: DOIS ANOS TEM SE PASSADO DESDE QUE GRUNTILDA A BRUXA FOI DERROTADA..."
+    },
+    {
+      "tela": "dialogo_intro_2",
+      "status": "REFERENCIA_GRAVADA",
+      "detalhe": "dialogo_intro_2a.png (82959 pixels de texto); conferir a leitura: APOS CAIR DO TOPO DE SUA TORRE ELA FOI ENTERRADA..."
+    }
+  ],
+  "fim": "2026-11-10T14:44:44",
+  "status": "PASS"
+}

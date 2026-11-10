@@ -1,0 +1,24 @@
+{
+ "descricao": "sha256 das capturas do jogo (as imagens ficam fora do Git, em _audit/out/m02)",
+ "capturas": {
+  "referencias/ajuda_e_opcoes.png": "5f30c571040714fda345ef6f0e6f872ef9e690585d08256ec60267d55243477f",
+  "referencias/configuracoes.png": "72d02ac9b09c57c68b6c33661905486e3ac387666070762be726c6dab926fa26",
+  "referencias/dialogo_intro_1.png": "0db4dabc658b9703a651032b8e044b7932df8ebe6531f207e06fe2990049ecbc",
+  "referencias/dialogo_intro_2.png": "73f4750e3387a32649e07a7c375206ebef0396199a84a4c90ca1a133ff2e4ea2",
+  "referencias/menu_principal.png": "d7d7880941f2ef33c13f0a8065285683c50f70120c655439519b58b86f75aa40",
+  "referencias/selecao_de_jogo.png": "b1b9e9e0a86ebbf9381035bb0a2732999cdf19985882e658498853ee408ef5ba",
+  "referencias/titulo.png": "ae46507963ef7a3bc92ade5804a20ed3a8d68b7e8b209cc01198354effe77195",
+  "referencias/titulo_copyright.png": "ae46507963ef7a3bc92ade5804a20ed3a8d68b7e8b209cc01198354effe77195",
+  "teste-final-20261110/2_rastro/titulo.png": "ce763bb23e73d9b5108d697a70fdc07f1480d37cf37ff55dd9dfee95c09c769b",
+  "teste-final-20261110/3_menus/ajuda_e_opcoes.png": "5f30c571040714fda345ef6f0e6f872ef9e690585d08256ec60267d55243477f",
+  "teste-final-20261110/3_menus/configuracoes.png": "25d3faab4266201d016ebb6f05ec56a8d71912ede90217702abfcbca2e844915",
+  "teste-final-20261110/3_menus/menu_principal.png": "d7d7880941f2ef33c13f0a8065285683c50f70120c655439519b58b86f75aa40",
+  "teste-final-20261110/4_dialogo/dialogo_intro_1a.png": "583bd16a8df1352619019871ae2c0b22eeee7834c9956c6c66e210a0836a4ec5",
+  "teste-final-20261110/4_dialogo/dialogo_intro_1b.png": "3a9b50b89636f0661ca9e4bd589cadd67955646f13ca46645ce2e0295a901ba0",
+  "teste-final-20261110/4_dialogo/dialogo_intro_1c.png": "afb16c8efcb6e31ed9bbc4dfcaea2978cc0a951a22d680b58e0fdf52f4abcf1a",
+  "teste-final-20261110/4_dialogo/dialogo_intro_2a.png": "e0dd20752baa7593d9d22bcec1cf03923a6819fa331355b5510f75a0b710ab3e",
+  "teste-final-20261110/4_dialogo/dialogo_intro_2b.png": "0bb97c515dc49c3460ceb15513eb5fbd292890717a687d0b13225ae73fce7c38",
+  "teste-final-20261110/4_dialogo/dialogo_intro_2c.png": "eac4bc535dab4c9d134423e73a6fcb9f32247410a943d147b837b2752275076f",
+  "teste-final-20261110/4_dialogo/selecao_de_jogo.png": "f8f771a6a908c70f18c9bf22b3daf12f41026b1fd5e5aa091f0bf596596e9a89"
+ }
+}

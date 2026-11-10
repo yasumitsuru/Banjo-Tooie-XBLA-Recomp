@@ -13,16 +13,27 @@
 //   --background_window         abre a janela atras das outras e devolve o foco
 //   --port_silent               sem caixas de mensagem (testes)
 //   --port_test_crash           SO TESTE: forca uma falha para provar o minidump/relatorio
+//
+// MISSAO 02 (integridade da traducao PT-BR) - so testes, todas desligadas por padrao:
+//   --port_test_input <roteiro> controle virtual que aperta botoes em tempos fixos (ver
+//                               port_test_input.h), para os testes chegarem aos menus sozinhos
+//   --port_test_shots <lista>   capturas extras sem sair: "segundos=arquivo.png;..."
+//   --port_dump_db <arq>        na captura final, grava o db360 como o jogo o tem na memoria
+//   --port_dump_ranges <lista>  na captura final, grava faixas da memoria do jogo:
+//                               "0xENDERECO:0xTAMANHO=arquivo;..." (so leitura)
 
 #include "generated/default/banjotooie_init.h"
 
 #include "banjotooie_app.h"
 #include "port_diagnostics.h"
+#include "port_test_input.h"
 
 #include <rex/cvar.h>
 #include <rex/filesystem.h>
 #include <rex/graphics/graphics_system.h>
+#include <rex/input/input_system.h>
 #include <rex/logging.h>
+#include <rex/system/xmemory.h>
 #include <rex/system/xthread.h>
 #include <rex/ui/presenter.h>
 #include <rex/ui/window_win.h>
@@ -33,6 +44,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <filesystem>
+#include <fstream>
 
 #ifndef NOMINMAX
 #define NOMINMAX
@@ -57,8 +69,26 @@ REXCVAR_DEFINE_BOOL(port_test_crash, false, "Port",
                     "SO TESTE: provoca a excecao 0xE0425442 numa thread 1 s apos iniciar o jogo, "
                     "para provar que o relatorio de falha e o minidump funcionam");
 
+REXCVAR_DEFINE_STRING(port_dump_db, "", "Port",
+                      "DIAGNOSTICO (Missao 02): no momento da captura, grava neste arquivo o buffer "
+                      "do db360.cmp como o jogo o tem na memoria (so leitura da memoria do jogo)");
+REXCVAR_DEFINE_STRING(port_dump_ranges, "", "Port",
+                      "DIAGNOSTICO (Missao 02): na captura final, grava faixas da memoria do jogo "
+                      "('0xENDERECO:0xTAMANHO=arquivo;...'), so leitura");
+REXCVAR_DEFINE_STRING(port_test_input, "", "Port",
+                      "SO TESTE (Missao 02): controle virtual com roteiro 'botao@segundos[:ms],...' "
+                      "contado do inicio do jogo; substitui os controles reais");
+REXCVAR_DEFINE_STRING(port_test_shots, "", "Port",
+                      "SO TESTE (Missao 02): capturas extras sem sair, 'segundos=arquivo.png;...'");
+
 namespace {
 constexpr DWORD kTestCrashCode = 0xE0425442;  // codigo de cliente (bit 29), 'BTB'
+constexpr int kExitBadTestOption = 6;         // opcao de teste invalida (antes da janela)
+// Globais do jogo (MISSAO 02, Ghidra + codigo gerado): 0x82220790 grava o ponteiro do buffer
+// lido de db360.cmp em 0x8269EE80 e (buffer + 8) em 0x826CC034, usado como tabela de assets.
+constexpr uint32_t kGuestDbRawPtr = 0x8269EE80;
+constexpr uint32_t kGuestDbTablePtr = 0x826CC034;
+constexpr uint32_t kGuestDbDataBasePtr = 0x826746E0;
 }
 
 namespace fs = std::filesystem;
@@ -75,6 +105,31 @@ std::string Utf8CommandLine() {
 
 port::PreflightResult g_preflight;
 
+// "a=b;c=d" -> pares (a, b). Itens vazios sao ignorados.
+std::vector<std::pair<std::string, std::string>> SplitPairs(const std::string& s) {
+  std::vector<std::pair<std::string, std::string>> out;
+  size_t start = 0;
+  while (start < s.size()) {
+    size_t semi = s.find(';', start);
+    if (semi == std::string::npos) semi = s.size();
+    const std::string item = s.substr(start, semi - start);
+    start = semi + 1;
+    const size_t eq = item.find('=');
+    if (item.empty()) continue;
+    out.emplace_back(item.substr(0, eq), eq == std::string::npos ? "" : item.substr(eq + 1));
+  }
+  return out;
+}
+
+[[noreturn]] void ExitBadTestOption(const std::string& what) {
+  auto& rep = port::BootReport::Get();
+  rep.Stage("test_option_invalid", what);
+  rep.SetExit(kExitBadTestOption, "opcao de teste invalida: " + what);
+  std::fprintf(stderr, "[banjotooie] opcao de teste invalida: %s\n", what.c_str());
+  std::fflush(stderr);
+  std::exit(kExitBadTestOption);
+}
+
 }  // namespace
 
 BanjotooieApp::~BanjotooieApp() { StopMonitor(); }
@@ -88,7 +143,8 @@ void BanjotooieApp::OnConfigurePaths(rex::PathConfig& paths) {
   port::InstallCrashHandler(rep.path().parent_path() / "crashdumps");
 
   automated_ = REXCVAR_GET(preflight_only) || !REXCVAR_GET(screenshot).empty() ||
-               REXCVAR_GET(smoke_seconds) > 0.0 || REXCVAR_GET(port_test_crash);
+               REXCVAR_GET(smoke_seconds) > 0.0 || REXCVAR_GET(port_test_crash) ||
+               !REXCVAR_GET(port_test_input).empty();
   const bool silent = REXCVAR_GET(port_silent) || automated_;
 
   rep.SetInfo("command_line", Utf8CommandLine());
@@ -138,11 +194,49 @@ void BanjotooieApp::OnPostInitLogging() {
 }
 
 void BanjotooieApp::OnPreSetup(rex::RuntimeConfig& config) {
-  (void)config;
+  auto& rep = port::BootReport::Get();
+  // MISSAO 02: opcoes de teste conferidas antes da janela; invalida = sai com codigo 6.
+  for (const auto& [when, file] : SplitPairs(REXCVAR_GET(port_test_shots))) {
+    char* end = nullptr;
+    const double s = std::strtod(when.c_str(), &end);
+    if (when.empty() || !end || *end || s < 0 || file.empty()) {
+      ExitBadTestOption("port_test_shots: '" + when + "=" + file + "'");
+    }
+    extra_shots_.push_back({s, file, false});
+  }
+  for (const auto& [range, file] : SplitPairs(REXCVAR_GET(port_dump_ranges))) {
+    const size_t colon = range.find(':');
+    char* e1 = nullptr;
+    char* e2 = nullptr;
+    const unsigned long long addr = std::strtoull(range.substr(0, colon).c_str(), &e1, 0);
+    const unsigned long long size =
+        colon == std::string::npos ? 0 : std::strtoull(range.substr(colon + 1).c_str(), &e2, 0);
+    if (!e1 || *e1 || !e2 || *e2 || !size || addr + size > 0x100000000ull || file.empty()) {
+      ExitBadTestOption("port_dump_ranges: '" + range + "=" + file + "'");
+    }
+    dump_ranges_.push_back({uint32_t(addr), uint32_t(size), file});
+  }
+  const std::string script = REXCVAR_GET(port_test_input);
+  if (!script.empty()) {
+    std::string error;
+    if (!port::ParseTestInputScript(script, &port::GetTestInputState().presses, &error)) {
+      ExitBadTestOption("port_test_input: " + error);
+    }
+    // Driver de entrada oficial do SDK: o jogo le o controle pelo caminho normal.
+    config.input_factory = [](bool) -> std::unique_ptr<rex::system::IInputSystem> {
+      auto input = std::make_unique<rex::input::InputSystem>(nullptr);
+      input->AddDriver(port::CreateTestInputDriver());
+      return input;
+    };
+    rep.SetInfo("test_input", script);
+    rep.Stage("test_input_armed", fmt::format("{} apertos roteirizados; controles reais "
+                                              "desligados nesta execucao",
+                                              port::GetTestInputState().presses.size()));
+  }
   if (REXCVAR_GET(background_window) || automated_) {
     previous_foreground_ = GetForegroundWindow();
   }
-  port::BootReport::Get().Stage("presentation_setup");
+  rep.Stage("presentation_setup");
 }
 
 void BanjotooieApp::OnCreateDialogs(rex::ui::ImGuiDrawer* drawer) {
@@ -166,6 +260,9 @@ void BanjotooieApp::OnPostLoadXexImage() {
 void BanjotooieApp::OnPostLaunchModule(rex::system::XThread* thread) {
   (void)thread;
   launch_time_ = std::chrono::steady_clock::now();
+  // Origem do roteiro de teste (MISSAO 02): os tempos contam daqui, como --screenshot_seconds.
+  port::GetTestInputState().origin_ns.store(launch_time_.time_since_epoch().count(),
+                                            std::memory_order_release);
   port::BootReport::Get().Stage("module_launched");
   REXLOG_INFO("[port] modulo iniciado; monitor de quadros ativo");
   stop_monitor_ = false;
@@ -188,6 +285,9 @@ void BanjotooieApp::OnGuestThreadExit(rex::system::XThread* thread) {
 void BanjotooieApp::OnShutdown() {
   StopMonitor();
   auto& rep = port::BootReport::Get();
+  if (!REXCVAR_GET(port_test_input).empty()) {
+    rep.Stage("test_input", port::TestInputSummary());
+  }
   rep.Stage("shutdown");
   if (!exit_requested_) {
     rep.SetExit(port::kExitOk, "encerrado normalmente (janela fechada ou fim do jogo)");
@@ -230,6 +330,22 @@ void BanjotooieApp::MonitorLoop() {
       rep.SetFrames(frames, fps, elapsed);
     }
     if (exit_posted) continue;
+    // MISSAO 02: capturas extras (sem sair), na ordem; uma por vez na thread da interface.
+    for (auto& es : extra_shots_) {
+      if (!es.taken && !extra_shot_pending_ && frames > 0 && elapsed >= es.at_s) {
+        es.taken = true;
+        extra_shot_pending_ = true;
+        const std::string path = es.path;
+        app_context().CallInUIThread([this, path] {
+          const CaptureResult r = CaptureGuestPng(path);
+          auto& report = port::BootReport::Get();
+          report.Stage("test_shot", fmt::format("{} ({}x{}) {}", path, r.width, r.height, r.detail));
+          REXLOG_INFO("[port] captura extra: {} ({}x{}) {}", path, r.width, r.height, r.detail);
+          extra_shot_pending_ = false;
+        });
+        break;
+      }
+    }
     if (!shot.empty() && !screenshot_pending_ && !screenshot_done_ && frames >= shot_frames &&
         elapsed >= shot_seconds) {
       screenshot_pending_ = true;
@@ -257,42 +373,134 @@ void BanjotooieApp::MonitorLoop() {
                 std::chrono::duration<double>(clock::now() - launch_time_).count());
 }
 
-void BanjotooieApp::TakeScreenshotOnUiThread() {
+void BanjotooieApp::DumpDbOnUiThread() {
+  const std::string out = REXCVAR_GET(port_dump_db);
+  if (out.empty() || !runtime() || !runtime()->memory()) return;
   auto& rep = port::BootReport::Get();
-  const std::string path = REXCVAR_GET(screenshot);
-  rex::ui::RawImage image;
-  bool ok = false;
+  auto* mem = runtime()->memory();
+  auto be32 = [&](uint32_t guest) {
+    const uint8_t* p = mem->TranslateVirtual<const uint8_t*>(guest);
+    return (uint32_t(p[0]) << 24) | (uint32_t(p[1]) << 16) | (uint32_t(p[2]) << 8) | p[3];
+  };
+  const uint32_t raw = be32(kGuestDbRawPtr);
+  const uint32_t table = be32(kGuestDbTablePtr);
+  // Base dos dados (0x82265DE0 grava raw + 0xDB40 em 0x826746E0; 0x82265B98 soma (entrada>>6)).
+  const uint32_t data_base = be32(kGuestDbDataBasePtr);
+  std::error_code ec;
+  const uint64_t file_size = fs::file_size(game_data_root() / "RAWFiles" / "db360.cmp", ec);
   std::string detail;
+  bool ok = false;
+  if (!raw || !table || ec || !file_size) {
+    detail = fmt::format("sem buffer (raw=0x{:08X}, tamanho={})", raw, ec ? 0 : file_size);
+  } else {
+    // Tabela: entradas u32 BE em table enquanto (entrada>>6) nao diminui, ate a base dos dados.
+    uint32_t count = 0, last = 0;
+    const uint32_t max_entries = data_base > table ? (data_base - table) / 4 : 0;
+    for (; count < max_entries; ++count) {
+      const uint32_t v = be32(table + count * 4) >> 6;
+      if (count && v < last) break;
+      last = v;
+    }
+    // Copia de raw ate o fim do ultimo asset (ou o tamanho do arquivo), so paginas confirmadas
+    // como mapeadas no host (VirtualQuery), para nunca ler memoria invalida.
+    uint64_t want = std::max<uint64_t>(file_size, uint64_t(data_base - raw) + last + 0x10000);
+    const uint8_t* host = mem->TranslateVirtual<const uint8_t*>(raw);
+    uint64_t readable = 0;
+    while (readable < want) {
+      MEMORY_BASIC_INFORMATION mbi{};
+      if (!VirtualQuery(host + readable, &mbi, sizeof(mbi)) || mbi.State != MEM_COMMIT ||
+          (mbi.Protect & (PAGE_NOACCESS | PAGE_GUARD))) {
+        break;
+      }
+      readable = uint64_t(static_cast<const uint8_t*>(mbi.BaseAddress) + mbi.RegionSize - host);
+    }
+    const uint64_t size = std::min(want, readable);
+    std::ofstream f(fs::path(out), std::ios::binary | std::ios::trunc);
+    f.write(reinterpret_cast<const char*>(host), std::streamsize(size));
+    ok = bool(f);
+    detail = fmt::format(
+        "raw=0x{:08X} tabela=0x{:08X} (raw+{}) dados=0x{:08X} (raw+0x{:X}) entradas={} "
+        "ultimo_desloc=0x{:X} tamanho_arquivo={} bytes_copiados={} gravado={}",
+        raw, table, int64_t(table) - int64_t(raw), data_base, data_base - raw, count, last,
+        file_size, size, ok);
+  }
+  rep.SetInfo("db_dump", out);
+  rep.Stage("db_dump", detail);
+  REXLOG_INFO("[port] dump do db360 na memoria: {}", detail);
+}
+
+void BanjotooieApp::DumpRangesOnUiThread() {
+  if (dump_ranges_.empty() || !runtime() || !runtime()->memory()) return;
+  auto& rep = port::BootReport::Get();
+  auto* mem = runtime()->memory();
+  for (const auto& r : dump_ranges_) {
+    // So paginas confirmadas como mapeadas no host (VirtualQuery): nunca le memoria invalida.
+    const uint8_t* host = mem->TranslateVirtual<const uint8_t*>(r.address);
+    uint64_t readable = 0;
+    while (readable < r.size) {
+      MEMORY_BASIC_INFORMATION mbi{};
+      if (!VirtualQuery(host + readable, &mbi, sizeof(mbi)) || mbi.State != MEM_COMMIT ||
+          (mbi.Protect & (PAGE_NOACCESS | PAGE_GUARD))) {
+        break;
+      }
+      readable = uint64_t(static_cast<const uint8_t*>(mbi.BaseAddress) + mbi.RegionSize - host);
+    }
+    const uint64_t size = std::min<uint64_t>(r.size, readable);
+    std::ofstream f(fs::path(r.path), std::ios::binary | std::ios::trunc);
+    f.write(reinterpret_cast<const char*>(host), std::streamsize(size));
+    const std::string detail = fmt::format("0x{:08X}+0x{:X} -> {} ({} bytes copiados, gravado={})",
+                                           r.address, r.size, r.path, size, bool(f));
+    rep.Stage("range_dump", detail);
+    REXLOG_INFO("[port] dump de memoria: {}", detail);
+  }
+}
+
+BanjotooieApp::CaptureResult BanjotooieApp::CaptureGuestPng(const std::string& path) {
+  CaptureResult r;
+  rex::ui::RawImage image;
   auto* gs = runtime() ? static_cast<rex::graphics::GraphicsSystem*>(runtime()->graphics_system())
                        : nullptr;
   if (!gs || !gs->presenter()) {
-    detail = "sem presenter";
-  } else if (!gs->presenter()->CaptureGuestOutput(image) || image.data.empty()) {
-    detail = "CaptureGuestOutput falhou (ainda sem imagem do jogo?)";
-  } else {
-    // Brilho medio e fracao de pixels nao pretos: prova de que a imagem nao esta vazia.
-    uint64_t sum = 0, lit = 0;
-    for (uint32_t y = 0; y < image.height; ++y) {
-      const uint8_t* row = image.data.data() + size_t(y) * image.stride;
-      for (uint32_t x = 0; x < image.width; ++x) {
-        const uint32_t l = (uint32_t(row[x * 4]) * 2126 + uint32_t(row[x * 4 + 1]) * 7152 +
-                            uint32_t(row[x * 4 + 2]) * 722) / 10000;
-        sum += l;
-        lit += l > 16 ? 1 : 0;
-      }
-    }
-    const double px = double(image.width) * image.height;
-    ok = port::WritePngRgbx(path, image.data.data(), image.width, image.height, image.stride);
-    detail = fmt::format("{}; quadros={}; brilho_medio={:.1f}; pixels_acesos={:.1f}%",
-                         ok ? "PNG gravado" : "falha ao gravar PNG",
-                         port::GuestPresentCount().load(), sum / px, 100.0 * lit / px);
+    r.detail = "sem presenter";
+    return r;
   }
-  rep.SetScreenshot(path, image.width, image.height, ok, detail);
-  REXLOG_INFO("[port] captura: {} ({}x{}) {}", path, image.width, image.height, detail);
+  if (!gs->presenter()->CaptureGuestOutput(image) || image.data.empty()) {
+    r.detail = "CaptureGuestOutput falhou (ainda sem imagem do jogo?)";
+    return r;
+  }
+  r.width = image.width;
+  r.height = image.height;
+  // Brilho medio e fracao de pixels nao pretos: prova de que a imagem nao esta vazia.
+  uint64_t sum = 0, lit = 0;
+  for (uint32_t y = 0; y < image.height; ++y) {
+    const uint8_t* row = image.data.data() + size_t(y) * image.stride;
+    for (uint32_t x = 0; x < image.width; ++x) {
+      const uint32_t l = (uint32_t(row[x * 4]) * 2126 + uint32_t(row[x * 4 + 1]) * 7152 +
+                          uint32_t(row[x * 4 + 2]) * 722) / 10000;
+      sum += l;
+      lit += l > 16 ? 1 : 0;
+    }
+  }
+  const double px = double(image.width) * image.height;
+  r.ok = port::WritePngRgbx(path, image.data.data(), image.width, image.height, image.stride);
+  r.detail = fmt::format("{}; quadros={}; brilho_medio={:.1f}; pixels_acesos={:.1f}%",
+                         r.ok ? "PNG gravado" : "falha ao gravar PNG",
+                         port::GuestPresentCount().load(), sum / px, 100.0 * lit / px);
+  return r;
+}
+
+void BanjotooieApp::TakeScreenshotOnUiThread() {
+  DumpDbOnUiThread();
+  DumpRangesOnUiThread();
+  auto& rep = port::BootReport::Get();
+  const std::string path = REXCVAR_GET(screenshot);
+  const CaptureResult cap = CaptureGuestPng(path);
+  rep.SetScreenshot(path, cap.width, cap.height, cap.ok, cap.detail);
+  REXLOG_INFO("[port] captura: {} ({}x{}) {}", path, cap.width, cap.height, cap.detail);
   screenshot_done_ = true;
   screenshot_pending_ = false;
   if (REXCVAR_GET(smoke_seconds) <= 0.0) {
-    RequestExitOnUiThread(ok ? port::kExitOk : port::kExitScreenshotFailed,
+    RequestExitOnUiThread(cap.ok ? port::kExitOk : port::kExitScreenshotFailed,
                           "captura de tela concluida");
   }
 }

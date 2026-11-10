@@ -1,0 +1,88 @@
+{
+  "versao": 1,
+  "inicio": "2026-11-10T14:49:22",
+  "exe": "W:\\Decomp\\Banjo 3\\app\\out\\native\\banjotooie.exe",
+  "jogo": "W:\\Decomp\\Banjo 3\\Banjo Tooie BR",
+  "exe_sha256": "e2cb7d92f4f967d563b32f2e14f580123e97551675962bd0464b8e832e357028",
+  "passos": [
+    {
+      "passo": "1_inspecao_estatica_antes",
+      "status": "PASS",
+      "detalhe": "16 PASS, 0 FAIL, 3 PENDENTE"
+    },
+    {
+      "passo": "2_jogo_abertura_com_rastro",
+      "status": "PASS",
+      "detalhe": "codigo 0; 29 s; captura PNG gravado; quadros=830; brilho_medio=58.4; pixels_acesos=65.6%"
+    },
+    {
+      "passo": "2_inspecao_com_memoria_e_rastro",
+      "status": "PASS",
+      "detalhe": "28 PASS, 0 FAIL, 0 PENDENTE"
+    },
+    {
+      "passo": "3_menus_com_controle_virtual",
+      "status": "PASS",
+      "detalhe": "codigo 0; leituras_do_controle=1359 leituras_com_botao=47 apertos: start@26s=entregue down@31s=entregue down@32.5s=entregue down@34s=entregue a@36s=entregue down@41s=entregue down@42.5s=entregue a@44s=entregue"
+    },
+    {
+      "passo": "4_selecao_e_dialogo_com_controle_virtual",
+      "status": "PASS",
+      "detalhe": "codigo 0; leituras_do_controle=1975 leituras_com_botao=18 apertos: start@26s=entregue a@30s=entregue a@36s=entregue"
+    },
+    {
+      "passo": "5_regressao_visual_do_texto",
+      "status": "PASS",
+      "detalhe": "titulo=PASS; titulo_copyright=PASS; menu_principal=PASS; ajuda_e_opcoes=PASS; configuracoes=PASS; selecao_de_jogo=PASS; dialogo_intro_1=PASS; dialogo_intro_2=PASS"
+    },
+    {
+      "passo": "6_arquivos_do_jogo_intactos",
+      "status": "PASS",
+      "detalhe": "36/36 arquivos com o mesmo sha256 antes e depois"
+    }
+  ],
+  "regressao_visual": [
+    {
+      "tela": "titulo",
+      "status": "PASS",
+      "detalhe": "IoU do texto 0,9798 (minimo 0,75); pixels ref/novo 639/636 (minimo 300); captura titulo.png; esperado: PRESSIONE START PARA JOGAR"
+    },
+    {
+      "tela": "titulo_copyright",
+      "status": "PASS",
+      "detalhe": "IoU do texto 0,9649 (minimo 0,75); pixels ref/novo 3373/3408 (minimo 300); captura titulo.png; esperado: (C) 2009 MICROSOFT - JOAOHRS2. / TODOS OS DIREITOS RESERVADOS."
+    },
+    {
+      "tela": "menu_principal",
+      "status": "PASS",
+      "detalhe": "IoU do texto 1 (minimo 0,75); pixels ref/novo 1828/1828 (minimo 300); captura menu_principal.png; esperado: JOGAR / CLASSIFICACOES / CONQUISTAS / AJUDA E OPCOES / VOLTAR A BIBLIOTECA DE JOGOS"
+    },
+    {
+      "tela": "ajuda_e_opcoes",
+      "status": "PASS",
+      "detalhe": "IoU do texto 1 (minimo 0,75); pixels ref/novo 1824/1824 (minimo 300); captura ajuda_e_opcoes.png; esperado: COMO JOGAR / CONTROLES / CONFIGURACOES / CREDITOS"
+    },
+    {
+      "tela": "configuracoes",
+      "status": "PASS",
+      "detalhe": "IoU do texto 1 (minimo 0,75); pixels ref/novo 2287/2287 (minimo 300); captura configuracoes.png; esperado: VOLUME DA MUSICA / VOLUME DOS EFEITOS SONOROS / RESTAURAR CONFIGURACOES PADRAO / INVERTER EIXO Y : NAO"
+    },
+    {
+      "tela": "selecao_de_jogo",
+      "status": "PASS",
+      "detalhe": "IoU do texto 0,9978 (minimo 0,75); pixels ref/novo 4104/4103 (minimo 300); captura selecao_de_jogo.png; esperado: PRESSIONE (A) PARA INICIAR O JOGO."
+    },
+    {
+      "tela": "dialogo_intro_1",
+      "status": "PASS",
+      "detalhe": "IoU do texto 0,9989 (minimo 0,75); pixels ref/novo 75574/75492 (minimo 300); captura dialogo_intro_1a.png; esperado: DOIS ANOS TEM SE PASSADO DESDE QUE GRUNTILDA A BRUXA FOI DERROTADA..."
+    },
+    {
+      "tela": "dialogo_intro_2",
+      "status": "PASS",
+      "detalhe": "IoU do texto 0,9999 (minimo 0,75); pixels ref/novo 82959/82959 (minimo 300); captura dialogo_intro_2a.png; esperado: APOS CAIR DO TOPO DE SUA TORRE ELA FOI ENTERRADA..."
+    }
+  ],
+  "fim": "2026-11-10T14:52:12",
+  "status": "PASS"
+}

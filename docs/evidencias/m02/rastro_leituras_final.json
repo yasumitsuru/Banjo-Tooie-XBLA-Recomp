@@ -1,0 +1,49 @@
+{
+ "arquivos": {
+  "rawfiles\\arcadewide.ptc": {
+   "aberturas": 2,
+   "leituras": 2,
+   "bytes_lidos": 199114,
+   "tamanho": 99557
+  },
+  "rawfiles\\banjo2_360.ctl": {
+   "aberturas": 2,
+   "leituras": 2,
+   "bytes_lidos": 319064,
+   "tamanho": 187992
+  },
+  "rawfiles\\banjo2_360.tbl": {
+   "aberturas": 2,
+   "leituras": 2,
+   "bytes_lidos": 14686252,
+   "tamanho": 14555180
+  },
+  "rawfiles\\db360.cmp": {
+   "aberturas": 1,
+   "leituras": 96,
+   "bytes_lidos": 12525322,
+   "tamanho": 12525322
+  },
+  "rawfiles\\db360.textures.cmp": {
+   "aberturas": 1,
+   "leituras": 387,
+   "bytes_lidos": 50625264,
+   "tamanho": 50625264
+  },
+  "rawfiles\\x360_strings.dat": {
+   "aberturas": 1,
+   "leituras": 6,
+   "bytes_lidos": 59392,
+   "tamanho": 427089
+  },
+  "rawfiles\\xarialuni.ttf": {
+   "aberturas": 1,
+   "leituras": 44,
+   "bytes_lidos": 289604,
+   "tamanho": 6608540
+  }
+ },
+ "falhas": {
+  "GAME:\\RAWFiles\\db360_TexFileList.txt": "0xc000000f"
+ }
+}

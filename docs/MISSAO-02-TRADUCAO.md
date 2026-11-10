@@ -14,7 +14,8 @@ no jogo real, teste negativo) e as **opções de teste** do port que a tornam po
 (Spiral Mountain) e conferir o **menu de pausa (START)**, três submenus, uma **mensagem do sistema**
 e uma **fala do Bottles com ícone de botão** — 6 telas novas, todas em PT-BR com acentos
 (§6.2). A regressão visual ganhou nota **por linha de texto** (um item de menu ou o fim de uma frase
-sumido agora reprova) e o teste negativo foi de 11/11 para **20/20**. Continua sem nenhuma correção
+sumido agora reprova), o teste negativo foi de 11/11 para **22/22** e a regra real de idioma, lida
+no código do jogo, virou a verificação **L1** (§3, `MECHANICS.md` §11). Continua sem nenhuma correção
 nos dados ou no port: só ferramentas de teste mudaram.
 
 ## 1. Ponto de restauração (rollback)
@@ -51,6 +52,11 @@ Detalhes do carregamento (medidos):
 - **Idioma:** o jogo lê o idioma em `ExGetXConfigSetting` (auditoria, `0x825B1FA8`); o runtime
   responde com `user_language`, que vale **1 (inglês) por padrão** (`rexglue-sdk/src/kernel/xam/xam_user.cpp:31`).
   A tradução ocupa o espaço do inglês, por isso o PT-BR aparece sem nenhuma configuração.
+  **Rodada 2 (código lido):** `0x8227D2D0` converte o idioma num código interno e `main`
+  (`0x8227D9F0`) escolhe o bloco: inglês e **qualquer idioma que não seja JA/DE/FR/ES/IT** (códigos
+  1 e 7–12) → bloco 0 (PT-BR); o carregador `0x822E9C90` lê só esse bloco. O mesmo código interno vai
+  para a variável `0xC0D` do jogo, que escolhe o espaço de idioma dos diálogos e é regravada a cada
+  carregamento do save (`MECHANICS.md` §11).
   Experimento (`_audit/out/m02/exp5_lang7`, `exp6_lang3`): com `--user_language 7` o jogo ainda lê o
   bloco 0 (PT-BR); com `--user_language 3` lê o bloco do alemão. **Risco:** mudar `user_language`
   tira o PT-BR (ver §8).
@@ -84,6 +90,7 @@ nos arquivos). Verificações automáticas de `tools/m02/traducao.py`, todas **P
 | M1 | bloco PT-BR do X360_strings na memória do jogo idêntico ao arquivo | 46.525 B achados intactos |
 | R1–R5 | o jogo lê o bloco PT-BR e nenhum outro idioma; lê os arquivos traduzidos; nenhuma abertura falha (fora a lista opcional); db360.cmp e db360.textures.cmp lidos por inteiro | PASS |
 | B1 | regressão: hashes, contagens e hashes dos textos iguais à linha de base | 0 diferenças |
+| L1 (rodada 2) | o `user_language` que o port entrega (`banjotooie.toml` ao lado do exe, senão o padrão do runtime), passado pela regra real do jogo (`0x825B1FA8` → `0x8227D2D0` → `0x8227D9F0`), escolhe o bloco 0 e o espaço 0 dos diálogos (PT-BR); os rótulos de idioma do verificador conferem com o código | user_language=1 → código interno 0 → bloco 0; rótulos 6/6 |
 
 Observações (não são defeitos, nada foi alterado):
 - `X360_strings.dat` tem 117.751 bytes depois dos 6 blocos (92,8% zeros) que o jogo não lê.
@@ -124,6 +131,10 @@ serem conteúdo do jogo.
 | `.gitignore` | ignora em `docs/evidencias/` as saídas do teste que são conteúdo do jogo (`*.bin`, `textos_*_ptbr.txt`, pastas `user/` e `cache/`) |
 | `_audit/m02/explorar_jogo.ps1`, `_audit/m02/folha_contato.py` (novos) | exploração: capturas a cada N segundos com o controle virtual e folhas de miniaturas para achar as telas |
 | `docs/evidencias/m02/*_r2.json` (novos) | resultados da rodada 2 (status, IoU, hashes; sem imagens nem textos do jogo) |
+| `MECHANICS.md` §11, `mechanics.json` (novo) | regras reais lidas no `default.xex` (Ghidra): formato e carregador do `X360_strings.dat`, tabela idioma → bloco, variável `0xC0D` dos diálogos, carregador do `db360`, com endereço e evidência de cada uma |
+| `tools/m02/traducao.py` | verificação **L1** com a tabela real de idioma do jogo e opção `--exe` |
+| `tools/test_traducao.ps1` | passa `--exe` à inspeção (a L1 lê o `banjotooie.toml` ao lado do exe) |
+| `tools/m02/teste_negativo.py` | casos `runtime_idioma_alemao` (`user_language = 3`) e `runtime_idioma_invalido` (`0`) |
 
 ## 6. Teste automático — `pwsh -File tools\test_traducao.ps1`
 
@@ -154,7 +165,8 @@ exige ao menos 300 pixels de texto dos dois lados (duas telas sem texto não con
 | final (ferramentas na versão do commit) | `teste-final-20261110` | **PASS 7/7** (§6.1) |
 | rodada 2: gravação só das referências novas (`-GravarReferenciasNovas`) | `../m02r2/teste-ref-r2` | PASS; 8 telas antigas PASS, 6 referências novas gravadas e conferidas a olho |
 | rodada 2: regressão (exe recompilado pelo Craft, `e69cd4ad…`) | `../m02r2/teste-regressao-r2` | **PASS 8/8**; 14/14 telas |
-| rodada 2: final (ferramentas na versão do commit) | `../m02r2/teste-final-r2` | **PASS 8/8**; 15/15 comparações (§6.2) |
+| rodada 2: final antes da descompilação | `../m02r2/teste-final-r2` | **PASS 8/8**; 15/15 comparações |
+| rodada 2: final com a verificação L1 (port recompilado, ferramentas na versão do commit) | `../m02r2/teste-final-r2b` | **PASS 8/8**; 15/15 comparações; L1 PASS (§6.2) |
 
 ### 6.1 Rodada final (14:49–14:52, exe sha256 `e2cb7d92…`) — **PASS 7/7**
 
@@ -196,7 +208,7 @@ build **PASS** (`npm run build` → CMake/Ninja real, com o código desta missã
 | pausa → SAIR DO JOGO | SAIR DO JOGO / VOCÊ TEM CERTEZA? / SIM / NÃO |
 | fala do Bottles (db360, no jogo) | TERRA. PRESSIONE (ícone B) PARA INTERAGIR COM ELES |
 
-### 6.2 Rodada 2 — parte jogável (20:26–20:31, exe sha256 `e69cd4ad…`) — **PASS 8/8**
+### 6.2 Rodada 2 — parte jogável (20:45–20:50, exe sha256 `3e3af0c2…`) — **PASS 8/8**
 
 Tempos medidos em seis execuções de calibração (`_audit/out/m02r2/exp1`–`exp6`, capturas a cada
 0,5–3 s com `_audit/m02/explorar_jogo.ps1`): B em 58 s pula a introdução e o jogo começa em Spiral
@@ -207,30 +219,34 @@ enquanto é escrita, então tem 21 capturas (a cada 0,25 s).
 
 | Passo | Resultado |
 |---|---|
-| 1 inspeção estática antes | PASS: 16 PASS, 0 FAIL, 3 PENDENTE (cobertos no passo 2) |
-| 2 abertura com rastro + inspeção completa | PASS: código 0, 29 s, 828 quadros; 28 PASS, 0 FAIL, 0 PENDENTE |
+| 1 inspeção estática antes | PASS: 17 PASS (inclui L1), 0 FAIL, 3 PENDENTE (cobertos no passo 2) |
+| 2 abertura com rastro + inspeção completa | PASS: código 0, 30 s, 830 quadros; 29 PASS (inclui L1), 0 FAIL, 0 PENDENTE |
 | 3 menus com controle virtual | PASS: 8/8 apertos entregues |
 | 4 seleção e introdução | PASS: 3/3 apertos entregues |
 | 4b parte jogável | PASS: 19/19 apertos entregues, 37 capturas gravadas, o jogo saiu sozinho (código 0) |
-| 5 regressão visual | PASS 15/15: IoU da tela 0,970–1,0 e pior linha 0,967–1,0 (mínimos 0,75); 595–82.959 pixels de texto |
+| 5 regressão visual | PASS 15/15: IoU da tela 0,958–1,0 e pior linha 0,952–1,0 (mínimos 0,75); 595–82.959 pixels de texto |
 | 6 arquivos do jogo | PASS: 36/36 com o mesmo sha256 antes e depois |
 
 Telas novas (IoU da tela / pior linha): pausa 1,0/1,0 (6 linhas); VER TOTAIS 1,0/1,0; AJUDA E OPÇÕES
 1,0/1,0; mensagem do sistema 1,0/1,0 até x=680 e 1,0/1,0 no fim das duas linhas (x 820–890); SAIR DO
-JOGO 1,0/1,0; fala do Bottles 0,970 (por linha não se aplica: o texto rola). A regressão na
-execução anterior (`teste-regressao-r2`) deu 1,0/1,0 nas mesmas telas e 0,967 no Bottles; o executável foi
-recompilado pelo verificador do Craft entre a gravação das referências e a regressão, sem mudança
-de código, e as telas não mudaram.
+JOGO 1,0/1,0; fala do Bottles 0,999 (por linha não se aplica: o texto rola). Nas duas execuções
+anteriores (`teste-regressao-r2`, `teste-final-r2`) as telas novas deram 1,0/1,0 e o Bottles 0,967 e
+0,970. O executável foi recompilado duas vezes (pelo verificador do Craft e pelo `npm run build`
+desta rodada), sem mudança de código, e as telas não mudaram.
 
-Evidências: `docs/evidencias/m02/resultado_teste_final_r2.json`, `resultado_teste_regressao_r2.json`,
-`resultado_teste_referencias_r2.json`, `resultado_teste_negativo_r2.json`, `capturas_sha256_r2.json`
-(51 imagens, que ficam fora do Git). Logs em `_audit/out/m02r2/*.log`.
+A verificação **L1** (regra real de idioma, §3) passou nas duas inspeções: `user_language=1` (padrão
+do runtime; não há `banjotooie.toml` ao lado do exe) → código interno 0 → bloco 0 (PT-BR).
+
+Evidências: `docs/evidencias/m02/resultado_teste_final_r2.json`, `relatorio_traducao_final_r2.json`
+(as 29 verificações, com a L1), `resultado_teste_regressao_r2.json`, `resultado_teste_referencias_r2.json`,
+`resultado_teste_negativo_r2.json`, `capturas_sha256_r2.json` (51 imagens, que ficam fora do Git).
+Logs em `_audit/out/m02r2/*.log`.
 
 ## 7. Teste negativo — `python -I tools\m02\teste_negativo.py`
 
 Estraga **cópias** dos arquivos (numa pasta nova em `_audit/out/m02/negativo-20261110`; rodada 2:
-`_audit/out/m02r2/negativo-final-r2`, sobre as capturas da rodada final) e confere que o verificador
-acusa cada defeito. Rodada 1: **PASS 11/11**. Rodada 2: **PASS 20/20** (os 11 de antes + os 9 abaixo).
+`_audit/out/m02r2/negativo-final-r2b`, sobre as capturas da rodada final) e confere que o verificador
+acusa cada defeito. Rodada 1: **PASS 11/11**. Rodada 2: **PASS 22/22** (os 11 de antes + os 11 abaixo).
 
 | Caso | Defeito plantado | Acusado por |
 |---|---|---|
@@ -243,6 +259,8 @@ acusa cada defeito. Rodada 1: **PASS 11/11**. Rodada 2: **PASS 20/20** (os 11 de
 | caractere sem glifo | caractere que a fonte não tem | T2, B1 |
 | diálogo cortado | um 0 no meio de uma fala do db360 | D3, B1 |
 | 3 telas trocadas | captura de outra tela no lugar da certa | regressão visual (IoU 0,0–0,33 < 0,75) |
+| idioma alemão no runtime (rodada 2) | `banjotooie.toml` ao lado do exe com `user_language = 3` | L1: código interno 3 → bloco 2 (alemão) |
+| idioma inválido no runtime (rodada 2) | `user_language = 0` | L1: inválido, o jogo usaria a região do console |
 | 3 controles visuais (rodada 2) | captura certa da pausa e da mensagem (duas regiões) | nada falha (IoU 1,0) |
 | item de menu apagado (rodada 2) | 4ª linha da pausa (CLASSIFICAÇÕES) pintada de preto | **só a nota por linha**: tela 0,870 (passaria), linha 0,0 |
 | trecho de linha apagado (rodada 2) | meio da 2ª linha da mensagem do sistema apagado | **só a nota por linha**: tela 0,841 (passaria), linha 0,668 |
@@ -264,22 +282,26 @@ Os dois casos marcados "só a nota por linha" mostram por que ela foi criada: co
 | Texto PT-BR intacto na memória do jogo | IMPLEMENTADO | M1 PASS |
 | Exibição PT-BR no jogo: abertura, menus XBLA, seleção, introdução | IMPLEMENTADO | 8 telas, regressão visual PASS |
 | Exibição PT-BR no jogo: menu de pausa (START), VER TOTAIS, AJUDA E OPÇÕES, confirmação SAIR DO JOGO | IMPLEMENTADO (rodada 2) | 4 telas no jogo real, regressão visual PASS com nota por linha |
-| Exibição no jogo de uma fala de fase com ícone de botão (Bottles) | IMPLEMENTADO (rodada 2) | 1 fala, IoU 0,970 |
-| Testes automatizados de integridade, checksums e regressão | IMPLEMENTADO | `tools/test_traducao.ps1` (8 passos, 15 comparações), linha de base, teste negativo 20/20 |
+| Exibição no jogo de uma fala de fase com ícone de botão (Bottles) | IMPLEMENTADO (rodada 2) | 1 fala, IoU 0,999 |
+| Testes automatizados de integridade, checksums e regressão | IMPLEMENTADO | `tools/test_traducao.ps1` (8 passos, 15 comparações), linha de base, verificação L1 de idioma, teste negativo 22/22 |
 | Correções de leitura/extração | NÃO NECESSÁRIO | nenhuma incompatibilidade comprovada |
 | Exibição no jogo dos demais diálogos e textos das fases | PENDENTE | exige jogar além do início de Spiral Mountain (andar, falar com personagens); a estrutura dos 2.356 registros é conferida estaticamente |
 | Interface durante o jogo (HUD) | PARCIAL | vista nas capturas (favos de mel, contadores, ícones, SELECIONAR/VOLTAR) mas é quase só números e ícones; não há regressão própria |
 | Glifos raros na fonte dos diálogos (bitmap dentro das texturas), ex. Û, Â, º | PENDENTE | a fonte dos diálogos é textura; no jogo foram vistos Ó, É (introdução) e À, Ê, Ã, Ç, Õ (camada XBLA) |
 | Textos desenhados em texturas (`db360.textures.cmp`) | PENDENTE | o arquivo foi modificado pelo tradutor e é lido por inteiro, mas o conteúdo das texturas não foi decodificado |
 | Mensagens do sistema na tela | PARCIAL (rodada 2) | 1 vista e conferida (perfil Xbox LIVE, pela pausa); as de armazenamento/erro não foram provocadas; estrutura das 66 UTF-16 PASS |
-| PT-BR com outro `user_language` | RISCO | o PT-BR depende do padrão 1; `user_language=3` mostra alemão |
+| PT-BR com outro `user_language` | RISCO (vigiado pela L1, rodada 2) | regra real do jogo (`0x8227D2D0`/`0x8227D9F0`): 1 e 7–12 → PT-BR; 2–6 → JA/DE/FR/ES/IT; 0 ou > 12 → região do console. A L1 reprova um `banjotooie.toml` que troque o idioma |
 | Autoteste do verificador do Craft (andar/ação/interface) | BLOQUEADO | exige instrumentar a jogabilidade; fora do escopo desta missão |
 
 ## 9. Riscos e pendências
 
 - **`user_language`:** se alguém configurar outro idioma no runtime (`banjotooie.toml` ou linha de
-  comando), o jogo mostra outro idioma. Hoje nada configura isso. Uma trava no port (forçar 1) seria
-  uma mudança de comportamento e fica como sugestão para uma missão futura.
+  comando), o jogo mostra outro idioma. Pelo código do jogo (rodada 2), isso só acontece com
+  japonês, alemão, francês, espanhol ou italiano (2–6) ou com valor inválido (0 ou > 12, que faz o
+  jogo usar a região do console); 1 e 7–12 mantêm o PT-BR. Hoje nada configura isso, e a verificação
+  **L1** agora reprova se o `banjotooie.toml` ao lado do exe trocar o idioma (a linha de comando não
+  é conferida). Uma trava no port (forçar 1) seria uma mudança de comportamento e fica como sugestão
+  para uma missão futura.
 - **Tempos do controle virtual:** os passos 3–4 dependem do tempo do jogo (medido duas vezes, com
   1,5 s de folga). Um PC muito mais lento pode deslocar as telas; o teste então falha (não passa
   por engano).

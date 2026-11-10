@@ -37,6 +37,44 @@ DB_LANGS = ["PT-BR (espaco do ingles)", "japones", "frances", "alemao", "italian
 X360_LATIN = (1, 2, 3, 4)   # idiomas de referencia para comparar estrutura (sem o japones)
 DB_LATIN = (2, 3, 4)        # frances, alemao, italiano (o espaco 5 as vezes termina no fim do asset)
 
+# Regra real do jogo para escolher o idioma (default.xex descompilado, MECHANICS.md §11):
+#  0x825B1FA8  le ExGetXConfigSetting(3, 9) = XLanguage do console; 0 ou > 0xC = invalido (o jogo
+#              cai na regiao do console: Japao -> 2, outra 0x01xx -> 7, senao 1)
+#  0x8227D2D0  XLanguage -> codigo interno: 2->1, 3->3, 4->2, 5->5, 6->4, qualquer outro -> 0
+#              (o codigo interno e gravado na variavel 0xC0D do jogo, 3 bits, por 0x8226B4C0, e e o
+#              espaco de idioma dos dialogos do db360: 0 ingles/PT-BR, 1 JA, 2 FR, 3 DE, 4 IT, 5 ES)
+#  0x8227D9F0  (main) codigo interno -> bloco do X360_strings.dat: 0->0, 1->5, 2->1, 3->2, 5->3, 4->4,
+#              carregado por 0x822E9C90 (so esse bloco e lido do arquivo)
+XLANG_INTERNO = {2: 1, 3: 3, 4: 2, 5: 5, 6: 4}
+INTERNO_BLOCO_X360 = {0: 0, 1: 5, 2: 1, 3: 2, 4: 4, 5: 3}
+XLANG_NOMES = {1: "ingles", 2: "japones", 3: "alemao", 4: "frances", 5: "espanhol", 6: "italiano"}
+# Opcao do runtime que o port entrega ao jogo em ExGetXConfigSetting(3, 9)
+# (rexglue-sdk/src/kernel/xboxkrnl/xboxkrnl_xconfig.cpp); padrao em xam_user.cpp.
+SDK_XAM_USER = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..",
+                            "rexglue-sdk", "src", "kernel", "xam", "xam_user.cpp")
+
+
+def idioma_do_jogo(xlang):
+    """(codigo interno, bloco do X360_strings) que o jogo usa para um XLanguage valido."""
+    interno = XLANG_INTERNO.get(xlang, 0)
+    return interno, INTERNO_BLOCO_X360[interno]
+
+
+def user_language_do_runtime(exe):
+    """Valor de user_language que o port entrega ao jogo: banjotooie.toml ao lado do exe
+    (o runtime le <pasta do exe>/<nome>.toml, rex_app.cpp), senao o padrao do SDK."""
+    if exe:
+        toml = os.path.join(os.path.dirname(os.path.abspath(exe)), "banjotooie.toml")
+        if os.path.exists(toml):
+            m = re.search(r"(?m)^\s*user_language\s*=\s*(\d+)", open(toml, encoding="utf-8", errors="replace").read())
+            if m:
+                return int(m.group(1)), f"{toml} (user_language = {m.group(1)})"
+    if os.path.exists(SDK_XAM_USER):
+        m = re.search(r"REXCVAR_DEFINE_UINT32\(user_language,\s*(\d+)", open(SDK_XAM_USER, encoding="utf-8").read())
+        if m:
+            return int(m.group(1)), "padrao do runtime (rexglue-sdk/src/kernel/xam/xam_user.cpp)"
+    return None, "nao achei a opcao user_language nem o seu padrao"
+
 TEXT_BYTES = set(range(0x20, 0x7F)) | set(range(0x80, 0x100)) | {0x0A}
 # Icones de botao no texto (nao sao letras): 0x7F e 0x80-0x9F, usados igual em todos os idiomas
 # (ex.: 0x7F = botao A em "PRESSIONE \x7f PARA JOGAR", X360_strings 1267).
@@ -354,6 +392,7 @@ def main():
     ap.add_argument("--rastro")
     ap.add_argument("--linha-de-base")
     ap.add_argument("--gravar-linha-de-base")
+    ap.add_argument("--exe", help="banjotooie.exe do port (para achar o banjotooie.toml ao lado)")
     a = ap.parse_args()
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8", errors="replace")
@@ -393,6 +432,27 @@ def main():
     bad_term = [(l, i) for l in range(L) for i, s in enumerate(x["strings"][l]) if not s or s[-1] != 0]
     rep.check("X4", "X360_strings: toda string termina em 0 no comprimento declarado", not bad_term,
               f"{len(bad_term)} sem terminador")
+
+    # L1: com o idioma que o port entrega, a regra do proprio jogo (0x825B1FA8 -> 0x8227D2D0 ->
+    # 0x8227D9F0) escolhe o bloco 0 do X360_strings e o espaco 0 dos dialogos, onde esta o PT-BR?
+    # Tambem confere os rotulos de idioma deste verificador (tirados dos dados) contra o codigo.
+    rotulos = [v for v, nome in XLANG_NOMES.items()
+               if nome not in X360_LANGS[idioma_do_jogo(v)[1]] or nome not in DB_LANGS[idioma_do_jogo(v)[0]]]
+    ul, origem = user_language_do_runtime(a.exe)
+    pt_br = sorted(v for v in range(1, 13) if idioma_do_jogo(v) == (0, 0))
+    if ul is None:
+        rep.pending("L1", "idioma entregue ao jogo escolhe o PT-BR", origem)
+    elif ul == 0 or ul > 0xC:
+        rep.check("L1", "idioma entregue ao jogo escolhe o PT-BR", False,
+                  f"user_language={ul} de {origem} e invalido para o jogo (0x825B1FA8): ele usaria a regiao "
+                  f"do console, que pode dar japones")
+    else:
+        interno, bloco = idioma_do_jogo(ul)
+        rep.check("L1", "idioma entregue ao jogo escolhe o PT-BR", (interno, bloco) == (0, 0) and not rotulos,
+                  f"user_language={ul} ({XLANG_NOMES.get(ul, 'outro')}) de {origem} -> codigo interno {interno} "
+                  f"(0x8227D2D0; espaco do dialogo: {DB_LANGS[interno]}) -> bloco {bloco} do X360_strings "
+                  f"(0x8227D9F0: {X360_LANGS[bloco]}); PT-BR aparece com user_language em {pt_br}; "
+                  f"rotulos de idioma conferem com o codigo: {'sim' if not rotulos else 'NAO ' + str(rotulos)}")
     pt = x["strings"][0]
     kinds = [x360_kind(s) for s in pt]
     inner = [i for i, s in enumerate(pt) if kinds[i] == "8bits" and b"\x00" in s[:-1]]

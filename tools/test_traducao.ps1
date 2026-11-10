@@ -59,7 +59,8 @@ function Run-Port([string]$dir, [string[]]$extra, [int]$timeoutS) {
 }
 function Boot($dir) { if (Test-Path "$dir\boot.json") { Get-Content "$dir\boot.json" -Raw | ConvertFrom-Json } else { $null } }
 function Inspect([string]$dir, [string[]]$extra) {
-  $argv = @("-I", $Py, "--jogo", $GameDir, "--saida", $dir) + $extra
+  # --exe: a verificacao L1 le o banjotooie.toml ao lado do exe (idioma que o port entrega ao jogo)
+  $argv = @("-I", $Py, "--jogo", $GameDir, "--saida", $dir, "--exe", $Exe) + $extra
   $out = & python @argv 2>&1
   $out | Set-Content -Path "$dir.log" -Encoding utf8
   return (Get-Content (Join-Path $dir "relatorio_traducao.json") -Raw | ConvertFrom-Json)

@@ -186,6 +186,22 @@ def main():
         st["B1"] = "FAIL" if b1_nas_partes(rel, ("x360/", "fonte/")) else "PASS"
         julga(nome, desc, st, devem_falhar)
 
+    # 6b. idioma trocado no runtime: um banjotooie.toml com user_language = 3 (alemao) ao lado do exe.
+    # Pela regra do jogo (0x8227D2D0 -> 0x8227D9F0) isso carrega o bloco 2 (alemao): L1 tem de acusar.
+    # O exe nao precisa existir: a L1 so le o .toml da pasta dele. Nenhum arquivo do port e tocado.
+    for nome, valor, desc in [("runtime_idioma_alemao", "3", "user_language = 3 (alemao) no banjotooie.toml"),
+                              ("runtime_idioma_invalido", "0", "user_language = 0 (invalido: o jogo usaria a regiao)")]:
+        g = os.path.join(a.saida, nome, "jogo")
+        mini_jogo(a.jogo, g)
+        exe_dir = os.path.join(a.saida, nome, "port")
+        os.makedirs(exe_dir, exist_ok=True)
+        with open(os.path.join(exe_dir, "banjotooie.toml"), "w", encoding="utf-8", newline="\n") as f:
+            f.write("[Kernel]\nuser_language = %s\n" % valor)
+        rel = os.path.join(a.saida, nome, "relatorio")
+        st, rc = roda(g, rel, ["--linha-de-base", a.linha_de_base, "--exe", os.path.join(exe_dir, "banjotooie.exe")])
+        st["B1"] = "FAIL" if b1_nas_partes(rel, ("x360/", "fonte/")) else "PASS"
+        julga(nome, desc, st, ["L1"])
+
     # 7. db360: um dialogo PT-BR cortado no meio (0 no lugar de uma letra)
     if a.db:
         dump = bytearray(open(a.db, "rb").read())

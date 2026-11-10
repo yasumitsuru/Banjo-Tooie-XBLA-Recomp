@@ -1,0 +1,25 @@
+{
+  "version": 1,
+  "values": [
+    {"name": "bloco do X360_strings para XLanguage 1 (ingles; aqui PT-BR)", "group": "idioma", "value": 0, "source": "funcoes 0x8227D2D0 + 0x8227D9F0 (main)"},
+    {"name": "bloco do X360_strings para XLanguage 2 (japones)", "group": "idioma", "value": 5, "source": "funcoes 0x8227D2D0 + 0x8227D9F0"},
+    {"name": "bloco do X360_strings para XLanguage 3 (alemao)", "group": "idioma", "value": 2, "source": "funcoes 0x8227D2D0 + 0x8227D9F0"},
+    {"name": "bloco do X360_strings para XLanguage 4 (frances)", "group": "idioma", "value": 1, "source": "funcoes 0x8227D2D0 + 0x8227D9F0"},
+    {"name": "bloco do X360_strings para XLanguage 5 (espanhol)", "group": "idioma", "value": 3, "source": "funcoes 0x8227D2D0 + 0x8227D9F0"},
+    {"name": "bloco do X360_strings para XLanguage 6 (italiano)", "group": "idioma", "value": 4, "source": "funcoes 0x8227D2D0 + 0x8227D9F0"},
+    {"name": "bloco do X360_strings para XLanguage 7 a 12", "group": "idioma", "value": 0, "source": "funcao 0x8227D2D0 (qualquer outro id -> codigo interno 0)"},
+    {"name": "XLanguage invalido (0 ou maior que 12) usa a regiao do console", "group": "idioma", "value": true, "source": "funcao 0x825B1FA8"},
+    {"name": "user_language padrao do runtime do port", "group": "idioma", "value": 1, "source": "rexglue-sdk/src/kernel/xam/xam_user.cpp:31"},
+    {"name": "variavel do jogo com o idioma dos dialogos", "group": "idioma", "value": "0xC0D (3 bits)", "source": "funcoes 0x8226B4B0 (ler) e 0x8226B4C0 (gravar)"},
+    {"name": "idioma dos dialogos regravado a cada carregamento do jogo salvo", "group": "idioma", "value": true, "source": "funcao 0x8226B528"},
+    {"name": "X360_strings: inteiros little-endian (u16 n, u16 L, u32 tamanhos e comprimentos)", "group": "formato", "value": true, "source": "funcoes 0x822E9AE0 e 0x822E9B40"},
+    {"name": "X360_strings: inicio do bloco k = 4 + 4L + 4nL + soma dos tamanhos anteriores", "group": "formato", "value": "4 + 4*L + 4*n*L + sum(tamanho[0..k-1])", "unit": "bytes", "source": "funcao 0x822E9C90"},
+    {"name": "X360_strings: blocos lidos por execucao", "group": "formato", "value": 1, "source": "funcao 0x822E9C90"},
+    {"name": "valor de 'nenhum bloco carregado' em 0x8264B59C", "group": "formato", "value": 6, "source": "funcao 0x822E9C90"},
+    {"name": "tabela de recursos do db360 = buffer + 8", "group": "formato", "value": 8, "unit": "bytes", "source": "funcao 0x82220790"},
+    {"name": "intervalo de apresentacao do jogo original", "group": "video", "value": 2, "unit": "quadros de 60 Hz (30 FPS)", "source": "codigo em 0x82276E34"},
+    {"name": "resolucao original", "group": "video", "value": "1280x720", "source": "captura do port (MECHANICS.md §10) e funcao 0x823021A8"},
+    {"name": "taxa do audio", "group": "audio", "value": 48, "unit": "amostras por ms (48 kHz)", "source": "constante 0x82000F1C, funcao 0x8250D050"},
+    {"name": "espera entre tentativas do erro fatal", "group": "sistema", "value": 250, "unit": "ms", "source": "funcao 0x8227D128 (0xFA)"}
+  ]
+}

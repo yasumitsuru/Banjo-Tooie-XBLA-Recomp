@@ -1,0 +1,296 @@
+{
+ "versao": 1,
+ "status": "PASS",
+ "verificacoes": [
+  {
+   "id": "F1",
+   "verificacao": "inventario da pasta do jogo",
+   "status": "PASS",
+   "detalhe": "36 arquivos lidos (sha256 de cada um, em hashes.json)"
+  },
+  {
+   "id": "X1",
+   "verificacao": "X360_strings: cabecalho",
+   "status": "PASS",
+   "detalhe": "1521 strings x 6 idiomas; blocos [46525, 52104, 50760, 47949, 47734, 27734] bytes"
+  },
+  {
+   "id": "X2",
+   "verificacao": "X360_strings: soma dos comprimentos = tamanho de cada bloco",
+   "status": "PASS",
+   "detalhe": "PT-BR (espaco do ingles) 46525/46525, frances 52104/52104, alemao 50760/50760, espanhol 47949/47949, italiano 47734/47734, japones 27734/27734"
+  },
+  {
+   "id": "X3",
+   "verificacao": "X360_strings: blocos dentro do arquivo",
+   "status": "PASS",
+   "detalhe": "fim dos blocos 0x4B85A de 0x68451; 117751 bytes depois (nao fazem parte dos 6 blocos)"
+  },
+  {
+   "id": "X4",
+   "verificacao": "X360_strings: toda string termina em 0 no comprimento declarado",
+   "status": "PASS",
+   "detalhe": "0 sem terminador"
+  },
+  {
+   "id": "L1",
+   "verificacao": "idioma entregue ao jogo escolhe o PT-BR",
+   "status": "PASS",
+   "detalhe": "user_language=1 (ingles) de padrao do runtime (rexglue-sdk/src/kernel/xam/xam_user.cpp) -> codigo interno 0 (0x8227D2D0; espaco do dialogo: PT-BR (espaco do ingles)) -> bloco 0 do X360_strings (0x8227D9F0: PT-BR (espaco do ingles)); PT-BR aparece com user_language em [1, 7, 8, 9, 10, 11, 12]; rotulos de idioma conferem com o codigo: sim"
+  },
+  {
+   "id": "X5",
+   "verificacao": "X360_strings PT-BR: strings de 8 bits sem 0 no meio (nada truncado)",
+   "status": "PASS",
+   "detalhe": "969 strings de 8 bits; 0 com 0 interno"
+  },
+  {
+   "id": "X6",
+   "verificacao": "X360_strings PT-BR: strings UTF-16BE bem formadas (pares completos + terminador 00 00)",
+   "status": "PASS",
+   "detalhe": "66 strings UTF-16BE (mensagens do sistema); 0 com defeito"
+  },
+  {
+   "id": "X7",
+   "verificacao": "X360_strings PT-BR: mesma codificacao por string que FR/DE/ES/IT",
+   "status": "PASS",
+   "detalhe": "0 strings com codificacao diferente da maioria"
+  },
+  {
+   "id": "X8",
+   "verificacao": "X360_strings PT-BR: sem string vazia onde FR/DE/ES/IT tem texto",
+   "status": "PASS",
+   "detalhe": "1035/1035 strings usadas pelos idiomas latinos tem PT-BR; 486 vazias tambem vazias nos outros (so japones)"
+  },
+  {
+   "id": "X9",
+   "verificacao": "X360_strings PT-BR: marcadores (%d/%s, ~, icones de botao) iguais aos de algum idioma",
+   "status": "PASS",
+   "detalhe": "0 strings diferentes de todos; 1 iguais a uma minoria (ex.: italiano) [466]"
+  },
+  {
+   "id": "T1",
+   "verificacao": "xarialuni.ttf: somas de verificacao das tabelas e do arquivo",
+   "status": "PASS",
+   "detalhe": "7 tabelas; com defeito: nenhuma; head ok=True; ajuste do arquivo confere"
+  },
+  {
+   "id": "T2",
+   "verificacao": "xarialuni.ttf cobre todos os caracteres do PT-BR da camada XBLA",
+   "status": "PASS",
+   "detalhe": "96 caracteres distintos usados; cmap ['3/1/fmt4']; faltando: nenhum"
+  },
+  {
+   "id": "A1",
+   "verificacao": "ArcadeInfo.xml: XML valido com idioma pt",
+   "status": "PASS",
+   "detalhe": "codificacao utf-16; idiomas declarados: ['de-de', 'es-es', 'fr-fr', 'it-it', 'ja-jp', 'ko-kr', 'pt-br', 'zh-tw']"
+  },
+  {
+   "id": "C1",
+   "verificacao": "db360.cmp: cabecalho XCTD que o leitor do jogo exige (0x825B9218)",
+   "status": "PASS",
+   "detalhe": "magia 0x0FF512ED, versao 0x01000000, campo+8 0x5F1D808D, campo+12 0x00001822 -> janela LZX 128 KiB"
+  },
+  {
+   "id": "C2",
+   "verificacao": "db360.textures.cmp: cabecalho XCTD que o leitor do jogo exige (0x825B9218)",
+   "status": "PASS",
+   "detalhe": "magia 0x0FF512ED, versao 0x01000000, campo+8 0x5EF6CE28, campo+12 0x004060E2 -> janela LZX 128 KiB"
+  },
+  {
+   "id": "D1",
+   "verificacao": "db360 na memoria: tabela de assets coerente",
+   "status": "PASS",
+   "detalhe": "14030 entradas; 12839 em ordem crescente + 1191 apelidos dentro do banco; dados a partir de +0xDB40; ultimo asset em +0x2FBF6BA; dump 50188794 bytes"
+  },
+  {
+   "id": "D2",
+   "verificacao": "db360: registros de dialogo com 6 idiomas encontrados e PT-BR no espaco 0",
+   "status": "PASS",
+   "detalhe": "2356 registros (tipo A 1722, tipo B 634); 9793 strings PT-BR"
+  },
+  {
+   "id": "D3",
+   "verificacao": "db360 PT-BR: estrutura de cada dialogo igual a de FR/DE/IT (nada cortado ou a mais)",
+   "status": "PASS",
+   "detalhe": "2356/2356 registros com a mesma estrutura de pelo menos um idioma de referencia (2349 iguais aos tres); divergentes: nenhum"
+  },
+  {
+   "id": "D4",
+   "verificacao": "db360 PT-BR: marcadores (~, icones de botao) iguais aos de algum idioma de mesma estrutura",
+   "status": "PASS",
+   "detalhe": "0 strings divergentes"
+  },
+  {
+   "id": "D6",
+   "verificacao": "db360 PT-BR: sem linha vazia onde FR/DE/IT tem texto (espacos nao contam)",
+   "status": "PASS",
+   "detalhe": "3 linhas vazias no PT-BR; nos outros idiomas elas sao +0x11BDB1E#0=b' ', +0x11BDB9D#0=b' ', +0x11BDD28#0=b' '"
+  },
+  {
+   "id": "D5",
+   "verificacao": "db360: espaco PT-BR sem dialogo em ingles (heuristica de palavras)",
+   "status": "PASS",
+   "detalhe": "0 registros com mais palavras inglesas que portuguesas"
+  },
+  {
+   "id": "M1",
+   "verificacao": "bloco PT-BR do X360_strings na memoria do jogo identico ao arquivo",
+   "status": "PASS",
+   "detalhe": "bloco de 46525 bytes achado em [('heap_40000000.bin', 446176)]"
+  },
+  {
+   "id": "R1",
+   "verificacao": "o jogo leu o bloco do espaco 0 (PT-BR) do X360_strings.dat",
+   "status": "PASS",
+   "detalhe": "leituras [4096, 512, 4096, 4096, 46080, 512]; bloco PT-BR 46525 B = 46080 + 445; outros idiomas lidos: nenhum"
+  },
+  {
+   "id": "R2",
+   "verificacao": "o jogo abriu e leu os arquivos traduzidos",
+   "status": "PASS",
+   "detalhe": "x360_strings.dat: 59392 bytes lidos; db360.cmp: 12525322 bytes lidos; db360.textures.cmp: 50625264 bytes lidos; xarialuni.ttf: 289604 bytes lidos"
+  },
+  {
+   "id": "R3",
+   "verificacao": "nenhuma abertura de arquivo falhou (fora a lista opcional de texturas)",
+   "status": "PASS",
+   "detalhe": "falhas: {'GAME:\\\\RAWFiles\\\\db360_TexFileList.txt': '0xc000000f'}"
+  },
+  {
+   "id": "R4",
+   "verificacao": "db360.cmp lido por inteiro (nada do fim do arquivo ficou sem ler)",
+   "status": "PASS",
+   "detalhe": "12525322 de 12525322 bytes em 96 leituras"
+  },
+  {
+   "id": "R5",
+   "verificacao": "db360.textures.cmp lido por inteiro (nada do fim do arquivo ficou sem ler)",
+   "status": "PASS",
+   "detalhe": "50625264 de 50625264 bytes em 387 leituras"
+  },
+  {
+   "id": "B1",
+   "verificacao": "regressao: tudo igual a linha de base (hashes, contagens, textos)",
+   "status": "PASS",
+   "detalhe": "0 diferencas; partes conferidas: ['arquivos', 'db360_memoria', 'fonte', 'x360']"
+  }
+ ],
+ "estatisticas": {
+  "x360": {
+   "sha256": "5920b7624634fc4e91e5fa7172972401df386de58a499bcfb64083e3e3f7cbe0",
+   "strings_por_idioma": 1521,
+   "idiomas": 6,
+   "tamanhos_blocos": [
+    46525,
+    52104,
+    50760,
+    47949,
+    47734,
+    27734
+   ],
+   "sha256_blocos": [
+    "7aa9c14db57aff03fddc603c77060d9c5d2095e5724e6cde577d97dcd12ccf03",
+    "998629724e691045a70204cb393341f3a0e4ba9793996d634151b9a5fa997216",
+    "3f40c353e83c70b36672b270e6f23003ed1ab18eaac20f335ad650f504792353",
+    "1c0630aff553f8e61552b2a132fbb8cc3bfe73207d392cbe99b014b1c1cde5ba",
+    "2a70a82334f8e12d6d2bafc2cc3e32bbe4ef644ef281afb40f5d36e29e75f5bf",
+    "fdc5bf0968656c02b8d503a70875c6c0b2a094c2a425e81aa45edbb8ed92f90c"
+   ],
+   "ptbr": {
+    "8bits": 969,
+    "utf16": 66,
+    "vazias": 486,
+    "caracteres": 42610,
+    "sha256_textos": "d5bdbc0a8e70b4b63ff9eaf9e242a9b6eccdcd4ad182e2832b71112c7767f5a3",
+    "nao_ascii": {
+     "U+000A": 177,
+     "U+007F": 2,
+     "U+0080": 8,
+     "U+0081": 66,
+     "U+0084": 7,
+     "U+0085": 37,
+     "U+0086": 33,
+     "U+0087": 42,
+     "U+0088": 65,
+     "U+0089": 8,
+     "U+00BA": 9,
+     "U+00C0": 15,
+     "U+00C1": 135,
+     "U+00C2": 13,
+     "U+00C3": 193,
+     "U+00C7": 120,
+     "U+00C9": 76,
+     "U+00CA": 96,
+     "U+00CD": 43,
+     "U+00D3": 107,
+     "U+00D4": 7,
+     "U+00D5": 24,
+     "U+00DA": 12,
+     "U+00E0": 3,
+     "U+00E1": 8,
+     "U+00E3": 23,
+     "U+00E7": 9,
+     "U+00E9": 3,
+     "U+00EA": 7,
+     "U+00ED": 7,
+     "U+00F3": 2
+    }
+   }
+  },
+  "fonte": {
+   "sha256": "380f125e78756f118d60f8d76d93a7487884fbbfd7786aeaac585ac3fc7c5a28",
+   "tabelas": 7,
+   "codepoints": 34712
+  },
+  "db360_memoria": {
+   "entradas": 14030,
+   "ordenadas": 12839,
+   "base_dados": 56128,
+   "ultimo_asset": 50067130,
+   "sha256_tabela_e_dados": "d493f814d83b211a80961b458cd9a858d240a9aecfe02632af523793effe0626",
+   "registros": 2356,
+   "registros_A": 1722,
+   "registros_B": 634,
+   "strings_ptbr": 9793,
+   "sha256_textos_ptbr": "47f70d0f497e21956cc41aeb20b523fc52b86fecf1f40e71d71353a71bc95c98",
+   "bytes_altos_ptbr": {
+    "0x80": 9,
+    "0x81": 53,
+    "0x82": 8,
+    "0x83": 9,
+    "0x84": 7,
+    "0x85": 12,
+    "0x86": 152,
+    "0x87": 140,
+    "0xC0": 2,
+    "0xC1": 1186,
+    "0xC2": 45,
+    "0xC3": 1576,
+    "0xC7": 630,
+    "0xC9": 982,
+    "0xCA": 1120,
+    "0xCD": 365,
+    "0xD3": 588,
+    "0xD4": 81,
+    "0xD5": 84,
+    "0xDA": 187,
+    "0xDB": 1
+   },
+   "estrutura_igual": 2356
+  }
+ },
+ "icones_de_botao_ptbr_x360": [
+  "0x7F",
+  "0x80",
+  "0x81",
+  "0x84",
+  "0x85",
+  "0x86",
+  "0x87",
+  "0x88",
+  "0x89"
+ ],
+ "diferencas_linha_de_base": []
+}

@@ -106,6 +106,30 @@
    "status": "PASS"
   },
   {
+   "caso": "runtime_idioma_alemao",
+   "defeito": "user_language = 3 (alemao) no banjotooie.toml",
+   "deviam_falhar": [
+    "L1"
+   ],
+   "falharam": [
+    "L1"
+   ],
+   "falhas_em_cascata": [],
+   "status": "PASS"
+  },
+  {
+   "caso": "runtime_idioma_invalido",
+   "defeito": "user_language = 0 (invalido: o jogo usaria a regiao)",
+   "deviam_falhar": [
+    "L1"
+   ],
+   "falharam": [
+    "L1"
+   ],
+   "falhas_em_cascata": [],
+   "status": "PASS"
+  },
+  {
    "caso": "db_dialogo_cortado",
    "defeito": "registro +0x1014729: 0 no meio da 1a fala",
    "deviam_falhar": [
@@ -137,7 +161,7 @@
     "regressao visual"
    ],
    "falharam": [
-    "IoU 0.3144, pixels 82938"
+    "IoU 0.3144, pixels 82940"
    ],
    "status": "PASS"
   },

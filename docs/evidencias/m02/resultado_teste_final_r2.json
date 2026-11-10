@@ -1,39 +1,39 @@
 {
   "versao": 1,
-  "inicio": "2026-11-10T20:26:46",
+  "inicio": "2026-11-10T20:45:41",
   "exe": "W:\\Decomp\\Banjo 3\\app\\out\\native\\banjotooie.exe",
   "jogo": "W:\\Decomp\\Banjo 3\\Banjo Tooie BR",
-  "exe_sha256": "e69cd4adf9b90165844a32ae9843e3bb0b18323511aed5ec8215b785ea36246d",
+  "exe_sha256": "3e3af0c2499000c9471fb2bb6de59b4a979dc52f4df084b75309ac7a116485bd",
   "passos": [
     {
       "passo": "1_inspecao_estatica_antes",
       "status": "PASS",
-      "detalhe": "16 PASS, 0 FAIL, 3 PENDENTE"
+      "detalhe": "17 PASS, 0 FAIL, 3 PENDENTE"
     },
     {
       "passo": "2_jogo_abertura_com_rastro",
       "status": "PASS",
-      "detalhe": "codigo 0; 29 s; captura PNG gravado; quadros=828; brilho_medio=58.6; pixels_acesos=65.6%"
+      "detalhe": "codigo 0; 30 s; captura PNG gravado; quadros=830; brilho_medio=58.0; pixels_acesos=65.5%"
     },
     {
       "passo": "2_inspecao_com_memoria_e_rastro",
       "status": "PASS",
-      "detalhe": "28 PASS, 0 FAIL, 0 PENDENTE"
+      "detalhe": "29 PASS, 0 FAIL, 0 PENDENTE"
     },
     {
       "passo": "3_menus_com_controle_virtual",
       "status": "PASS",
-      "detalhe": "codigo 0; leituras_do_controle=1357 leituras_com_botao=48 apertos: start@26s=entregue down@31s=entregue down@32.5s=entregue down@34s=entregue a@36s=entregue down@41s=entregue down@42.5s=entregue a@44s=entregue"
+      "detalhe": "codigo 0; leituras_do_controle=1352 leituras_com_botao=47 apertos: start@26s=entregue down@31s=entregue down@32.5s=entregue down@34s=entregue a@36s=entregue down@41s=entregue down@42.5s=entregue a@44s=entregue"
     },
     {
       "passo": "4_selecao_e_dialogo_com_controle_virtual",
       "status": "PASS",
-      "detalhe": "codigo 0; leituras_do_controle=1963 leituras_com_botao=18 apertos: start@26s=entregue a@30s=entregue a@36s=entregue"
+      "detalhe": "codigo 0; leituras_do_controle=1977 leituras_com_botao=20 apertos: start@26s=entregue a@30s=entregue a@36s=entregue"
     },
     {
       "passo": "4b_jogavel_pausa_sistema_e_dialogo",
       "status": "PASS",
-      "detalhe": "codigo 0; capturas todas gravadas; leituras_do_controle=3752 leituras_com_botao=112 apertos: start@26s=entregue a@30s=entregue a@36s=entregue b@58s=entregue start@64s=entregue down@69s=entregue a@71s=entregue b@78s=entregue down@81s=entregue a@83s=entregue b@89s=entregue down@92s=entregue a@94s=entregue b@100s=entregue down@103s=entregue down@105s=entregue a@107s=entregue b@112s=entregue start@116s=entregue"
+      "detalhe": "codigo 0; capturas todas gravadas; leituras_do_controle=3735 leituras_com_botao=111 apertos: start@26s=entregue a@30s=entregue a@36s=entregue b@58s=entregue start@64s=entregue down@69s=entregue a@71s=entregue b@78s=entregue down@81s=entregue a@83s=entregue b@89s=entregue down@92s=entregue a@94s=entregue b@100s=entregue down@103s=entregue down@105s=entregue a@107s=entregue b@112s=entregue start@116s=entregue"
     },
     {
       "passo": "5_regressao_visual_do_texto",
@@ -50,12 +50,12 @@
     {
       "tela": "titulo",
       "status": "PASS",
-      "detalhe": "IoU do texto 0,9798 (minimo 0,75); pior linha 0,9798 de 1 (minimo 0,75); pixels ref/novo 639/636 (minimo 300); captura titulo.png; esperado: PRESSIONE START PARA JOGAR"
+      "detalhe": "IoU do texto 0,9706 (minimo 0,75); pior linha 0,9706 de 1 (minimo 0,75); pixels ref/novo 639/636 (minimo 300); captura titulo.png; esperado: PRESSIONE START PARA JOGAR"
     },
     {
       "tela": "titulo_copyright",
       "status": "PASS",
-      "detalhe": "IoU do texto 0,9706 (minimo 0,75); pior linha 0,9672 de 2 (minimo 0,75); pixels ref/novo 3373/3402 (minimo 300); captura titulo.png; esperado: (C) 2009 MICROSOFT - JOAOHRS2. / TODOS OS DIREITOS RESERVADOS."
+      "detalhe": "IoU do texto 0,9581 (minimo 0,75); pior linha 0,9517 de 2 (minimo 0,75); pixels ref/novo 3373/3400 (minimo 300); captura titulo.png; esperado: (C) 2009 MICROSOFT - JOAOHRS2. / TODOS OS DIREITOS RESERVADOS."
     },
     {
       "tela": "menu_principal",
@@ -75,7 +75,7 @@
     {
       "tela": "selecao_de_jogo",
       "status": "PASS",
-      "detalhe": "IoU do texto 0,9976 (minimo 0,75); pior linha 0,9865 de 2 (minimo 0,75); pixels ref/novo 4104/4102 (minimo 300); captura selecao_de_jogo.png; esperado: PRESSIONE (A) PARA INICIAR O JOGO."
+      "detalhe": "IoU do texto 1 (minimo 0,75); pior linha 1 de 2 (minimo 0,75); pixels ref/novo 4104/4104 (minimo 300); captura selecao_de_jogo.png; esperado: PRESSIONE (A) PARA INICIAR O JOGO."
     },
     {
       "tela": "dialogo_intro_1",
@@ -85,7 +85,7 @@
     {
       "tela": "dialogo_intro_2",
       "status": "PASS",
-      "detalhe": "IoU do texto 0,9999 (minimo 0,75); pior linha 0,9997 de 7 (minimo 0,75); pixels ref/novo 82959/82955 (minimo 300); captura dialogo_intro_2a.png; esperado: APOS CAIR DO TOPO DE SUA TORRE ELA FOI ENTERRADA..."
+      "detalhe": "IoU do texto 0,9999 (minimo 0,75); pior linha 0,9997 de 7 (minimo 0,75); pixels ref/novo 82959/82961 (minimo 300); captura dialogo_intro_2a.png; esperado: APOS CAIR DO TOPO DE SUA TORRE ELA FOI ENTERRADA..."
     },
     {
       "tela": "pausa",
@@ -120,9 +120,9 @@
     {
       "tela": "dialogo_bottles",
       "status": "PASS",
-      "detalhe": "IoU do texto 0,9703 (minimo 0,75); por linha nao se aplica (texto rolando); pixels ref/novo 5516/5354 (minimo 300); captura dialogo_bottles_05.png; esperado: TERRA. PRESSIONE (B) PARA INTERAGIR COM ... (fala do Bottles no jogo)"
+      "detalhe": "IoU do texto 0,9993 (minimo 0,75); por linha nao se aplica (texto rolando); pixels ref/novo 5516/5520 (minimo 300); captura dialogo_bottles_07.png; esperado: TERRA. PRESSIONE (B) PARA INTERAGIR COM ... (fala do Bottles no jogo)"
     }
   ],
-  "fim": "2026-11-10T20:31:45",
+  "fim": "2026-11-10T20:50:39",
   "status": "PASS"
 }

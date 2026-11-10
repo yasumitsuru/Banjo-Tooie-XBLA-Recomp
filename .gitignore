@@ -1,0 +1,20 @@
+# Build/engine outputs
+out/
+generated/
+build*/
+dist/
+__pycache__/
+*.pyc
+
+# Unity (não é o stack do projeto, por precaução)
+Library/
+Temp/
+Obj/
+Logs/
+UserSettings/
+
+# Editor / OS
+.vs/
+.vscode/
+Thumbs.db
+Desktop.ini

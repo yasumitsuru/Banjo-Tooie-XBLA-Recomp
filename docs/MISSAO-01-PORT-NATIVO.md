@@ -131,6 +131,7 @@ Do log do runtime (`banjotooie.log`: 58 linhas, **0 erros**, 3 avisos):
 | Saves | **PENDENTE** | Nada foi gravado: a pasta `user_data` do teste ficou vazia, porque o jogo não saiu da abertura |
 | Áudio audível | **PENDENTE** | Testes com `--audio_mute`; o sistema de áudio inicializou (log) |
 | Estabilidade em sessões longas | **PENDENTE** | Execuções de ~76 s |
+| Checagem automática do Craft Anything (`rebuild_check`) | **FAIL esperado, não aplicável** | ela procura um projeto Unity ("No Unity project found"); este projeto é C++/CMake + ReXGlue, conforme pedido |
 | Rodar com duplo clique, sem argumentos | parcial | Sem `--game_data_root`, o port mostra a mensagem em PT-BR e sai com código 3. Ainda falta um lançador ou arquivo de configuração que guarde a pasta |
 
 ## 6. Matriz atualizada (port nativo)

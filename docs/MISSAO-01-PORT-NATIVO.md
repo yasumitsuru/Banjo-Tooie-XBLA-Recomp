@@ -142,13 +142,15 @@ Do log do runtime (`banjotooie.log`: 58 linhas, **0 erros**, 3 avisos):
 | Inicia com os dados fornecidos | PENDENTE | **IMPLEMENTADO** até a tela de abertura | 5.2 passo 4 |
 | Diagnóstico de inicialização e arquivos ausentes | — | **IMPLEMENTADO** (preflight, relatório, minidump; códigos 2/3/4/5) | 5.2 passos 1, 2, 3, 5 |
 | Preservação dos arquivos originais | forte no código | **IMPLEMENTADO** (36/36 antes e depois) | 5.2 passos 0 e 6 |
-| PT-BR | PARCIAL | **PARCIAL**: abertura em PT-BR no port nativo; cobertura total não verificada | captura |
-| Menu START / jogabilidade | PENDENTE | **PENDENTE** (sem entrada automatizada) | 5.3 |
-| 4K | PENDENTE | **PENDENTE**: o port roda em 1280×720 (padrão); opções 4K existem no runtime, sem teste | 5.2 |
-| 60 FPS | PENDENTE | **PENDENTE**. Agora **medido**: o original roda a **~29,5 FPS** no port (confirma os 30 FPS inferidos do código) | `boot_jogo.json` |
+| PT-BR | PARCIAL | **PARCIAL**: abertura em PT-BR no port nativo; a pessoa confirma que a tradução está aplicada nos dados; a cobertura não foi verificada pelo projeto | captura; `DECISOES.md` nº 2 |
+| Menu START / jogabilidade | PENDENTE | **PARCIAL (relato)**: a pessoa relata que o port "está carregando". Sem teste automatizado (sem entrada simulada). O significado de "menu START" segue em aberto | 5.3; `DECISOES.md` nº 1 e 2 |
+| 4K | PENDENTE | **PENDENTE**: o port roda em 1280×720 (padrão = original). **Decisão da pessoa:** fazer o 4K pelo sistema gráfico do ReXGlue (`resolution_scale`/`resolution=4k`/FSR) | 5.2; `DECISOES.md` nº 3 |
+| 60 FPS | PENDENTE | **PENDENTE**. **Medido**: o original roda a **~29,5 FPS** no port; a pessoa confirma 720p/30. O runtime não tem opção de FPS, então os 60 exigem trocar o intervalo do jogo (`0x82276E34`) | `boot_jogo.json`; `DECISOES.md` nº 3 |
 | Draw distance, QoL | PENDENTE | **PENDENTE** | — |
-| Gamepad | PENDENTE | **PARCIAL**: controle detectado pelo SDL; entrada não testada | log |
-| Saves | PENDENTE | **PENDENTE** | 5.3 |
+| Gamepad | PENDENTE | **PARCIAL**: controle detectado pelo SDL; a pessoa relata que carrega; entrada não testada pelo projeto | log; `DECISOES.md` nº 1 |
+| Saves | PENDENTE | **PENDENTE**: a resposta da pessoa não diz se gravou e carregou | 5.3; `DECISOES.md` nº 1 |
+| Versão completa | PENDENTE (forte no código) | **IMPLEMENTADO**: a pessoa confirma a versão completa; o runtime informa a licença como comprada | `DECISOES.md` nº 5 |
+| Uso / licenças | risco | **Decidido: uso pessoal**, sem publicar | `DECISOES.md` nº 4 |
 
 ## 7. Como usar
 
@@ -166,8 +168,8 @@ Atalhos do runtime: F3 = FPS, F4 = ajustes, crase (`` ` ``) = console.
 1. **Entrada automatizada** é o próximo bloqueio para testar menu, jogo, controle e saves.
 2. **Antivírus (Kaspersky)**: removeu (inferido) o `TracyClient.dll`. O build atual não usa Tracy,
    mas `banjotooie.exe`/`rexruntime.dll` também podem ser analisados; até agora não sumiram.
-3. **Licença da base**: sem licença declarada (uso pessoal ok; distribuir exige permissão ou
-   reescrever os arquivos copiados).
+3. **Licença da base**: sem licença declarada. **A pessoa decidiu uso pessoal** (`DECISOES.md`
+   nº 4), então o risco fica fechado enquanto o projeto não for publicado.
 4. **Fork defasado** (168 commits atrás do ReXGlue oficial): mantido de propósito.
 5. **Ponto `0x822479EC`**: correção deste projeto, não da base; pelo código é seguro, mas o caminho
    só será exercitado quando o jogo passar por ali.

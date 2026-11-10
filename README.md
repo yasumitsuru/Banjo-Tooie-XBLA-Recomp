@@ -9,8 +9,10 @@ Projeto de port nativo para Windows 11 (x86-64) do Banjo-Tooie (XBLA), por recom
 reproduzível a partir do **seu** `default.xex` (22.111 funções recompiladas), inicia com os seus
 dados e mostra a tela de abertura em PT-BR ("PRESSIONE START PARA JOGAR") a ~29,5 FPS, sem
 emulador. Os arquivos do jogo não são copiados para o repositório nem alterados (36/36 hashes
-iguais antes e depois). **Ainda não comprovado:** menu, jogabilidade, controle, saves (sem
-entrada automatizada); 4K e 60 FPS ainda não foram feitos.
+iguais antes e depois). A pessoa relata que o port carrega além da abertura e confirma a versão
+completa, a tradução aplicada, o original em 720p/30 e o uso só pessoal (`docs/DECISOES.md`).
+**Ainda sem teste automatizado:** menu, jogabilidade, controle e saves. **Ainda não feitos:** 4K
+(será pelo sistema gráfico do ReXGlue, por decisão da pessoa) e 60 FPS.
 
 ## Como compilar e rodar
 
@@ -29,6 +31,8 @@ Opções do port: `--preflight_only`, `--boot_report <json>`, `--screenshot <png
 
 - **Missão 01 (port nativo):** `docs/MISSAO-01-PORT-NATIVO.md`: arquitetura, toolchain, mudanças,
   testes com evidências (`docs/evidencias/m01/`), matriz atualizada e pendências
+- **Respostas e decisões da pessoa:** `docs/DECISOES.md` (uso pessoal, versão completa, 720p/30,
+  4K pelo sistema gráfico do ReXGlue)
 - **Missão 00 (auditoria):** `docs/AUDITORIA-MISSAO-00.md`, com evidências em `docs/evidencias/`
 - **Valores reais do executável original:** `MECHANICS.md` (endereços do XEX, base `0x82000000`)
 - **Créditos e licenças:** `CREDITS.md`

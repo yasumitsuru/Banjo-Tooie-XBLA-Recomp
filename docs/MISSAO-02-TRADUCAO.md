@@ -10,13 +10,22 @@ encontrada nenhuma incompatibilidade de leitura/extração, então **nenhuma cor
 port foi necessária**. O que foi feito é a **automação** (inspeção, linha de base, regressão visual
 no jogo real, teste negativo) e as **opções de teste** do port que a tornam possível.
 
+**Rodada 2 (2026-11-10, 15:40–20:35):** o teste automático passou a entrar na **parte jogável**
+(Spiral Mountain) e conferir o **menu de pausa (START)**, três submenus, uma **mensagem do sistema**
+e uma **fala do Bottles com ícone de botão** — 6 telas novas, todas em PT-BR com acentos
+(§6.2). A regressão visual ganhou nota **por linha de texto** (um item de menu ou o fim de uma frase
+sumido agora reprova) e o teste negativo foi de 11/11 para **20/20**. Continua sem nenhuma correção
+nos dados ou no port: só ferramentas de teste mudaram.
+
 ## 1. Ponto de restauração (rollback)
 
 | O quê | Referência |
 |---|---|
 | Instantâneo de toda a árvore antes de qualquer mudança | `refs/checkpoints/missao-02-inicio-20261110` = `3590fff` |
 | Base limpa (trabalho anterior sem commit, sem mudança de conteúdo) | commit `97232bf` |
-| Trabalho desta missão | commit seguinte no branch `missao-02-traducao` |
+| Trabalho desta missão | commit `59eb610` no branch `missao-02-traducao` |
+| Instantâneo antes de fechar a rodada 2 (disco inteiro, sem a pasta não versionada do Codex) | `refs/checkpoints/m02r2-20261110-2020` = `e3dcdaf` |
+| Rodada 2 | commit seguinte a `59eb610` no mesmo branch |
 
 Desfazer tudo desta missão: `git checkout 97232bf -- .` (ou voltar o branch para `97232bf`). As
 mudanças no port são opções de teste desligadas por padrão; sem elas o executável se comporta como
@@ -105,6 +114,17 @@ acentos. Portanto nenhum arquivo do jogo e nenhum código do jogo foram mudados.
 Os textos completos extraídos e as capturas do jogo ficam só em `_audit/out/` (fora do Git), por
 serem conteúdo do jogo.
 
+**Rodada 2** (nenhuma mudança no port nem nos dados):
+
+| Arquivo | Mudança |
+|---|---|
+| `tools/test_traducao.ps1` | passo **4b** (parte jogável: pausa, submenus, mensagem do sistema, fala do Bottles); nota por linha (`-IouLinhaMinimo`, padrão 0,75); `-GravarReferenciasNovas` (grava só as referências que faltam, sem tocar nas já conferidas); `refn` (outra região da mesma tela usa a mesma referência); se o processo não fechar sozinho depois de pedir a saída, o passo é julgado pelas capturas e o travamento vira um AVISO separado |
+| `tools/m02/comparar_capturas.py` | cor `cinza` (menu de pausa), IoU de cada linha de texto da referência (`iou_linha_min`, `linhas`), leitura rápida com Pillow quando instalado (mesmos valores RGB) |
+| `tools/m02/teste_negativo.py` | casos 9: item de menu apagado, trecho de linha apagado, fim de frase cortado, 2 telas trocadas, fala ausente e 3 controles (§7) |
+| `.gitignore` | ignora em `docs/evidencias/` as saídas do teste que são conteúdo do jogo (`*.bin`, `textos_*_ptbr.txt`, pastas `user/` e `cache/`) |
+| `_audit/m02/explorar_jogo.ps1`, `_audit/m02/folha_contato.py` (novos) | exploração: capturas a cada N segundos com o controle virtual e folhas de miniaturas para achar as telas |
+| `docs/evidencias/m02/*_r2.json` (novos) | resultados da rodada 2 (status, IoU, hashes; sem imagens nem textos do jogo) |
+
 ## 6. Teste automático — `pwsh -File tools\test_traducao.ps1`
 
 Sem ação manual. A janela abre atrás das outras, sem som e sem roubar o foco; cada execução usa
@@ -115,7 +135,10 @@ pastas de usuário e cache próprias dentro de `_audit/out`.
    completa (§3);
 3. jogo real com controle virtual: abertura → START → menu principal → AJUDA E OPÇÕES → CONFIGURAÇÕES;
 4. jogo real: menu → JOGAR → seleção de jogo → introdução com dois textos do db360;
-5. regressão visual do texto de 8 telas contra referências conferidas a olho;
+4b. (rodada 2) jogo real, parte jogável: pula a introdução, abre a pausa e percorre VER TOTAIS,
+   AJUDA E OPÇÕES, CLASSIFICAÇÕES (mensagem do sistema) e a confirmação de SAIR DO JOGO **sem
+   confirmar**; fecha a pausa e captura a fala do Bottles (§6.2);
+5. regressão visual do texto (rodada 2: 14 telas em 15 comparações) contra referências conferidas a olho;
 6. sha256 dos 36 arquivos DEPOIS (têm de ser iguais aos de antes).
 
 Tempos do passo 4 medidos em duas calibrações (`_audit/out/m02/calib4`, `calib4b`): texto 1 na tela
@@ -129,6 +152,9 @@ exige ao menos 300 pixels de texto dos dois lados (duas telas sem texto não con
 | gravação das referências e da linha de base (`-GravarReferencias -GravarLinhaDeBase`) | `teste-ref-20261110` | PASS; passo 5 = referências gravadas e conferidas a olho |
 | regressão | `teste-regressao-20261110` | **PASS 7/7**; 8/8 telas com IoU 0,958–1,0 |
 | final (ferramentas na versão do commit) | `teste-final-20261110` | **PASS 7/7** (§6.1) |
+| rodada 2: gravação só das referências novas (`-GravarReferenciasNovas`) | `../m02r2/teste-ref-r2` | PASS; 8 telas antigas PASS, 6 referências novas gravadas e conferidas a olho |
+| rodada 2: regressão (exe recompilado pelo Craft, `e69cd4ad…`) | `../m02r2/teste-regressao-r2` | **PASS 8/8**; 14/14 telas |
+| rodada 2: final (ferramentas na versão do commit) | `../m02r2/teste-final-r2` | **PASS 8/8**; 15/15 comparações (§6.2) |
 
 ### 6.1 Rodada final (14:49–14:52, exe sha256 `e2cb7d92…`) — **PASS 7/7**
 
@@ -163,11 +189,48 @@ build **PASS** (`npm run build` → CMake/Ninja real, com o código desta missã
 | seleção de jogo | PRESSIONE (A) PARA INICIAR O JOGO. / JOGO 1: VAZIO / SELECIONAR / VOLTAR |
 | introdução 1 (db360) | DOIS ANOS TEM SE PASSADO DESDE QUE GRUNTILDA A BRUXA FOI DERROTADA POR BANJO E KAZOOIE . (+ PULAR) |
 | introdução 2 (db360) | APÓS CAIR DO TOPO DE SUA TORRE ELA FOI ENTERRADA ABAIXO DO SOLO ONDE PERMANECE ATÉ O DIA DE HOJE . . . |
+| pausa (START, no jogo) — rodada 2 | CONTINUAR JOGO / VER TOTAIS / AJUDA E OPÇÕES / CLASSIFICAÇÕES / CONQUISTAS / SAIR DO JOGO / SELECIONAR / VOLTAR |
+| pausa → VER TOTAIS | OBJETOS E ITEMS / VER TOTAIS (grafia "ITEMS" é do tradutor; não alterada) |
+| pausa → AJUDA E OPÇÕES | COMO JOGAR / CONTROLES / CONFIGURAÇÕES |
+| pausa → CLASSIFICAÇÕES (mensagem do sistema) | ESTE RECURSO EXIGE UM PERFIL DE JOGADOR CONECTADO À XBOX LIVE / VOLTAR |
+| pausa → SAIR DO JOGO | SAIR DO JOGO / VOCÊ TEM CERTEZA? / SIM / NÃO |
+| fala do Bottles (db360, no jogo) | TERRA. PRESSIONE (ícone B) PARA INTERAGIR COM ELES |
+
+### 6.2 Rodada 2 — parte jogável (20:26–20:31, exe sha256 `e69cd4ad…`) — **PASS 8/8**
+
+Tempos medidos em seis execuções de calibração (`_audit/out/m02r2/exp1`–`exp6`, capturas a cada
+0,5–3 s com `_audit/m02/explorar_jogo.ps1`): B em 58 s pula a introdução e o jogo começa em Spiral
+Mountain por volta de 62 s; o START só abre a pausa sem diálogo na tela e alterna abrir/fechar, por
+isso vai em 64 s, antes da primeira fala do Bottles (~66 s). Com a pausa aberta o jogo para, então os
+tempos dos submenus ficam fixos. Cada tela tem 3 capturas e vale a melhor; a fala do Bottles rola
+enquanto é escrita, então tem 21 capturas (a cada 0,25 s).
+
+| Passo | Resultado |
+|---|---|
+| 1 inspeção estática antes | PASS: 16 PASS, 0 FAIL, 3 PENDENTE (cobertos no passo 2) |
+| 2 abertura com rastro + inspeção completa | PASS: código 0, 29 s, 828 quadros; 28 PASS, 0 FAIL, 0 PENDENTE |
+| 3 menus com controle virtual | PASS: 8/8 apertos entregues |
+| 4 seleção e introdução | PASS: 3/3 apertos entregues |
+| 4b parte jogável | PASS: 19/19 apertos entregues, 37 capturas gravadas, o jogo saiu sozinho (código 0) |
+| 5 regressão visual | PASS 15/15: IoU da tela 0,970–1,0 e pior linha 0,967–1,0 (mínimos 0,75); 595–82.959 pixels de texto |
+| 6 arquivos do jogo | PASS: 36/36 com o mesmo sha256 antes e depois |
+
+Telas novas (IoU da tela / pior linha): pausa 1,0/1,0 (6 linhas); VER TOTAIS 1,0/1,0; AJUDA E OPÇÕES
+1,0/1,0; mensagem do sistema 1,0/1,0 até x=680 e 1,0/1,0 no fim das duas linhas (x 820–890); SAIR DO
+JOGO 1,0/1,0; fala do Bottles 0,970 (por linha não se aplica: o texto rola). A regressão na
+execução anterior (`teste-regressao-r2`) deu 1,0/1,0 nas mesmas telas e 0,967 no Bottles; o executável foi
+recompilado pelo verificador do Craft entre a gravação das referências e a regressão, sem mudança
+de código, e as telas não mudaram.
+
+Evidências: `docs/evidencias/m02/resultado_teste_final_r2.json`, `resultado_teste_regressao_r2.json`,
+`resultado_teste_referencias_r2.json`, `resultado_teste_negativo_r2.json`, `capturas_sha256_r2.json`
+(51 imagens, que ficam fora do Git). Logs em `_audit/out/m02r2/*.log`.
 
 ## 7. Teste negativo — `python -I tools\m02\teste_negativo.py`
 
-Estraga **cópias** dos arquivos (numa pasta nova em `_audit/out/m02/negativo-20261110`) e confere
-que o verificador acusa cada defeito. **PASS 11/11:**
+Estraga **cópias** dos arquivos (numa pasta nova em `_audit/out/m02/negativo-20261110`; rodada 2:
+`_audit/out/m02r2/negativo-final-r2`, sobre as capturas da rodada final) e confere que o verificador
+acusa cada defeito. Rodada 1: **PASS 11/11**. Rodada 2: **PASS 20/20** (os 11 de antes + os 9 abaixo).
 
 | Caso | Defeito plantado | Acusado por |
 |---|---|---|
@@ -180,6 +243,15 @@ que o verificador acusa cada defeito. **PASS 11/11:**
 | caractere sem glifo | caractere que a fonte não tem | T2, B1 |
 | diálogo cortado | um 0 no meio de uma fala do db360 | D3, B1 |
 | 3 telas trocadas | captura de outra tela no lugar da certa | regressão visual (IoU 0,0–0,33 < 0,75) |
+| 3 controles visuais (rodada 2) | captura certa da pausa e da mensagem (duas regiões) | nada falha (IoU 1,0) |
+| item de menu apagado (rodada 2) | 4ª linha da pausa (CLASSIFICAÇÕES) pintada de preto | **só a nota por linha**: tela 0,870 (passaria), linha 0,0 |
+| trecho de linha apagado (rodada 2) | meio da 2ª linha da mensagem do sistema apagado | **só a nota por linha**: tela 0,841 (passaria), linha 0,668 |
+| fim de frase cortado (rodada 2) | últimas letras de "XBOX LIVE" apagadas | tela 0,671, linha 0,380 (região x 820–890) |
+| 2 telas trocadas (rodada 2) | pausa no lugar de AJUDA E OPÇÕES; SAIR DO JOGO no lugar da mensagem | IoU 0,170 e 0,015 |
+| fala ausente (rodada 2) | tela sem a fala do Bottles | 161 pixels de texto (< 300) e IoU 0,007 |
+
+Os dois casos marcados "só a nota por linha" mostram por que ela foi criada: com a regra da rodada 1
+(só a tela inteira ≥ 0,75), um item de menu sumido ou um trecho de frase apagado **passaria**.
 
 ## 8. Matriz da tradução PT-BR
 
@@ -191,12 +263,15 @@ que o verificador acusa cada defeito. **PASS 11/11:**
 | Integridade estrutural dos diálogos (db360) | IMPLEMENTADO | D1–D6 PASS, 2.356/2.356 |
 | Texto PT-BR intacto na memória do jogo | IMPLEMENTADO | M1 PASS |
 | Exibição PT-BR no jogo: abertura, menus XBLA, seleção, introdução | IMPLEMENTADO | 8 telas, regressão visual PASS |
-| Testes automatizados de integridade, checksums e regressão | IMPLEMENTADO | `tools/test_traducao.ps1`, linha de base, teste negativo 11/11 |
+| Exibição PT-BR no jogo: menu de pausa (START), VER TOTAIS, AJUDA E OPÇÕES, confirmação SAIR DO JOGO | IMPLEMENTADO (rodada 2) | 4 telas no jogo real, regressão visual PASS com nota por linha |
+| Exibição no jogo de uma fala de fase com ícone de botão (Bottles) | IMPLEMENTADO (rodada 2) | 1 fala, IoU 0,970 |
+| Testes automatizados de integridade, checksums e regressão | IMPLEMENTADO | `tools/test_traducao.ps1` (8 passos, 15 comparações), linha de base, teste negativo 20/20 |
 | Correções de leitura/extração | NÃO NECESSÁRIO | nenhuma incompatibilidade comprovada |
-| Exibição no jogo dos demais diálogos, HUD, menu de pausa (START) e textos das fases | PENDENTE | exige jogar além da introdução; a estrutura de todos os 2.356 registros já é conferida estaticamente |
-| Glifos raros na fonte dos diálogos (bitmap dentro das texturas), ex. Û, Â, º | PENDENTE | a fonte dos diálogos é textura; só os acentos da introdução (Ó, É) foram vistos no jogo |
+| Exibição no jogo dos demais diálogos e textos das fases | PENDENTE | exige jogar além do início de Spiral Mountain (andar, falar com personagens); a estrutura dos 2.356 registros é conferida estaticamente |
+| Interface durante o jogo (HUD) | PARCIAL | vista nas capturas (favos de mel, contadores, ícones, SELECIONAR/VOLTAR) mas é quase só números e ícones; não há regressão própria |
+| Glifos raros na fonte dos diálogos (bitmap dentro das texturas), ex. Û, Â, º | PENDENTE | a fonte dos diálogos é textura; no jogo foram vistos Ó, É (introdução) e À, Ê, Ã, Ç, Õ (camada XBLA) |
 | Textos desenhados em texturas (`db360.textures.cmp`) | PENDENTE | o arquivo foi modificado pelo tradutor e é lido por inteiro, mas o conteúdo das texturas não foi decodificado |
-| Mensagens do sistema (66 UTF-16, ex. armazenamento/erro) na tela | PENDENTE | estrutura PASS; não foram provocadas no teste |
+| Mensagens do sistema na tela | PARCIAL (rodada 2) | 1 vista e conferida (perfil Xbox LIVE, pela pausa); as de armazenamento/erro não foram provocadas; estrutura das 66 UTF-16 PASS |
 | PT-BR com outro `user_language` | RISCO | o PT-BR depende do padrão 1; `user_language=3` mostra alemão |
 | Autoteste do verificador do Craft (andar/ação/interface) | BLOQUEADO | exige instrumentar a jogabilidade; fora do escopo desta missão |
 
@@ -209,6 +284,19 @@ que o verificador acusa cada defeito. **PASS 11/11:**
   1,5 s de folga). Um PC muito mais lento pode deslocar as telas; o teste então falha (não passa
   por engano).
 - **Capturas de referência** são conteúdo do jogo: ficam em `_audit/out/m02/referencias` (fora do
-  Git). Para regravar: `pwsh -File tools\test_traducao.ps1 -GravarReferencias` e conferir as imagens.
-- **Understory:** MCP indisponível nesta sessão (BLOCKED_MCP); registro local em
-  `.understory/queue/pending/m02-traducao-2026-11-10.json` (SYNC_PENDING).
+  Git). Para regravar: `pwsh -File tools\test_traducao.ps1 -GravarReferencias` e conferir as imagens;
+  para gravar só as que faltam: `-GravarReferenciasNovas`.
+- **Passo 4b (rodada 2):** depende do tempo do jogo e de um START fora de diálogo (a pausa alterna
+  abrir/fechar). Num PC mais lento a pausa pode não abrir; o passo então falha (não passa por engano).
+  O roteiro só **abre** a confirmação de SAIR DO JOGO e responde B (NÃO); nunca confirma a saída.
+- **Parte não comparada automaticamente:** na mensagem do sistema, "ERFIL" e "XBOX L" ficam atrás do
+  fantasma do Bottles (que brilha em branco e varia entre execuções); essa parte foi conferida a olho
+  na referência, e o começo (até x=680) e o fim das duas linhas (x 820–890) são comparados.
+- **Saídas do teste com conteúdo do jogo:** cada execução grava em `-OutDir` cópias da memória do
+  jogo (`db_mem.bin`, 50 MB) e os textos completos extraídos. Uma execução interrompida de outra
+  ferramenta (Codex, 16:28–16:45) usou uma pasta dentro de `docs/evidencias/m00-atual-20261110/`;
+  nada disso foi commitado, a pasta foi mantida como estava e o `.gitignore` agora impede que esses
+  arquivos entrem no Git. Recomenda-se usar sempre `_audit/out` como `-OutDir` (é o padrão).
+- **Understory:** MCP indisponível nesta sessão (BLOCKED_MCP); registros locais em
+  `.understory/queue/pending/m02-traducao-2026-11-10.json` e `m02-traducao-rodada2-2026-11-10.json`
+  (SYNC_PENDING).

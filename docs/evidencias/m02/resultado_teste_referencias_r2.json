@@ -1,0 +1,123 @@
+{
+  "versao": 1,
+  "inicio": "2026-11-10T16:07:16",
+  "exe": "W:\\Decomp\\Banjo 3\\app\\out\\native\\banjotooie.exe",
+  "jogo": "W:\\Decomp\\Banjo 3\\Banjo Tooie BR",
+  "exe_sha256": "f49d3bb7f6a7185049345463fdb78657a1c86274f6fee682f7af83b0b6d92b75",
+  "passos": [
+    {
+      "passo": "1_inspecao_estatica_antes",
+      "status": "PASS",
+      "detalhe": "16 PASS, 0 FAIL, 3 PENDENTE"
+    },
+    {
+      "passo": "2_jogo_abertura_com_rastro",
+      "status": "PASS",
+      "detalhe": "codigo 0; 29 s; captura PNG gravado; quadros=830; brilho_medio=58.1; pixels_acesos=65.6%"
+    },
+    {
+      "passo": "2_inspecao_com_memoria_e_rastro",
+      "status": "PASS",
+      "detalhe": "28 PASS, 0 FAIL, 0 PENDENTE"
+    },
+    {
+      "passo": "3_menus_com_controle_virtual",
+      "status": "PASS",
+      "detalhe": "codigo 0; leituras_do_controle=1353 leituras_com_botao=49 apertos: start@26s=entregue down@31s=entregue down@32.5s=entregue down@34s=entregue a@36s=entregue down@41s=entregue down@42.5s=entregue a@44s=entregue"
+    },
+    {
+      "passo": "4_selecao_e_dialogo_com_controle_virtual",
+      "status": "PASS",
+      "detalhe": "codigo 0; leituras_do_controle=1964 leituras_com_botao=17 apertos: start@26s=entregue a@30s=entregue a@36s=entregue"
+    },
+    {
+      "passo": "4b_jogavel_pausa_sistema_e_dialogo",
+      "status": "PASS",
+      "detalhe": "codigo 0; capturas todas gravadas; leituras_do_controle=3741 leituras_com_botao=111 apertos: start@26s=entregue a@30s=entregue a@36s=entregue b@58s=entregue start@64s=entregue down@69s=entregue a@71s=entregue b@78s=entregue down@81s=entregue a@83s=entregue b@89s=entregue down@92s=entregue a@94s=entregue b@100s=entregue down@103s=entregue down@105s=entregue a@107s=entregue b@112s=entregue start@116s=entregue"
+    },
+    {
+      "passo": "5_regressao_visual_do_texto",
+      "status": "PENDENTE",
+      "detalhe": "titulo=PASS; titulo_copyright=PASS; menu_principal=PASS; ajuda_e_opcoes=PASS; configuracoes=PASS; selecao_de_jogo=PASS; dialogo_intro_1=PASS; dialogo_intro_2=PASS; pausa=REFERENCIA_GRAVADA; pausa_ver_totais=REFERENCIA_GRAVADA; pausa_ajuda_e_opcoes=REFERENCIA_GRAVADA; mensagem_xbox_live=REFERENCIA_GRAVADA; pausa_sair_do_jogo=REFERENCIA_GRAVADA; dialogo_bottles=REFERENCIA_GRAVADA"
+    },
+    {
+      "passo": "6_arquivos_do_jogo_intactos",
+      "status": "PASS",
+      "detalhe": "36/36 arquivos com o mesmo sha256 antes e depois"
+    }
+  ],
+  "regressao_visual": [
+    {
+      "tela": "titulo",
+      "status": "PASS",
+      "detalhe": "IoU do texto 0,9737 (minimo 0,75); pixels ref/novo 639/636 (minimo 300); captura titulo.png; esperado: PRESSIONE START PARA JOGAR"
+    },
+    {
+      "tela": "titulo_copyright",
+      "status": "PASS",
+      "detalhe": "IoU do texto 0,9603 (minimo 0,75); pixels ref/novo 3373/3396 (minimo 300); captura titulo.png; esperado: (C) 2009 MICROSOFT - JOAOHRS2. / TODOS OS DIREITOS RESERVADOS."
+    },
+    {
+      "tela": "menu_principal",
+      "status": "PASS",
+      "detalhe": "IoU do texto 1 (minimo 0,75); pixels ref/novo 1828/1828 (minimo 300); captura menu_principal.png; esperado: JOGAR / CLASSIFICACOES / CONQUISTAS / AJUDA E OPCOES / VOLTAR A BIBLIOTECA DE JOGOS"
+    },
+    {
+      "tela": "ajuda_e_opcoes",
+      "status": "PASS",
+      "detalhe": "IoU do texto 1 (minimo 0,75); pixels ref/novo 1824/1824 (minimo 300); captura ajuda_e_opcoes.png; esperado: COMO JOGAR / CONTROLES / CONFIGURACOES / CREDITOS"
+    },
+    {
+      "tela": "configuracoes",
+      "status": "PASS",
+      "detalhe": "IoU do texto 1 (minimo 0,75); pixels ref/novo 2287/2287 (minimo 300); captura configuracoes.png; esperado: VOLUME DA MUSICA / VOLUME DOS EFEITOS SONOROS / RESTAURAR CONFIGURACOES PADRAO / INVERTER EIXO Y : NAO"
+    },
+    {
+      "tela": "selecao_de_jogo",
+      "status": "PASS",
+      "detalhe": "IoU do texto 0,9985 (minimo 0,75); pixels ref/novo 4104/4104 (minimo 300); captura selecao_de_jogo.png; esperado: PRESSIONE (A) PARA INICIAR O JOGO."
+    },
+    {
+      "tela": "dialogo_intro_1",
+      "status": "PASS",
+      "detalhe": "IoU do texto 0,9987 (minimo 0,75); pixels ref/novo 75574/75476 (minimo 300); captura dialogo_intro_1a.png; esperado: DOIS ANOS TEM SE PASSADO DESDE QUE GRUNTILDA A BRUXA FOI DERROTADA..."
+    },
+    {
+      "tela": "dialogo_intro_2",
+      "status": "PASS",
+      "detalhe": "IoU do texto 0,9999 (minimo 0,75); pixels ref/novo 82959/82959 (minimo 300); captura dialogo_intro_2a.png; esperado: APOS CAIR DO TOPO DE SUA TORRE ELA FOI ENTERRADA..."
+    },
+    {
+      "tela": "pausa",
+      "status": "REFERENCIA_GRAVADA",
+      "detalhe": "pausa_b.png (2437 pixels de texto); conferir a leitura: CONTINUAR JOGO / VER TOTAIS / AJUDA E OPCOES / CLASSIFICACOES / CONQUISTAS / SAIR DO JOGO"
+    },
+    {
+      "tela": "pausa_ver_totais",
+      "status": "REFERENCIA_GRAVADA",
+      "detalhe": "ver_totais_b.png (2222 pixels de texto); conferir a leitura: OBJETOS E ITEMS / VER TOTAIS"
+    },
+    {
+      "tela": "pausa_ajuda_e_opcoes",
+      "status": "REFERENCIA_GRAVADA",
+      "detalhe": "ajuda_no_jogo_b.png (1324 pixels de texto); conferir a leitura: COMO JOGAR / CONTROLES / CONFIGURACOES"
+    },
+    {
+      "tela": "mensagem_xbox_live",
+      "status": "REFERENCIA_GRAVADA",
+      "detalhe": "xbox_live_b.png (5061 pixels de texto); conferir a leitura: ESTE RECURSO EXIGE UM PERFIL DE JOGADOR CONECTADO A XBOX LIVE"
+    },
+    {
+      "tela": "pausa_sair_do_jogo",
+      "status": "REFERENCIA_GRAVADA",
+      "detalhe": "sair_do_jogo_b.png (5269 pixels de texto); conferir a leitura: SAIR DO JOGO / VOCE TEM CERTEZA?"
+    },
+    {
+      "tela": "dialogo_bottles",
+      "status": "REFERENCIA_GRAVADA",
+      "detalhe": "dialogo_bottles_11.png (5516 pixels de texto); conferir a leitura: TERRA. PRESSIONE (B) PARA INTERAGIR COM ... (fala do Bottles no jogo)"
+    }
+  ],
+  "fim": "2026-11-10T16:12:11",
+  "status": "PASS"
+}

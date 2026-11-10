@@ -8,12 +8,16 @@
 #   3. jogo real com controle virtual (--port_test_input): abertura -> START -> menu principal ->
 #      AJUDA E OPCOES -> CONFIGURACOES  (capturas)
 #   4. jogo real: menu -> JOGAR -> selecao de jogo -> introducao com dialogo do jogo (capturas)
+#   4b. jogo real, parte jogavel: pula a introducao (B), abre a pausa (START) e percorre VER TOTAIS,
+#      AJUDA E OPCOES, a mensagem do sistema de CLASSIFICACOES e a confirmacao de SAIR DO JOGO (sem
+#      confirmar); fecha a pausa e captura a fala do Bottles com o icone de botao (rodada 2)
 #   5. regressao visual: o texto de cada captura comparado com as referencias (comparar_capturas.py)
 #   6. sha256 dos 36 arquivos do jogo DEPOIS (tem de ser igual ao antes)
 # A janela abre atras das outras sem roubar o foco (modo automatico do port).
 #
 # Uso: pwsh -File tools\test_traducao.ps1 [-GameDir <pasta>] [-OutDir <pasta>] [-Exe <banjotooie.exe>]
-#        [-Referencias <pasta de PNGs>] [-GravarReferencias] [-GravarLinhaDeBase]
+#        [-Referencias <pasta de PNGs>] [-GravarReferencias] [-GravarReferenciasNovas] [-GravarLinhaDeBase]
+#   -GravarReferenciasNovas grava so as referencias que ainda nao existem (as conferidas ficam como estao).
 # Saida: resultado.json em -OutDir; codigo 0 se nada falhou (PENDENTE nao reprova), 1 se falhou.
 param(
   [string]$GameDir = (Join-Path $PSScriptRoot "..\..\Banjo Tooie BR"),
@@ -22,8 +26,11 @@ param(
   [string]$Referencias = (Join-Path $PSScriptRoot "..\_audit\out\m02\referencias"),
   [string]$LinhaDeBase = (Join-Path $PSScriptRoot "..\docs\evidencias\m02\linha_de_base_traducao.json"),
   [switch]$GravarReferencias,
+  [switch]$GravarReferenciasNovas,
   [switch]$GravarLinhaDeBase,
-  [double]$IouMinimo = 0.75
+  [double]$IouMinimo = 0.75,
+  # rodada 2: tambem o IoU de cada linha de texto da referencia (item de menu ou fim de frase sumido)
+  [double]$IouLinhaMinimo = 0.75
 )
 $ErrorActionPreference = "Stop"
 $App = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
@@ -115,6 +122,43 @@ $ti = if ($b) { ($b.stages | Where-Object name -eq "test_input" | Select-Object 
 $ok4 = $r.code -eq 0 -and $ti -and $ti -notmatch "NAO_ENTREGUE" -and (Test-Path "$d4\selecao_de_jogo.png") -and (Test-Path "$d4\dialogo_intro_2c.png")
 Add-Step "4_selecao_e_dialogo_com_controle_virtual" $(if ($ok4) { "PASS" } else { "FAIL" }) ("codigo {0}; {1}" -f $r.code, $ti)
 
+# 4b. parte jogavel: pausa, submenus, mensagem do sistema e fala do Bottles (rodada 2, 2026-11-10).
+# Calibracao em _audit\out\m02r2 (exp2-exp6): B em 58 s pula a introducao e o jogo comeca em Spiral
+# Mountain por volta de 62 s; o START so e aceito sem dialogo na tela e alterna abrir/fechar, por isso
+# ele vai em 64 s (antes da primeira fala do Bottles, ~66 s). Com a pausa aberta o jogo para e os
+# tempos dos submenus ficam fixos. Depois do START em 116 s a pausa fecha e o Bottles fala de novo;
+# o texto dele rola enquanto e escrito, entao ha 21 capturas (a cada 0,25 s) e a comparacao usa a melhor.
+$d4b = Join-Path $OutDir "4b_jogavel"
+$s4b = "start@26,a@30,a@36,b@58,start@64,down@69,a@71,b@78,down@81,a@83,b@89,down@92,a@94,b@100," +
+  "down@103,down@105,a@107,b@112,start@116"
+$inv = [cultureinfo]::InvariantCulture
+$sh4b = @("66.5=$d4b\pausa_a.png", "67.25=$d4b\pausa_b.png", "68=$d4b\pausa_c.png",
+  "74.5=$d4b\ver_totais_a.png", "75.5=$d4b\ver_totais_b.png", "76.5=$d4b\ver_totais_c.png",
+  "86=$d4b\ajuda_no_jogo_a.png", "87=$d4b\ajuda_no_jogo_b.png", "88=$d4b\ajuda_no_jogo_c.png",
+  "97=$d4b\xbox_live_a.png", "98=$d4b\xbox_live_b.png", "99=$d4b\xbox_live_c.png",
+  "109.75=$d4b\sair_do_jogo_a.png", "110.5=$d4b\sair_do_jogo_b.png", "111.25=$d4b\sair_do_jogo_c.png")
+$bottles = @()
+for ($i = 0; $i -le 20; $i++) {
+  $t = 125.5 + 0.25 * $i
+  $f = [string]::Format($inv, "{0}\dialogo_bottles_{1:00}.png", $d4b, $i)
+  $sh4b += [string]::Format($inv, "{0}={1}", $t, $f); $bottles += $f
+}
+$r = Run-Port $d4b @("--port_test_input", $s4b, "--port_test_shots", (Quote ($sh4b -join ";")),
+  "--screenshot", (Quote "$d4b\final.png"), "--screenshot_seconds", "131.5", "--smoke_timeout_seconds", "170") 230
+$b = Boot $d4b
+$ti = if ($b) { ($b.stages | Where-Object name -eq "test_input" | Select-Object -Last 1).detail } else { "" }
+$shotsOk = @($sh4b | Where-Object { -not (Test-Path ($_.Substring($_.IndexOf("=") + 1))) }).Count -eq 0
+# Encerramento: o port pede para sair depois da captura final. Se o processo nao terminar sozinho
+# ate o limite, o teste o encerra (codigo -999). As capturas ja estao gravadas nesse caso, entao o
+# passo e julgado por elas, e o travamento vira um AVISO separado (defeito do runtime, fora do texto).
+$saiu = $r.code -eq 0
+$pediuSaida = $b -and $b.exit -and $b.exit.code -eq 0 -and @($b.stages | Where-Object name -eq "shutdown").Count -gt 0
+$ok4b = ($saiu -or ($r.code -eq -999 -and $pediuSaida)) -and $ti -and $ti -notmatch "NAO_ENTREGUE" -and $shotsOk
+Add-Step "4b_jogavel_pausa_sistema_e_dialogo" $(if ($ok4b) { "PASS" } else { "FAIL" }) ("codigo {0}; capturas {1}; {2}" -f $r.code, $(if ($shotsOk) { "todas gravadas" } else { "FALTANDO" }), $ti)
+if ($r.code -eq -999) {
+  Add-Step "4b_encerramento_do_processo" "AVISO" ("o jogo pediu para sair (shutdown={0}) mas o processo nao terminou em {1:N0} s e foi encerrado pelo teste" -f $pediuSaida, $r.s)
+}
+
 # 5. regressao visual do texto
 $shots = @(
   @{ n = "titulo"; f = "$d2\titulo.png"; reg = "420,460,860,492"; cor = "branco"; txt = "PRESSIONE START PARA JOGAR" },
@@ -124,21 +168,35 @@ $shots = @(
   @{ n = "configuracoes"; f = "$d3\configuracoes.png"; reg = "165,180,700,470"; cor = "claro"; txt = "VOLUME DA MUSICA / VOLUME DOS EFEITOS SONOROS / RESTAURAR CONFIGURACOES PADRAO / INVERTER EIXO Y : NAO" },
   @{ n = "selecao_de_jogo"; f = "$d4\selecao_de_jogo.png"; reg = "190,45,1010,125"; cor = "branco"; txt = "PRESSIONE (A) PARA INICIAR O JOGO." },
   @{ n = "dialogo_intro_1"; f = @("$d4\dialogo_intro_1b.png", "$d4\dialogo_intro_1a.png", "$d4\dialogo_intro_1c.png"); reg = "230,130,1030,500"; cor = "laranja"; txt = "DOIS ANOS TEM SE PASSADO DESDE QUE GRUNTILDA A BRUXA FOI DERROTADA..." },
-  @{ n = "dialogo_intro_2"; f = @("$d4\dialogo_intro_2b.png", "$d4\dialogo_intro_2a.png", "$d4\dialogo_intro_2c.png"); reg = "230,130,1030,500"; cor = "laranja"; txt = "APOS CAIR DO TOPO DE SUA TORRE ELA FOI ENTERRADA..." }
+  @{ n = "dialogo_intro_2"; f = @("$d4\dialogo_intro_2b.png", "$d4\dialogo_intro_2a.png", "$d4\dialogo_intro_2c.png"); reg = "230,130,1030,500"; cor = "laranja"; txt = "APOS CAIR DO TOPO DE SUA TORRE ELA FOI ENTERRADA..." },
+  # rodada 2: parte jogavel (regioes sem o Bottles, que brilha em branco em x 690-810)
+  @{ n = "pausa"; f = @("$d4b\pausa_b.png", "$d4b\pausa_a.png", "$d4b\pausa_c.png"); reg = "290,165,600,545"; cor = "cinza"; txt = "CONTINUAR JOGO / VER TOTAIS / AJUDA E OPCOES / CLASSIFICACOES / CONQUISTAS / SAIR DO JOGO" },
+  @{ n = "pausa_ver_totais"; f = @("$d4b\ver_totais_b.png", "$d4b\ver_totais_a.png", "$d4b\ver_totais_c.png"); reg = "290,165,660,300"; cor = "cinza"; txt = "OBJETOS E ITEMS / VER TOTAIS" },
+  @{ n = "pausa_ajuda_e_opcoes"; f = @("$d4b\ajuda_no_jogo_b.png", "$d4b\ajuda_no_jogo_a.png", "$d4b\ajuda_no_jogo_c.png"); reg = "290,165,560,345"; cor = "cinza"; txt = "COMO JOGAR / CONTROLES / CONFIGURACOES" },
+  @{ n = "mensagem_xbox_live"; f = @("$d4b\xbox_live_b.png", "$d4b\xbox_live_a.png", "$d4b\xbox_live_c.png"); reg = "190,230,680,305"; cor = "cinza"; txt = "ESTE RECURSO EXIGE UM P... / JOGADOR CONECTADO A (ate x=680)" },
+  # o fim das duas linhas da mensagem fica a direita do Bottles (x 820-890, estavel entre execucoes);
+  # mesma referencia da tela acima (refn). So "ERFIL" e "XBOX L", atras do Bottles, ficam de fora.
+  @{ n = "mensagem_xbox_live_fim"; refn = "mensagem_xbox_live"; f = @("$d4b\xbox_live_b.png", "$d4b\xbox_live_a.png", "$d4b\xbox_live_c.png"); reg = "820,230,890,305"; cor = "cinza"; txt = "...DE / ...IVE (fim das duas linhas)" },
+  @{ n = "pausa_sair_do_jogo"; f = @("$d4b\sair_do_jogo_b.png", "$d4b\sair_do_jogo_a.png", "$d4b\sair_do_jogo_c.png"); reg = "190,150,620,260"; cor = "cinza"; txt = "SAIR DO JOGO / VOCE TEM CERTEZA?" },
+  # o texto rola: a referencia e a captura do meio da janela (128,0 s); a comparacao usa as 21
+  @{ n = "dialogo_bottles"; f = $bottles; fref = @($bottles[10], $bottles[9], $bottles[11]); reg = "280,555,1040,645"; cor = "branco"; txt = "TERRA. PRESSIONE (B) PARA INTERAGIR COM ... (fala do Bottles no jogo)" }
 )
 # Uma regiao sem texto nas duas imagens daria IoU 1,0 (0/0): por isso cada lado tem de ter pelo
 # menos $PixelsMinimos pixels da cor do texto; senao a tela conta como FAIL (texto sumiu).
 $PixelsMinimos = 300
-if ($GravarReferencias) { New-Item -ItemType Directory -Force $Referencias | Out-Null }
+if ($GravarReferencias -or $GravarReferenciasNovas) { New-Item -ItemType Directory -Force $Referencias | Out-Null }
 $vis = @()
 foreach ($s in $shots) {
-  $ref = Join-Path $Referencias ($s.n + ".png")
+  # refn: outra regiao da mesma tela usa a referencia ja gravada (e conferida) daquela tela
+  $ref = Join-Path $Referencias ($(if ($s.refn) { $s.refn } else { $s.n }) + ".png")
   $cands = @($s.f | Where-Object { Test-Path $_ })
   if (-not $cands.Count) { $vis += [ordered]@{ tela = $s.n; status = "FAIL"; detalhe = "captura ausente" }; continue }
-  if ($GravarReferencias) {
-    # referencia = a candidata com mais pixels de texto (a primeira, a do meio da janela, no empate)
+  if (-not $s.refn -and ($GravarReferencias -or ($GravarReferenciasNovas -and -not (Test-Path $ref)))) {
+    # referencia = a candidata com mais pixels de texto (a primeira, a do meio da janela, no empate);
+    # com fref, so entre as candidatas do meio (texto que rola enquanto e escrito)
+    $refCands = if ($s.fref) { @($s.fref | Where-Object { Test-Path $_ }) } else { $cands }
     $best = $null; $bestPx = -1
-    foreach ($c in $cands) {
+    foreach ($c in $refCands) {
       $j = (& python -I $Cmp $c $c $s.reg $s.cor) | ConvertFrom-Json
       if ($j.pixels_ref -gt $bestPx) { $best = $c; $bestPx = $j.pixels_ref }
     }
@@ -154,8 +212,12 @@ foreach ($s in $shots) {
     if (-not $best -or $j.iou -gt $best.j.iou) { $best = @{ j = $j; f = $c } }
   }
   $j = $best.j
-  $st = if ($j.iou -ge $IouMinimo -and $j.pixels_ref -ge $PixelsMinimos -and $j.pixels_novo -ge $PixelsMinimos) { "PASS" } else { "FAIL" }
-  $vis += [ordered]@{ tela = $s.n; status = $st; detalhe = ("IoU do texto {0} (minimo {1}); pixels ref/novo {2}/{3} (minimo {4}); captura {5}; esperado: {6}" -f $j.iou, $IouMinimo, $j.pixels_ref, $j.pixels_novo, $PixelsMinimos, (Split-Path $best.f -Leaf), $s.txt) }
+  # por linha: so nas telas paradas (no texto que rola, as linhas mudam de lugar entre capturas)
+  $porLinha = $s.n -ne "dialogo_bottles"
+  $linhaOk = (-not $porLinha) -or ($null -ne $j.iou_linha_min -and $j.iou_linha_min -ge $IouLinhaMinimo)
+  $st = if ($j.iou -ge $IouMinimo -and $linhaOk -and $j.pixels_ref -ge $PixelsMinimos -and $j.pixels_novo -ge $PixelsMinimos) { "PASS" } else { "FAIL" }
+  $linhaTxt = if ($porLinha) { "pior linha {0} de {1} (minimo {2})" -f $j.iou_linha_min, @($j.linhas).Count, $IouLinhaMinimo } else { "por linha nao se aplica (texto rolando)" }
+  $vis += [ordered]@{ tela = $s.n; status = $st; detalhe = ("IoU do texto {0} (minimo {1}); {2}; pixels ref/novo {3}/{4} (minimo {5}); captura {6}; esperado: {7}" -f $j.iou, $IouMinimo, $linhaTxt, $j.pixels_ref, $j.pixels_novo, $PixelsMinimos, (Split-Path $best.f -Leaf), $s.txt) }
 }
 $results.regressao_visual = $vis
 $vf = @($vis | Where-Object status -eq "FAIL").Count

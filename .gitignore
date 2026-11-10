@@ -15,6 +15,12 @@ UserSettings/
 
 # Capturas de tela do jogo (conteúdo proprietário; ficam só no disco, fora do Git)
 docs/evidencias/**/*.png
+# Saídas do tools/test_traducao.ps1 que são conteúdo do jogo, caso a pasta de saída fique em docs/:
+# cópias da memória (db_mem.bin, heap_*.bin), textos completos extraídos e pastas de usuário/cache
+docs/evidencias/**/*.bin
+docs/evidencias/**/textos_*_ptbr.txt
+docs/evidencias/**/user/
+docs/evidencias/**/cache/
 
 # Editor / OS
 .vs/

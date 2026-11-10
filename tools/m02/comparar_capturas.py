@@ -5,7 +5,7 @@ pixels: em uma regiao da tela, marca os pixels com a cor do texto (branco dos me
 laranja/amarelo dos dialogos do jogo) e mede a sobreposicao (IoU) entre a referencia e a nova
 captura. Texto igual no mesmo lugar => IoU alto; texto faltando, cortado ou trocado => IoU baixo.
 
-Uso: python -I comparar_capturas.py <referencia.png> <nova.png> <x0,y0,x1,y1> <branco|claro|laranja>
+Uso: python -I comparar_capturas.py <referencia.png> <nova.png> <x0,y0,x1,y1> <branco|claro|cinza|laranja>
 Imprime um JSON: {"iou": ..., "pixels_ref": ..., "pixels_novo": ..., "regiao": [...]}.
 """
 import json
@@ -15,6 +15,16 @@ import zlib
 
 
 def read_png(path):
+    # Caminho rapido com Pillow, se instalado (mesmos valores RGB do decodificador abaixo).
+    try:
+        from PIL import Image
+    except ImportError:
+        Image = None
+    if Image is not None:
+        im = Image.open(path).convert("RGB")
+        w, h = im.size
+        raw = im.tobytes()
+        return w, h, 3, [raw[y * w * 3:(y + 1) * w * 3] for y in range(h)]
     data = open(path, "rb").read()
     if data[:8] != b"\x89PNG\r\n\x1a\n":
         raise ValueError(f"{path}: nao e PNG")
@@ -70,11 +80,32 @@ def mask(png, region, kind):
                 hit = r > 205 and g > 205 and b > 205 and max(r, g, b) - min(r, g, b) < 40
             elif kind == "claro":  # itens de menu nao selecionados (cinza claro, sem cor)
                 hit = min(r, g, b) > 140 and max(r, g, b) - min(r, g, b) < 35
+            elif kind == "cinza":  # menu de pausa no jogo: itens apagados (~100) e o selecionado
+                hit = min(r, g, b) > 90 and max(r, g, b) - min(r, g, b) < 25
             else:  # laranja/amarelo do texto dos dialogos
                 hit = r > 200 and 110 < g < 235 and b < 100
             if hit:
                 out.add((x, y))
     return out
+
+
+def text_lines(pixels, min_pixels=40, gap=3):
+    """Faixas horizontais (y0, y1) com texto na referencia: projecao das linhas da mascara."""
+    count = {}
+    for _, y in pixels:
+        count[y] = count.get(y, 0) + 1
+    bands, cur = [], None
+    for y in sorted(count):
+        if cur and y - cur[1] <= gap:
+            cur[1] = y
+            cur[2] += count[y]
+        else:
+            if cur:
+                bands.append(cur)
+            cur = [y, y, count[y]]
+    if cur:
+        bands.append(cur)
+    return [(y0, y1) for y0, y1, n in bands if n >= min_pixels]
 
 
 def main():
@@ -84,8 +115,19 @@ def main():
     b = mask(read_png(new), region, kind)
     union = len(a | b)
     iou = len(a & b) / union if union else 1.0
+    # IoU por linha de texto da referencia (rodada 2): um item de menu ou o fim de uma frase que
+    # some muda pouco o IoU da tela inteira, mas zera ou derruba o IoU da sua linha.
+    linhas = []
+    for y0, y1 in text_lines(a):
+        la = {p for p in a if y0 - 2 <= p[1] <= y1 + 2}
+        lb = {p for p in b if y0 - 2 <= p[1] <= y1 + 2}
+        u = len(la | lb)
+        linhas.append({"y": [y0, y1], "iou": round(len(la & lb) / u, 4) if u else 1.0,
+                       "pixels_ref": len(la), "pixels_novo": len(lb)})
     print(json.dumps({"iou": round(iou, 4), "pixels_ref": len(a), "pixels_novo": len(b),
-                      "regiao": region, "cor": kind}))
+                      "regiao": region, "cor": kind,
+                      "iou_linha_min": min((l["iou"] for l in linhas), default=None),
+                      "linhas": linhas}))
 
 
 if __name__ == "__main__":

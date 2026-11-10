@@ -5,6 +5,9 @@ Cria COPIAS dos arquivos traduzidos numa pasta nova, estraga cada copia de um je
 cortado no db360) e roda o traducao.py em cada uma. Cada caso diz quais verificacoes TEM de
 falhar; o teste passa so se o verificador acusar exatamente o defeito plantado (e o caso de
 controle, sem defeito, passar). Os arquivos originais do jogo so sao lidos.
+Rodada 2 (parte jogavel): com --referencias/--capturas, tambem planta defeitos em COPIAS das
+capturas do menu de pausa e da mensagem do sistema (item apagado, fim de frase cortado, tela
+trocada, fala ausente) e confere que a regressao visual (IoU da tela e de cada linha) acusa.
 
 Uso: python -I teste_negativo.py --jogo <pasta do jogo> --saida <pasta nova>
         --linha-de-base <linha_de_base_traducao.json> [--db <db_mem.bin>]
@@ -226,7 +229,114 @@ def main():
                                "status": "PASS" if ok else "FAIL"})
             print(f"{'PASS' if ok else 'FAIL':5} visual_{ref}_trocada: IoU {j['iou']} (tem de ser < 0.75)")
 
-    falhou = [r for r in resultados if r["status"] == "FAIL"]
+    # 9. rodada 2 (parte jogavel): mesma regra do test_traducao.ps1 -> FAIL se IoU < 0.75, se a pior
+    # linha < 0.75 (telas paradas), ou se um dos lados tem < 300 pixels da cor do texto.
+    if a.referencias and a.capturas:
+        import comparar_capturas as CMP  # noqa: E402  (mesma pasta)
+        from PIL import Image  # noqa: E402
+
+        def compara(rp, np_, reg, cor):
+            return json.loads(subprocess.run([sys.executable, "-I", COMPARAR, rp, np_, reg, cor],
+                                             capture_output=True, text=True).stdout)
+
+        def reprova(j, por_linha):
+            linha_ruim = por_linha and (j["iou_linha_min"] is None or j["iou_linha_min"] < 0.75)
+            return j["iou"] < 0.75 or linha_ruim or j["pixels_ref"] < 300 or j["pixels_novo"] < 300
+
+        def apaga(src, dst, x0, y0, x1, y1):
+            """Copia da captura com um retangulo pintado de preto (texto apagado)."""
+            im = Image.open(src).convert("RGB")
+            im.paste((0, 0, 0), (x0, y0, x1 + 1, y1 + 1))
+            os.makedirs(os.path.dirname(dst), exist_ok=True)
+            im.save(dst)
+
+        def linhas_da_ref(rp, reg, cor):
+            px = CMP.mask(CMP.read_png(rp), [int(v) for v in reg.split(",")], cor)
+            return px, CMP.text_lines(px)
+
+        casos9 = []
+        cap = lambda rel: os.path.join(a.capturas, rel)  # noqa: E731
+        ref = lambda n: os.path.join(a.referencias, n + ".png")  # noqa: E731
+
+        # 9a. um item do menu de pausa some (4a linha, CLASSIFICACOES): a tela inteira muda pouco,
+        # a linha dele zera -> so a verificacao por linha acusa
+        reg = "290,165,600,545"
+        if os.path.exists(ref("pausa")) and os.path.exists(cap("4b_jogavel/pausa_b.png")):
+            _px, ls = linhas_da_ref(ref("pausa"), reg, "cinza")
+            if len(ls) >= 4:
+                y0, y1 = ls[3]
+                x0, _y, x1, _y2 = [int(v) for v in reg.split(",")]
+                dst = os.path.join(a.saida, "visual_r2", "pausa_sem_item.png")
+                apaga(cap("4b_jogavel/pausa_b.png"), dst, x0, y0 - 2, x1, y1 + 2)
+                casos9.append(("visual_pausa_item_apagado", "pausa", dst, reg, "cinza", True,
+                               f"4a linha do menu de pausa (y {y0}-{y1}) apagada na captura"))
+
+        # 9b. um trecho de uma linha some (2a linha da mensagem do sistema apagada de 60% da largura
+        # do texto ate o fim da regiao x<=680: "...CTADO A") -> a linha cai, a tela inteira pouco
+        # 9b2. o fim da frase some: na faixa a direita do Bottles (x 820-890, mensagem_xbox_live_fim),
+        # a 2a linha apagada a partir de 40% da largura ("...IVE" de XBOX LIVE cortado)
+        for nome, reg, frac, arq, desc in [
+                ("visual_mensagem_trecho_da_linha_apagado", "190,230,680,305", 0.6,
+                 "xbox_live_trecho_apagado.png", "trecho do meio da 2a linha apagado"),
+                ("visual_mensagem_fim_de_frase_cortado", "820,230,890,305", 0.4,
+                 "xbox_live_fim_cortado.png", "fim da 2a linha (ultimas letras da frase) apagado")]:
+            if not (os.path.exists(ref("mensagem_xbox_live")) and os.path.exists(cap("4b_jogavel/xbox_live_b.png"))):
+                resultados.append({"caso": nome, "status": "PENDENTE", "defeito": "faltou imagem"})
+                continue
+            px, ls = linhas_da_ref(ref("mensagem_xbox_live"), reg, "cinza")
+            if len(ls) < 2:
+                resultados.append({"caso": nome, "status": "FAIL", "defeito": f"referencia sem 2 linhas: {ls}"})
+                continue
+            y0, y1 = ls[1]
+            xs = [x for x, y in px if y0 <= y <= y1]
+            corte = min(xs) + int(frac * (max(xs) - min(xs)))
+            x1 = int(reg.split(",")[2])
+            dst = os.path.join(a.saida, "visual_r2", arq)
+            apaga(cap("4b_jogavel/xbox_live_b.png"), dst, corte, y0 - 2, x1, y1 + 2)
+            casos9.append((nome, "mensagem_xbox_live", dst, reg, "cinza", True,
+                           f"{desc}: x {corte}-{x1}, y {y0}-{y1}"))
+
+        # 9c-9e. tela errada no lugar da certa / fala ausente
+        trocas = [("visual_pausa_ajuda_e_opcoes_trocada", "pausa_ajuda_e_opcoes", "4b_jogavel/pausa_b.png",
+                   "290,165,560,345", "cinza", True, "menu de pausa no lugar do submenu AJUDA E OPCOES"),
+                  ("visual_mensagem_xbox_live_trocada", "mensagem_xbox_live", "4b_jogavel/sair_do_jogo_b.png",
+                   "190,230,680,305", "cinza", True, "confirmacao SAIR DO JOGO no lugar da mensagem do sistema"),
+                  ("visual_dialogo_bottles_ausente", "dialogo_bottles", "4b_jogavel/pausa_b.png",
+                   "280,555,1040,645", "branco", False, "tela sem a fala do Bottles (menu de pausa aberto)")]
+        for nome, r_, rel, reg, cor, por_linha, desc in trocas:
+            if os.path.exists(ref(r_)) and os.path.exists(cap(rel)):
+                casos9.append((nome, r_, cap(rel), reg, cor, por_linha, desc))
+            else:
+                resultados.append({"caso": nome, "status": "PENDENTE", "defeito": "faltou imagem"})
+
+        # controle: a captura certa, sem defeito, tem de passar (senao o caso negativo nao prova nada)
+        controles = [("visual_controle_pausa", "pausa", cap("4b_jogavel/pausa_b.png"), "290,165,600,545", "cinza", True),
+                     ("visual_controle_xbox_live", "mensagem_xbox_live", cap("4b_jogavel/xbox_live_b.png"),
+                      "190,230,680,305", "cinza", True),
+                     ("visual_controle_xbox_live_fim", "mensagem_xbox_live", cap("4b_jogavel/xbox_live_b.png"),
+                      "820,230,890,305", "cinza", True)]
+        for nome, r_, np_, reg, cor, por_linha in controles:
+            if not (os.path.exists(ref(r_)) and os.path.exists(np_)):
+                resultados.append({"caso": nome, "status": "PENDENTE", "defeito": "faltou imagem"})
+                continue
+            j = compara(ref(r_), np_, reg, cor)
+            ok = not reprova(j, por_linha)
+            resultados.append({"caso": nome, "defeito": "nenhum (captura certa)", "deviam_falhar": [],
+                               "falharam": [] if ok else [f"IoU {j['iou']}, pior linha {j['iou_linha_min']}"],
+                               "status": "PASS" if ok else "FAIL"})
+            print(f"{'PASS' if ok else 'FAIL':5} {nome}: IoU {j['iou']}, pior linha {j['iou_linha_min']} (tem de passar)")
+
+        for nome, r_, np_, reg, cor, por_linha, desc in casos9:
+            j = compara(ref(r_), np_, reg, cor)
+            ok = reprova(j, por_linha)
+            so_linha = ok and not (j["iou"] < 0.75 or j["pixels_ref"] < 300 or j["pixels_novo"] < 300)
+            det = f"IoU {j['iou']}, pior linha {j['iou_linha_min']}, pixels ref/novo {j['pixels_ref']}/{j['pixels_novo']}"
+            resultados.append({"caso": nome, "defeito": desc, "deviam_falhar": ["regressao visual"],
+                               "falharam": [det], "acusado_so_pela_verificacao_por_linha": so_linha,
+                               "status": "PASS" if ok else "FAIL"})
+            print(f"{'PASS' if ok else 'FAIL':5} {nome}: {det}{' (so a verificacao por linha acusou)' if so_linha else ''}")
+
+    falhou =[r for r in resultados if r["status"] == "FAIL"]
     out = {"versao": 1, "status": "FAIL" if falhou else "PASS", "casos": resultados}
     with open(os.path.join(a.saida, "resultado_negativo.json"), "w", encoding="utf-8", newline="\n") as f:
         json.dump(out, f, indent=1, ensure_ascii=False)

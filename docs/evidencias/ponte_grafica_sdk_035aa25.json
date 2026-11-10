@@ -1,0 +1,281 @@
+{
+  "summary": {
+    "sdk_root": "_audit/out/sdk_fork_035aa25/src_extract/iron-jay-rexglue-sdk-035aa25",
+    "verificacoes": 30,
+    "pass": 30,
+    "fail": [],
+    "status": "PASS"
+  },
+  "rows": [
+    {
+      "id": "video_preset_cvar",
+      "requisito": "4K",
+      "arquivo": "src/ui/window.cpp",
+      "afirmacao": "opcao 'resolution' (preset do modo de video do jogo + janela)",
+      "status": "PASS",
+      "linha": 51,
+      "trecho": "REXCVAR_DEFINE_STRING(resolution, \"\", \"GPU\","
+    },
+    {
+      "id": "video_preset_4k",
+      "requisito": "4K",
+      "arquivo": "include/rex/graphics/video_mode_util.h",
+      "afirmacao": "preset 4k = 3840x2160",
+      "status": "PASS",
+      "linha": 103,
+      "trecho": "normalized == \"4k\") {"
+    },
+    {
+      "id": "video_mode_default",
+      "requisito": "4K",
+      "arquivo": "src/ui/window.cpp",
+      "afirmacao": "modo de video informado ao jogo: padrao 1280 de largura",
+      "status": "PASS",
+      "linha": 43,
+      "trecho": "REXCVAR_DEFINE_INT32(video_mode_width, 1280,"
+    },
+    {
+      "id": "video_mode_height_default",
+      "requisito": "4K",
+      "arquivo": "src/ui/window.cpp",
+      "afirmacao": "modo de video informado ao jogo: padrao 720 de altura",
+      "status": "PASS",
+      "linha": 47,
+      "trecho": "REXCVAR_DEFINE_INT32(video_mode_height, 720,"
+    },
+    {
+      "id": "video_mode_clamp",
+      "requisito": "4K",
+      "arquivo": "src/kernel/xboxkrnl/xboxkrnl_video.cpp",
+      "afirmacao": "largura informada ao jogo limitada a 640..4095 (3840 cabe)",
+      "status": "PASS",
+      "linha": 56,
+      "trecho": "std::clamp(configured_width, 640, 0x0FFF)"
+    },
+    {
+      "id": "resolution_scale",
+      "requisito": "4K",
+      "arquivo": "src/graphics/pipeline/texture/cache.cpp",
+      "afirmacao": "escala de renderizacao 1..8 (padrao 1 = sem escala)",
+      "status": "PASS",
+      "linha": 74,
+      "trecho": "REXCVAR_DEFINE_INT32(resolution_scale, 1, \"GPU\","
+    },
+    {
+      "id": "present_effects",
+      "requisito": "4K",
+      "arquivo": "src/ui/presenter.cpp",
+      "afirmacao": "efeitos de apresentacao/upscale: bilinear, cas, fsr, fsr2, fsr3",
+      "status": "PASS",
+      "linha": 50,
+      "trecho": ".allowed({\"bilinear\", \"cas\", \"fsr\", \"fsr2\", \"fsr3\"})"
+    },
+    {
+      "id": "vsync",
+      "requisito": "60 FPS",
+      "arquivo": "src/graphics/command_processor.cpp",
+      "afirmacao": "vsync ligado por padrao (nao ha limitador/alvo de FPS proprio)",
+      "status": "PASS",
+      "linha": 38,
+      "trecho": "REXCVAR_DEFINE_BOOL(vsync, true,"
+    },
+    {
+      "id": "refresh_rate",
+      "requisito": "60 FPS",
+      "arquivo": "src/ui/window.cpp",
+      "afirmacao": "taxa de atualizacao informada ao jogo: 60 Hz (24..240)",
+      "status": "PASS",
+      "linha": 56,
+      "trecho": "REXCVAR_DEFINE_DOUBLE(video_mode_refresh_rate, 60.0, \"GPU\", \"Guest video mode refresh rate in Hz\")"
+    },
+    {
+      "id": "fps_overlay",
+      "requisito": "60 FPS (medicao)",
+      "arquivo": "src/ui/overlay/debug_overlay.cpp",
+      "afirmacao": "overlay de depuracao mostra FPS do jogo",
+      "status": "PASS",
+      "linha": 39,
+      "trecho": "\"Guest: %.1f FPS (%.2f ms)\""
+    },
+    {
+      "id": "fps_overlay_key",
+      "requisito": "60 FPS (medicao)",
+      "arquivo": "src/ui/rex_app.cpp",
+      "afirmacao": "overlay de FPS abre com F3",
+      "status": "PASS",
+      "linha": 316,
+      "trecho": "RegisterBind(\"bind_debug_overlay\", \"F3\""
+    },
+    {
+      "id": "perf_csv",
+      "requisito": "60 FPS (medicao)",
+      "arquivo": "src/core/perf/counter.cpp",
+      "afirmacao": "log de desempenho em CSV (perf_log_csv)",
+      "status": "PASS",
+      "linha": 21,
+      "trecho": "REXCVAR_DEFINE_STRING(perf_log_csv, \"\""
+    },
+    {
+      "id": "settings_overlay_key",
+      "requisito": "menu START",
+      "arquivo": "src/ui/rex_app.cpp",
+      "afirmacao": "menu de ajustes do runtime (editor de opcoes) abre com F4 - nao e menu START do jogo",
+      "status": "PASS",
+      "linha": 331,
+      "trecho": "RegisterBind(\"bind_settings\", \"F4\""
+    },
+    {
+      "id": "settings_save",
+      "requisito": "menu START",
+      "arquivo": "src/ui/overlay/settings_overlay.cpp",
+      "afirmacao": "menu de ajustes grava as opcoes no arquivo de configuracao",
+      "status": "PASS",
+      "linha": 503,
+      "trecho": "ImGui::Button(\"Save to config\")"
+    },
+    {
+      "id": "input_backend",
+      "requisito": "gamepad",
+      "arquivo": "src/input/input_system.cpp",
+      "afirmacao": "controle: SDL (padrao) ou XInput",
+      "status": "PASS",
+      "linha": 25,
+      "trecho": "REXCVAR_DEFINE_STRING(input_backend, \"sdl\", \"Input\", \"Input backend: sdl, xinput\")"
+    },
+    {
+      "id": "sdl_mappings",
+      "requisito": "gamepad",
+      "arquivo": "src/input/sdl/sdl_input_driver.cpp",
+      "afirmacao": "SDL usa gamecontrollerdb.txt para mapear controles",
+      "status": "PASS",
+      "linha": 23,
+      "trecho": "REXCVAR_DEFINE_STRING(hid_mappings_file, \"gamecontrollerdb.txt\""
+    },
+    {
+      "id": "mnk_mode",
+      "requisito": "gamepad",
+      "arquivo": "src/input/mnk/mnk_input_driver.cpp",
+      "afirmacao": "teclado como controle (desligado por padrao)",
+      "status": "PASS",
+      "linha": 30,
+      "trecho": "REXCVAR_DEFINE_BOOL(mnk_mode, false,"
+    },
+    {
+      "id": "mnk_start_key",
+      "requisito": "gamepad",
+      "arquivo": "src/input/mnk/mnk_input_driver.cpp",
+      "afirmacao": "no teclado, START = Esc",
+      "status": "PASS",
+      "linha": 55,
+      "trecho": "REXCVAR_DEFINE_STRING(keybind_start, \"Escape\""
+    },
+    {
+      "id": "saves_user_dir",
+      "requisito": "saves",
+      "arquivo": "src/ui/rex_app.cpp",
+      "afirmacao": "saves/perfil vao para <pasta do usuario>/<nome do app>",
+      "status": "PASS",
+      "linha": 92,
+      "trecho": "user_dir = rex::filesystem::GetUserFolder() / GetName();"
+    },
+    {
+      "id": "user_folder_documents",
+      "requisito": "saves",
+      "arquivo": "src/core/filesystem_win.cpp",
+      "afirmacao": "no Windows a pasta do usuario e Documentos",
+      "status": "PASS",
+      "linha": 58,
+      "trecho": "SHGetKnownFolderPath(FOLDERID_Documents"
+    },
+    {
+      "id": "game_folder_readonly",
+      "requisito": "preservacao",
+      "arquivo": "src/system/runtime.cpp",
+      "afirmacao": "pasta do jogo montada somente leitura salvo allow_game_relative_writes",
+      "status": "PASS",
+      "linha": 277,
+      "trecho": "mount_path, abs_game_root, !REXCVAR_GET(allow_game_relative_writes));"
+    },
+    {
+      "id": "game_writes_default_off",
+      "requisito": "preservacao",
+      "arquivo": "src/filesystem/virtual_file_system.cpp",
+      "afirmacao": "allow_game_relative_writes desligado por padrao",
+      "status": "PASS",
+      "linha": 18,
+      "trecho": "REXCVAR_DEFINE_BOOL(allow_game_relative_writes, false,"
+    },
+    {
+      "id": "game_data_root",
+      "requisito": "dados",
+      "arquivo": "src/system/runtime.cpp",
+      "afirmacao": "pasta dos dados do jogo por opcao game_data_root",
+      "status": "PASS",
+      "linha": 31,
+      "trecho": "REXCVAR_DEFINE_STRING(game_data_root, \"\", \"Runtime\", \"Override game data path\");"
+    },
+    {
+      "id": "audio_dummy_fallback",
+      "requisito": "audio",
+      "arquivo": "src/audio/sdl/sdl_audio_driver.cpp",
+      "afirmacao": "sem dispositivo de audio, cai para o backend 'dummy' (evita a tela preta vista no Xenia)",
+      "status": "PASS",
+      "linha": 72,
+      "trecho": "falling back to the 'dummy' audio backend"
+    },
+    {
+      "id": "license_full",
+      "requisito": "versao completa",
+      "arquivo": "src/kernel/xam/xam_content.cpp",
+      "afirmacao": "licenca tratada no runtime (fork: padrao licenciado/completo)",
+      "status": "PASS",
+      "linha": 24,
+      "trecho": "license_mask"
+    },
+    {
+      "id": "xex_plain_supported",
+      "requisito": "codegen",
+      "arquivo": "src/system/xex_module.cpp",
+      "afirmacao": "leitor de XEX aceita imagem sem cifra e sem compressao (copia direta)",
+      "status": "PASS",
+      "linha": 519,
+      "trecho": "case XEX_ENCRYPTION_NONE:"
+    },
+    {
+      "id": "codegen_uses_runtime_loader",
+      "requisito": "codegen",
+      "arquivo": "src/codegen/project_recompiler.cpp",
+      "afirmacao": "o codegen carrega o XEX pelo mesmo leitor do runtime",
+      "status": "PASS",
+      "linha": 187,
+      "trecho": "runtime->LoadXexImage(entryVfsPath)"
+    },
+    {
+      "id": "d3d12_default_win",
+      "requisito": "grafico",
+      "arquivo": "src/ui/rex_app.cpp",
+      "afirmacao": "no Windows o backend grafico preferido e D3D12 (Vulkan como alternativa)",
+      "status": "PASS",
+      "linha": 267,
+      "trecho": "#if REX_HAS_D3D12"
+    },
+    {
+      "id": "headless_cvar",
+      "requisito": "testes",
+      "arquivo": "src/kernel/xam/xam_ui.cpp",
+      "afirmacao": "modo headless para dialogos do sistema (util para testes automatizados)",
+      "status": "PASS",
+      "linha": 24,
+      "trecho": "REXCVAR_DEFINE_BOOL(headless, false,"
+    },
+    {
+      "id": "tests_dir",
+      "requisito": "testes",
+      "arquivo": "tests/CMakeLists.txt",
+      "afirmacao": "o SDK tem testes de instrucoes PPC e testes unitarios (nao ha testes do jogo)",
+      "status": "PASS",
+      "linha": 7,
+      "trecho": "PPC instruction tests"
+    }
+  ]
+}

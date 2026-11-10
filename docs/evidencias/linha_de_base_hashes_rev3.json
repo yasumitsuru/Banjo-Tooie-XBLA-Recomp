@@ -1,0 +1,230 @@
+{
+  "summary": {
+    "root": "W:/Decomp/Banjo 3/Banjo Tooie BR",
+    "expected": 36,
+    "found": 36,
+    "iguais": 36,
+    "diferentes": [],
+    "faltando": [],
+    "novos": [],
+    "status": "PASS"
+  },
+  "rows": [
+    {
+      "rel": "32_584109550002000100010001.png",
+      "size": 2823,
+      "status": "IGUAL",
+      "sha256": "ffc3de76dc38bed95340765bbd42095fc56ed10e0ad23a1c85cf075c0e933225"
+    },
+    {
+      "rel": "32_584109550002000200010002.png",
+      "size": 2214,
+      "status": "IGUAL",
+      "sha256": "2cde5b7873bd412d75719fdeca4b8cf8f0e6587c403c0db9235ba9781434a8fc"
+    },
+    {
+      "rel": "64_584109550002000100010001.png",
+      "size": 12057,
+      "status": "IGUAL",
+      "sha256": "baa84add8cc8f6a4736128c0f78e036f8bb6f90b2f693cb0355b1cb14633fd4b"
+    },
+    {
+      "rel": "64_584109550002000200010002.png",
+      "size": 9159,
+      "status": "IGUAL",
+      "sha256": "b33f559e237e91907788f2f7473129df7b3a31e5c6af4d56b8e958a336bc5da8"
+    },
+    {
+      "rel": "Achievement_01.png",
+      "size": 7771,
+      "status": "IGUAL",
+      "sha256": "7381b13577c5aa137c9aea99eccbf197df3522aab00e6973396eb98294ccff74"
+    },
+    {
+      "rel": "Achievement_02.png",
+      "size": 7514,
+      "status": "IGUAL",
+      "sha256": "30cbdee752f60ce9f57f55ab38962052f49f8d88b6775bdde495c954d9b811e2"
+    },
+    {
+      "rel": "Achievement_03.png",
+      "size": 5218,
+      "status": "IGUAL",
+      "sha256": "58cd114122ed4dfc1e96d3feb557f6131b8a76fef691181bf144209e98c2c41a"
+    },
+    {
+      "rel": "Achievement_04.png",
+      "size": 9638,
+      "status": "IGUAL",
+      "sha256": "d283916a5caefff592641f818d57d8ae9261556b3be8a60ec8c7b21f570c2ba5"
+    },
+    {
+      "rel": "Achievement_05.png",
+      "size": 7398,
+      "status": "IGUAL",
+      "sha256": "628ab12dc482a08e0c6f259fe64d3ad75a5d0785bcaaf1ee4f185c109a594cb6"
+    },
+    {
+      "rel": "Achievement_06.png",
+      "size": 7759,
+      "status": "IGUAL",
+      "sha256": "b69ceaf340ebffde225f1a3139e79c5a2da94400a4f9f8ccae93459e7e827ca6"
+    },
+    {
+      "rel": "Achievement_07.png",
+      "size": 8101,
+      "status": "IGUAL",
+      "sha256": "d5692461482a75579b5a1152cc56ac41c78d3fe0a2bdf385214e2637d7acdef3"
+    },
+    {
+      "rel": "Achievement_08.png",
+      "size": 6309,
+      "status": "IGUAL",
+      "sha256": "7e009eb54912d7435afd2c64e49d68feb5d5b5f6bfa4374d73c47f722cce623b"
+    },
+    {
+      "rel": "Achievement_09.png",
+      "size": 6386,
+      "status": "IGUAL",
+      "sha256": "d23921717e9da049938a2c0b13da70939d52743556858d47f3c5e62fc28931bd"
+    },
+    {
+      "rel": "Achievement_10.png",
+      "size": 5733,
+      "status": "IGUAL",
+      "sha256": "0410901f2cf53e4ff0f7cc52851094a8569c4f8a0a49c388cd8241ed091559a4"
+    },
+    {
+      "rel": "Achievement_11.png",
+      "size": 7319,
+      "status": "IGUAL",
+      "sha256": "af24bca66b0747cdb4a4ea2949d15038a0c4e942c6f77a32a12823919bda4e89"
+    },
+    {
+      "rel": "Achievement_12.png",
+      "size": 9767,
+      "status": "IGUAL",
+      "sha256": "45eda03ada9eeb8c6a76b3fed62c812332df1db0dfc08c212b39f462071b14d2"
+    },
+    {
+      "rel": "ArcadeInfo.xml",
+      "size": 7868,
+      "status": "IGUAL",
+      "sha256": "4e6d1b1b1ac265a9d472fbf2ace092a67b2f0468265c3392ae7d8c73ff13b0ea"
+    },
+    {
+      "rel": "BanjoTooieIcon.png",
+      "size": 10802,
+      "status": "IGUAL",
+      "sha256": "7e3ab35f149c8150a4bb22e302659f2ca7194065437e32ad5c20b23fe4d36371"
+    },
+    {
+      "rel": "BanjoTooieMarketplace.png",
+      "size": 77696,
+      "status": "IGUAL",
+      "sha256": "1dd8b862fe245735dcf3a68c6b2f6f51ee2131352505abebba7a00ea3ecde811"
+    },
+    {
+      "rel": "RAWFiles\\58410955033F0001",
+      "size": 5206016,
+      "status": "IGUAL",
+      "sha256": "ac6ed80c6f4fd6e2de7e49840a55501662149cb3036ade92273a23aae815f62e"
+    },
+    {
+      "rel": "RAWFiles\\ArcadeNormal.ptc",
+      "size": 101229,
+      "status": "IGUAL",
+      "sha256": "fea0db9ead9a0f8f5b6229878dab472a06267fefc8eac322e80e28b4d21f511c"
+    },
+    {
+      "rel": "RAWFiles\\ArcadeWide.ptc",
+      "size": 99557,
+      "status": "IGUAL",
+      "sha256": "ec9cad87ac8950f22d7d3ae611cb112c4a7c9a1546c16017bd694d7d4474e4d1"
+    },
+    {
+      "rel": "RAWFiles\\X360_strings.dat",
+      "size": 427089,
+      "status": "IGUAL",
+      "sha256": "5920b7624634fc4e91e5fa7172972401df386de58a499bcfb64083e3e3f7cbe0"
+    },
+    {
+      "rel": "RAWFiles\\banjo2_360.ctl",
+      "size": 187992,
+      "status": "IGUAL",
+      "sha256": "1d00246450587c0e170484c705afcf767466ba9aee9df1eb785633a259dcc808"
+    },
+    {
+      "rel": "RAWFiles\\banjo2_360.tbl",
+      "size": 14555180,
+      "status": "IGUAL",
+      "sha256": "57e6ae4ec5a88860d6fe2634595f7fad00d071393453db004d617a43e9977d4f"
+    },
+    {
+      "rel": "RAWFiles\\db360.cmp",
+      "size": 12525322,
+      "status": "IGUAL",
+      "sha256": "b68557023ae8bddd729009c7ff02eec28f61873888373472a3539fa819cd20e3"
+    },
+    {
+      "rel": "RAWFiles\\db360.textures.cmp",
+      "size": 50625264,
+      "status": "IGUAL",
+      "sha256": "fb21dc86dd8bdee1f2bb6eaf7ec27a9fc90d2276e25bc8b8de3fcd94f7f68197"
+    },
+    {
+      "rel": "RAWFiles\\xarialuni.ttf",
+      "size": 6608540,
+      "status": "IGUAL",
+      "sha256": "380f125e78756f118d60f8d76d93a7487884fbbfd7786aeaac585ac3fc7c5a28"
+    },
+    {
+      "rel": "Rating_CERO_B.png",
+      "size": 4550,
+      "status": "IGUAL",
+      "sha256": "f804490106e0a76aef69ea6e9afea68ac2b140466bf71107a6e806983c764627"
+    },
+    {
+      "rel": "Rating_ESRB_E.png",
+      "size": 4514,
+      "status": "IGUAL",
+      "sha256": "54bb6c37d28ca49f77fb3160471281fdaadbaeeb111a6134c24338100cc76953"
+    },
+    {
+      "rel": "Rating_GRB_ALL.png",
+      "size": 4542,
+      "status": "IGUAL",
+      "sha256": "a96a42327b2c3463db5f70a5363eee7f57e2df34492dbefa251e9c4b333ed705"
+    },
+    {
+      "rel": "Rating_OFLC_G.png",
+      "size": 1122,
+      "status": "IGUAL",
+      "sha256": "d725cc976bfe14b7754983110ef6e145a2be79b2aa3796dcde4b1b99f6f88462"
+    },
+    {
+      "rel": "Rating_PEGI_3.png",
+      "size": 14168,
+      "status": "IGUAL",
+      "sha256": "72c009171cd142e31407ae5020c5e082044069e5fb5e798e845221749b196816"
+    },
+    {
+      "rel": "Rating_PEGI_4.png",
+      "size": 14094,
+      "status": "IGUAL",
+      "sha256": "45acd7cbfbabe405b73b79b810c64d69104d8df37cac12674a8643df72fa8d21"
+    },
+    {
+      "rel": "Rating_USK_6.png",
+      "size": 6000,
+      "status": "IGUAL",
+      "sha256": "733144b41a7de2583b7258b96fa87034902a7deec3428425159c081ed0be3914"
+    },
+    {
+      "rel": "default.xex",
+      "size": 7413760,
+      "status": "IGUAL",
+      "sha256": "3efca627d60a6425af5c1891e3fe2666bf544b288c3e27e3259fa99ad50c1ee1"
+    }
+  ]
+}

@@ -1,0 +1,204 @@
+include\rex\cvar.h:10: * REXCVAR_DEFINE_BOOL(my_flag, false, "Category", "Description");
+include\rex\cvar.h:11: * REXCVAR_DEFINE_INT32(my_int, 42, "Category", "An integer setting");
+include\rex\cvar.h:12: * REXCVAR_DEFINE_STRING(my_string, "default", "Category", "A string setting");
+include\rex\cvar.h:42: * REXCVAR_DEFINE_INT32(scale, 1, "GPU", "Resolution scale")
+include\rex\cvar.h:46: * REXCVAR_DEFINE_STRING(backend, "d3d12", "GPU", "Render backend")
+include\rex\cvar.h:50: * REXCVAR_DEFINE_BOOL(debug_overlay, false, "Debug", "Show overlay")
+include\rex\cvar.h:316:#define REXCVAR_DEFINE_BOOL(name, default_val, category, desc) \
+include\rex\cvar.h:338:#define REXCVAR_DEFINE_INT32(name, default_val, category, desc) \
+include\rex\cvar.h:364:#define REXCVAR_DEFINE_INT64(name, default_val, category, desc) \
+include\rex\cvar.h:390:#define REXCVAR_DEFINE_UINT32(name, default_val, category, desc) \
+include\rex\cvar.h:416:#define REXCVAR_DEFINE_UINT64(name, default_val, category, desc) \
+include\rex\cvar.h:442:#define REXCVAR_DEFINE_DOUBLE(name, default_val, category, desc) \
+include\rex\cvar.h:466:#define REXCVAR_DEFINE_STRING(name, default_val, category, desc) \
+include\rex\cvar.h:487:#define REXCVAR_DEFINE_COMMAND(name, callback, category, desc) \
+src\audio\audio_system.cpp:27:REXCVAR_DEFINE_INT32(
+src\audio\xma_decoder.cpp:29:REXCVAR_DEFINE_BOOL(ffmpeg_verbose, false, "Audio", "Verbose FFmpeg output (debug and above)");
+src\audio\sdl\sdl_audio_driver.cpp:26:REXCVAR_DEFINE_BOOL(audio_mute, false, "Audio", "Mute audio output");
+src\codegen\codegen_flags.cpp:20:REXCVAR_DEFINE_UINT32(max_file_size_bytes, 2097152, "Codegen",
+src\codegen\codegen_flags.cpp:25:REXCVAR_DEFINE_UINT32(progress_log_frequency, 100, "Codegen",
+src\codegen\codegen_flags.cpp:34:REXCVAR_DEFINE_UINT32(max_discovery_iterations, 1000, "Codegen",
+src\codegen\codegen_flags.cpp:39:REXCVAR_DEFINE_UINT32(max_vtable_iterations, 100, "Codegen",
+src\codegen\codegen_flags.cpp:44:REXCVAR_DEFINE_UINT32(max_resolve_iterations, 100, "Codegen",
+src\codegen\codegen_flags.cpp:49:REXCVAR_DEFINE_UINT32(max_eh_states, 100, "Codegen",
+src\codegen\codegen_flags.cpp:54:REXCVAR_DEFINE_UINT32(max_eh_try_blocks, 50, "Codegen",
+src\codegen\codegen_flags.cpp:59:REXCVAR_DEFINE_UINT32(max_eh_ip_map_entries, 200, "Codegen",
+src\codegen\codegen_flags.cpp:64:REXCVAR_DEFINE_UINT32(max_seh_scope_entries, 100, "Codegen",
+src\codegen\codegen_flags.cpp:73:REXCVAR_DEFINE_UINT32(backward_scan_limit, 64, "Codegen",
+src\codegen\codegen_flags.cpp:78:REXCVAR_DEFINE_UINT32(max_jump_table_entries, 512, "Codegen",
+src\codegen\codegen_flags.cpp:83:REXCVAR_DEFINE_UINT32(max_blocks_per_function, 10000, "Codegen",
+src\graphics\flags.cpp:16:REXCVAR_DEFINE_BOOL(gpu_allow_invalid_fetch_constants, false, "GPU",
+src\graphics\flags.cpp:18:REXCVAR_DEFINE_BOOL(native_2x_msaa, true, "GPU", "Enable native 2x MSAA");
+src\graphics\flags.cpp:19:REXCVAR_DEFINE_BOOL(depth_float24_round, false, "GPU", "Round float24 depth values");
+src\graphics\flags.cpp:20:REXCVAR_DEFINE_BOOL(depth_float24_convert_in_pixel_shader, false, "GPU",
+src\graphics\flags.cpp:22:REXCVAR_DEFINE_BOOL(depth_transfer_not_equal_test, true, "GPU",
+src\graphics\flags.cpp:24:REXCVAR_DEFINE_BOOL(gamma_render_target_as_unorm16, true, "GPU",
+src\graphics\flags.cpp:27:REXCVAR_DEFINE_STRING(dump_shaders, "", "GPU", "Path to dump shaders to");
+src\graphics\flags.cpp:28:REXCVAR_DEFINE_BOOL(use_fuzzy_alpha_epsilon, false, "GPU",
+src\graphics\flags.cpp:31:REXCVAR_DEFINE_BOOL(gpu_debug_markers, false, "GPU",
+src\graphics\primitive_processor.cpp:31:REXCVAR_DEFINE_BOOL(force_convert_line_loops_to_strips, false, "GPU",
+src\graphics\primitive_processor.cpp:34:REXCVAR_DEFINE_BOOL(force_convert_quad_lists_to_triangle_lists, false, "GPU",
+src\graphics\primitive_processor.cpp:37:REXCVAR_DEFINE_BOOL(force_convert_triangle_fans_to_lists, false, "GPU",
+src\graphics\primitive_processor.cpp:40:REXCVAR_DEFINE_INT32(primitive_processor_cache_min_indices, 0, "GPU",
+src\filesystem\virtual_file_system.cpp:18:REXCVAR_DEFINE_BOOL(allow_game_relative_writes, false, "Filesystem",
+src\filesystem\vfs_dump.cpp:24:REXCVAR_DEFINE_STRING(dump_source, "", "Filesystem", "Specifies the file to dump from");
+src\filesystem\vfs_dump.cpp:26:REXCVAR_DEFINE_STRING(dump_path, "", "Filesystem", "Specifies the directory to dump files to");
+src\graphics\vulkan\texture_cache.cpp:36:REXCVAR_DEFINE_BOOL(non_seamless_cube_map, false, "GPU", "Use non-seamless cube map sampling");
+src\ui\window.cpp:24:REXCVAR_DEFINE_INT32(window_width, 0, "UI/Window",
+src\ui\window.cpp:29:REXCVAR_DEFINE_INT32(window_height, 0, "UI/Window",
+src\ui\window.cpp:34:REXCVAR_DEFINE_BOOL(fullscreen, false, "UI/Window", "Start the window in fullscreen mode")
+src\ui\window.cpp:37:REXCVAR_DEFINE_INT32(monitor, 0, "UI/Window",
+src\ui\window.cpp:43:REXCVAR_DEFINE_INT32(video_mode_width, 1280, "GPU", "Guest video mode width in pixels")
+src\ui\window.cpp:47:REXCVAR_DEFINE_INT32(video_mode_height, 720, "GPU", "Guest video mode height in pixels")
+src\ui\window.cpp:51:REXCVAR_DEFINE_STRING(resolution, "", "GPU",
+src\ui\window.cpp:56:REXCVAR_DEFINE_DOUBLE(video_mode_refresh_rate, 60.0, "GPU", "Guest video mode refresh rate in Hz")
+src\graphics\vulkan\shared_memory.cpp:26:REXCVAR_DEFINE_BOOL(vulkan_sparse_shared_memory, true, "GPU/Vulkan",
+src\graphics\d3d12\shared_memory.cpp:24:REXCVAR_DEFINE_BOOL(d3d12_tiled_shared_memory, true, "GPU/D3D12",
+src\graphics\vulkan\render_target_cache.cpp:40:REXCVAR_DEFINE_STRING(render_target_path_vulkan, "", "GPU/Vulkan",
+src\graphics\d3d12\render_target_cache.cpp:42:REXCVAR_DEFINE_BOOL(native_stencil_value_output_d3d12_intel, false, "GPU/D3D12",
+src\graphics\d3d12\render_target_cache.cpp:45:REXCVAR_DEFINE_STRING(render_target_path_d3d12, "", "GPU/D3D12",
+src\graphics\d3d12\render_target_cache.cpp:49:REXCVAR_DEFINE_BOOL(native_stencil_value_output, true, "GPU", "Enable native stencil value output");
+src\graphics\vulkan\primitive_processor.cpp:24:REXCVAR_DEFINE_BOOL(vulkan_force_expand_point_sprites_in_vs, false, "GPU/Vulkan",
+src\graphics\vulkan\primitive_processor.cpp:28:REXCVAR_DEFINE_BOOL(
+src\graphics\vulkan\primitive_processor.cpp:33:REXCVAR_DEFINE_BOOL(vulkan_force_convert_quad_lists_to_triangle_lists, false, "GPU/Vulkan",
+src\graphics\vulkan\pipeline_cache.cpp:52:REXCVAR_DEFINE_INT32(
+src\graphics\vulkan\pipeline_cache.cpp:58:REXCVAR_DEFINE_BOOL(vulkan_tessellation_wireframe, false, "GPU/Vulkan",
+src\graphics\pipeline\texture\cache.cpp:29:REXCVAR_DEFINE_INT32(texture_cache_memory_limit_render_to_texture, 24, "GPU",
+src\graphics\pipeline\texture\cache.cpp:34:REXCVAR_DEFINE_INT32(texture_cache_memory_limit_soft, 384, "GPU",
+src\graphics\pipeline\texture\cache.cpp:39:REXCVAR_DEFINE_INT32(texture_cache_memory_limit_hard, 768, "GPU",
+src\graphics\pipeline\texture\cache.cpp:44:REXCVAR_DEFINE_INT32(texture_cache_memory_limit_soft_lifetime, 30, "GPU",
+src\graphics\pipeline\texture\cache.cpp:48:REXCVAR_DEFINE_BOOL(gpu_3d_to_2d_texture, true, "GPU",
+src\graphics\pipeline\texture\cache.cpp:52:REXCVAR_DEFINE_INT32(anisotropic_override, 3, "GPU",
+src\graphics\pipeline\texture\cache.cpp:66:REXCVAR_DEFINE_INT32(draw_resolution_scale_x, 1, "GPU", "Draw resolution scale X (1 = no scaling)")
+src\graphics\pipeline\texture\cache.cpp:70:REXCVAR_DEFINE_INT32(draw_resolution_scale_y, 1, "GPU", "Draw resolution scale Y (1 = no scaling)")
+src\graphics\pipeline\texture\cache.cpp:74:REXCVAR_DEFINE_INT32(resolution_scale, 1, "GPU",
+src\graphics\pipeline\texture\cache.cpp:80:REXCVAR_DEFINE_BOOL(pre_mask_resolve_l2_block, true, "GPU",
+src\graphics\d3d12\pipeline_cache.cpp:52:REXCVAR_DEFINE_BOOL(d3d12_dxbc_disasm, false, "GPU/D3D12", "Dump DXBC disassembly");
+src\graphics\d3d12\pipeline_cache.cpp:54:REXCVAR_DEFINE_BOOL(d3d12_dxbc_disasm_dxilconv, false, "GPU/D3D12",
+src\graphics\d3d12\pipeline_cache.cpp:57:REXCVAR_DEFINE_INT32(d3d12_pipeline_creation_threads, -1, "GPU/D3D12",
+src\graphics\d3d12\pipeline_cache.cpp:62:REXCVAR_DEFINE_BOOL(d3d12_tessellation_wireframe, false, "GPU/D3D12",
+src\graphics\d3d12\command_processor.cpp:35:REXCVAR_DEFINE_BOOL(d3d12_bindless, true, "GPU/D3D12", "Use bindless resources where available")
+src\graphics\d3d12\command_processor.cpp:38:REXCVAR_DEFINE_BOOL(d3d12_readback_memexport, false, "GPU/D3D12",
+src\graphics\d3d12\command_processor.cpp:42:REXCVAR_DEFINE_BOOL(d3d12_readback_resolve, false, "GPU/D3D12",
+src\graphics\d3d12\command_processor.cpp:46:REXCVAR_DEFINE_BOOL(d3d12_submit_on_primary_buffer_end, true, "GPU/D3D12",
+src\graphics\vulkan\command_processor.cpp:50:REXCVAR_DEFINE_BOOL(vulkan_readback_resolve, false, "GPU/Vulkan",
+src\graphics\vulkan\command_processor.cpp:54:REXCVAR_DEFINE_BOOL(vulkan_readback_memexport, false, "GPU/Vulkan",
+src\graphics\vulkan\command_processor.cpp:58:REXCVAR_DEFINE_BOOL(vulkan_async_skip_incomplete_frames, true, "GPU/Vulkan",
+src\graphics\vulkan\command_processor.cpp:63:REXCVAR_DEFINE_BOOL(vulkan_submit_on_primary_buffer_end, true, "GPU/Vulkan",
+src\graphics\vulkan\command_processor.cpp:67:REXCVAR_DEFINE_BOOL(vulkan_dynamic_rendering, true, "GPU/Vulkan",
+src\graphics\command_processor.cpp:38:REXCVAR_DEFINE_BOOL(vsync, true, "GPU", "Enable vertical sync");
+src\graphics\command_processor.cpp:40:REXCVAR_DEFINE_BOOL(clear_memory_page_state, true, "GPU",
+src\graphics\command_processor.cpp:45:REXCVAR_DEFINE_BOOL(occlusion_query_enable, true, "GPU", "Enable host occlusion query handling")
+src\graphics\command_processor.cpp:48:REXCVAR_DEFINE_STRING(readback_resolve, "none", "GPU",
+src\graphics\command_processor.cpp:57:REXCVAR_DEFINE_BOOL(readback_resolve_half_pixel_offset, false, "GPU",
+src\graphics\command_processor.cpp:62:REXCVAR_DEFINE_BOOL(readback_memexport, true, "GPU",
+src\graphics\command_processor.cpp:67:REXCVAR_DEFINE_BOOL(readback_memexport_fast, true, "GPU",
+src\graphics\command_processor.cpp:72:REXCVAR_DEFINE_INT32(query_occlusion_fake_sample_count, 1000, "GPU",
+src\graphics\command_processor.cpp:77:REXCVAR_DEFINE_BOOL(async_shader_compilation, true, "GPU",
+src\graphics\pipeline\render_target\cache.cpp:31:REXCVAR_DEFINE_BOOL(mrt_edram_used_range_clamp_to_min, true, "GPU",
+src\graphics\pipeline\render_target\cache.cpp:34:REXCVAR_DEFINE_BOOL(execute_unclipped_draw_vs_on_cpu_for_psi_render_backend, true, "GPU",
+src\graphics\pipeline\render_target\cache.cpp:37:REXCVAR_DEFINE_BOOL(snorm16_render_target_full_range, true, "GPU",
+src\graphics\pipeline\render_target\cache.cpp:40:REXCVAR_DEFINE_BOOL(direct_host_resolve, true, "GPU",
+src\graphics\util\draw_extent_estimator.cpp:27:REXCVAR_DEFINE_BOOL(execute_unclipped_draw_vs_on_cpu, false, "GPU",
+src\graphics\util\draw_extent_estimator.cpp:30:REXCVAR_DEFINE_BOOL(execute_unclipped_draw_vs_on_cpu_with_scissor, false, "GPU",
+src\graphics\util\draw.cpp:29:REXCVAR_DEFINE_BOOL(half_pixel_offset, true, "GPU", "Enable half pixel offset");
+src\graphics\util\draw.cpp:31:REXCVAR_DEFINE_BOOL(resolve_resolution_scale_fill_half_pixel_offset, true, "GPU",
+src\graphics\graphics_system.cpp:34:REXCVAR_DEFINE_STRING(trace_gpu_prefix, "", "GPU", "GPU trace file prefix");
+src\graphics\graphics_system.cpp:36:REXCVAR_DEFINE_BOOL(trace_gpu_stream, false, "GPU", "Enable GPU trace streaming");
+src\graphics\graphics_system.cpp:38:REXCVAR_DEFINE_STRING(swap_post_effect, "none", "GPU", "Swap post effect: none, fxaa, fxaa_extreme")
+src\graphics\graphics_system.cpp:42:REXCVAR_DEFINE_BOOL(store_shaders, true, "GPU",
+src\ui\vulkan\vulkan_provider.cpp:21:REXCVAR_DEFINE_BOOL(vulkan_validation_enabled, false, "UI/Vulkan",
+src\ui\vulkan\vulkan_provider.cpp:25:REXCVAR_DEFINE_INT32(vulkan_device, -1, "UI/Vulkan", "Vulkan device index (-1 for auto selection)")
+src\ui\vulkan\vulkan_provider.cpp:28:REXCVAR_DEFINE_BOOL(vulkan_prefer_geometry_shader, true, "UI/Vulkan",
+src\ui\vulkan\vulkan_provider.cpp:31:REXCVAR_DEFINE_BOOL(
+src\ui\vulkan\vulkan_provider.cpp:35:REXCVAR_DEFINE_BOOL(vulkan_prefer_vertex_pipeline_stores_and_atomics, true, "UI/Vulkan",
+src\ui\vulkan\vulkan_provider.cpp:39:REXCVAR_DEFINE_BOOL(vulkan_prefer_fill_mode_non_solid, true, "UI/Vulkan",
+src\ui\vulkan\vulkan_presenter.cpp:46:REXCVAR_DEFINE_BOOL(present_render_pass_clear, true, "UI/Presenter",
+src\ui\vulkan\vulkan_presenter.cpp:49:REXCVAR_DEFINE_BOOL(vulkan_allow_present_mode_immediate, true, "UI/Vulkan",
+src\ui\vulkan\vulkan_presenter.cpp:52:REXCVAR_DEFINE_BOOL(vulkan_allow_present_mode_mailbox, true, "UI/Vulkan",
+src\ui\vulkan\vulkan_presenter.cpp:55:REXCVAR_DEFINE_BOOL(vulkan_allow_present_mode_fifo_relaxed, true, "UI/Vulkan",
+src\ui\vulkan\vulkan_instance.cpp:24:REXCVAR_DEFINE_BOOL(vulkan_log_debug_messages, true, "UI/Vulkan", "Log Vulkan debug messages");
+src\graphics\pipeline\shader\dxbc_translator_fetch.cpp:27:REXCVAR_DEFINE_BOOL(draw_resolution_scaled_texture_offsets, true, "GPU/Shader",
+src\ui\vulkan\vulkan_device.cpp:24:REXCVAR_DEFINE_BOOL(vulkan_require_fragment_stores_and_atomics, true, "UI/Vulkan",
+src\ui\vulkan\vulkan_device.cpp:28:REXCVAR_DEFINE_BOOL(vulkan_require_vertex_pipeline_stores_and_atomics, true, "UI/Vulkan",
+src\ui\vulkan\vulkan_device.cpp:32:REXCVAR_DEFINE_BOOL(vulkan_require_geometry_shader, true, "UI/Vulkan",
+src\ui\vulkan\vulkan_device.cpp:36:REXCVAR_DEFINE_BOOL(vulkan_require_fill_mode_non_solid, true, "UI/Vulkan",
+src\graphics\pipeline\shader\dxbc_translator.cpp:27:REXCVAR_DEFINE_BOOL(dxbc_switch, true, "GPU/Shader", "Use switch statements in DXBC");
+src\graphics\pipeline\shader\dxbc_translator.cpp:29:REXCVAR_DEFINE_BOOL(dxbc_source_map, false, "GPU/Shader", "Generate source maps for DXBC");
+src\core\perf\counter.cpp:21:REXCVAR_DEFINE_STRING(perf_log_csv, "", "Perf",
+src\core\memory.cpp:16:REXCVAR_DEFINE_BOOL(writable_executable_memory, true, "Memory",
+src\core\logging.cpp:35:REXCVAR_DEFINE_STRING(log_level, "info", "Log",
+src\core\logging.cpp:39:REXCVAR_DEFINE_STRING(log_file, "", "Log", "Log file path (empty = auto sequential naming)");
+src\core\logging.cpp:41:REXCVAR_DEFINE_BOOL(log_verbose, false, "Log", "Enable verbose logging (sets level to trace)")
+src\core\logging.cpp:44:REXCVAR_DEFINE_BOOL(log_noisy, false, "Log", "Enable noisy/high-frequency log macros");
+src\core\logging.cpp:46:REXCVAR_DEFINE_INT32(log_flush_interval, 0, "Log", "Periodic flush interval in seconds (0 = off)")
+src\core\logging.cpp:50:REXCVAR_DEFINE_INT32(log_max_file_size_mb, 5, "Log", "Max log file size in MB before rotation")
+src\core\logging.cpp:54:REXCVAR_DEFINE_INT32(log_max_files, 20, "Log", "Max number of rotated log files to keep")
+src\ui\d3d12\d3d12_provider.cpp:23:REXCVAR_DEFINE_BOOL(d3d12_debug, false, "UI/D3D12", "Enable Direct3D 12 and DXGI debug layer")
+src\ui\d3d12\d3d12_provider.cpp:26:REXCVAR_DEFINE_BOOL(d3d12_break_on_error, false, "UI/D3D12",
+src\ui\d3d12\d3d12_provider.cpp:29:REXCVAR_DEFINE_BOOL(d3d12_break_on_warning, false, "UI/D3D12",
+src\ui\d3d12\d3d12_provider.cpp:32:REXCVAR_DEFINE_INT32(d3d12_adapter, -1, "UI/D3D12",
+src\ui\d3d12\d3d12_provider.cpp:36:REXCVAR_DEFINE_INT32(d3d12_queue_priority, 1, "UI/D3D12",
+src\ui\d3d12\d3d12_presenter.cpp:33:REXCVAR_DEFINE_BOOL(d3d12_allow_variable_refresh_rate_and_tearing, true, "UI/D3D12",
+src\ui\presenter.cpp:33:REXCVAR_DEFINE_BOOL(host_present_from_non_ui_thread, true, "UI/Presenter",
+src\ui\presenter.cpp:36:REXCVAR_DEFINE_BOOL(present_letterbox, true, "UI/Presenter",
+src\ui\presenter.cpp:39:REXCVAR_DEFINE_INT32(present_safe_area_x, 90, "UI/Presenter",
+src\ui\presenter.cpp:43:REXCVAR_DEFINE_INT32(present_safe_area_y, 90, "UI/Presenter",
+src\ui\presenter.cpp:48:REXCVAR_DEFINE_STRING(present_effect, "bilinear", "UI/Presenter",
+src\ui\presenter.cpp:53:REXCVAR_DEFINE_DOUBLE(present_cas_additional_sharpness,
+src\ui\presenter.cpp:60:REXCVAR_DEFINE_INT32(present_fsr_max_upsampling_passes,
+src\ui\presenter.cpp:66:REXCVAR_DEFINE_DOUBLE(present_fsr_sharpness_reduction,
+src\ui\presenter.cpp:73:REXCVAR_DEFINE_STRING(
+src\ui\presenter.cpp:79:REXCVAR_DEFINE_STRING(present_effect, "bilinear", "UI/Presenter", "Guest output effect: bilinear")
+src\ui\presenter.cpp:84:REXCVAR_DEFINE_BOOL(present_dither, false, "UI/Presenter",
+src\ui\presenter.cpp:88:REXCVAR_DEFINE_BOOL(present_allow_overscan_cutoff, false, "UI/Presenter",
+src\core\clock.cpp:20:REXCVAR_DEFINE_BOOL(clock_no_scaling, false, "Clock",
+src\core\clock.cpp:23:REXCVAR_DEFINE_BOOL(clock_source_raw, false, "Clock", "Use raw clock source without scaling");
+src\system\xthread.cpp:39:REXCVAR_DEFINE_BOOL(ignore_thread_priorities, true, "Kernel",
+src\system\xthread.cpp:42:REXCVAR_DEFINE_BOOL(ignore_thread_affinities, true, "Kernel",
+src\kernel\xboxkrnl\debug_monitor.cpp:26:REXCVAR_DEFINE_BOOL(kernel_pix, false, "Kernel", "Enable PIX debugging support");
+src\kernel\xboxkrnl\xboxkrnl_module.cpp:39:REXCVAR_DEFINE_BOOL(log_high_frequency_kernel_calls, false, "Kernel",
+src\kernel\xboxkrnl\xboxkrnl_module.cpp:42:REXCVAR_DEFINE_STRING(cl, "", "Kernel", "Specify additional command-line provided to guest");
+src\kernel\xboxkrnl\xboxkrnl_module.cpp:44:REXCVAR_DEFINE_BOOL(kernel_debug_monitor, false, "Kernel", "Enable debug monitor");
+src\kernel\xboxkrnl\xboxkrnl_module.cpp:46:REXCVAR_DEFINE_BOOL(kernel_cert_monitor, false, "Kernel", "Enable cert monitor");
+src\system\xmemory.cpp:32:REXCVAR_DEFINE_BOOL(protect_zero, true, "Memory", "Protect the zero page from reads and writes")
+src\system\xmemory.cpp:35:REXCVAR_DEFINE_BOOL(protect_on_release, false, "Memory",
+src\system\xmemory.cpp:38:REXCVAR_DEFINE_BOOL(scribble_heap, false, "Memory", "Scribble 0xCD into all allocated heap memory");
+src\kernel\crt\heap.cpp:22:REXCVAR_DEFINE_BOOL(rexcrt_heap_enable, false, "crt",
+src\kernel\crt\heap.cpp:26:REXCVAR_DEFINE_UINT32(rexcrt_heap_size_mb, 256, "crt", "Heap size in megabytes")
+src\system\runtime.cpp:31:REXCVAR_DEFINE_STRING(game_data_root, "", "Runtime", "Override game data path");
+src\system\runtime.cpp:32:REXCVAR_DEFINE_STRING(user_data_root, "", "Runtime", "Override user data path");
+src\system\runtime.cpp:33:REXCVAR_DEFINE_STRING(update_data_root, "", "Runtime", "Override update data path");
+src\system\runtime.cpp:34:REXCVAR_DEFINE_STRING(cache_path, "", "Runtime", "Override shader cache path");
+src\system\user_module.cpp:26:REXCVAR_DEFINE_BOOL(xex_apply_patches, false, "Kernel",
+src\input\input_system.cpp:25:REXCVAR_DEFINE_STRING(input_backend, "sdl", "Input", "Input backend: sdl, xinput")
+src\input\input_system.cpp:28:REXCVAR_DEFINE_BOOL(guide_button, false, "Input", "Enable guide button pass-through");
+src\input\mnk\mnk_input_driver.cpp:30:REXCVAR_DEFINE_BOOL(mnk_mode, false, "Input", "Enable keyboard/mouse controller emulation");
+src\input\mnk\mnk_input_driver.cpp:31:REXCVAR_DEFINE_INT32(mnk_user_index, 0, "Input", "Controller slot (0-3) for MnK").range(0, 3);
+src\input\mnk\mnk_input_driver.cpp:32:REXCVAR_DEFINE_DOUBLE(mnk_sensitivity, 1.0, "Input", "Mouse sensitivity for right stick")
+src\input\mnk\mnk_input_driver.cpp:35:REXCVAR_DEFINE_STRING(keybind_a, "Space", "Input/Keybinds/Controller", "A button");
+src\input\mnk\mnk_input_driver.cpp:36:REXCVAR_DEFINE_STRING(keybind_b, "Shift", "Input/Keybinds/Controller", "B button");
+src\input\mnk\mnk_input_driver.cpp:37:REXCVAR_DEFINE_STRING(keybind_x, "R", "Input/Keybinds/Controller", "X button");
+src\input\mnk\mnk_input_driver.cpp:38:REXCVAR_DEFINE_STRING(keybind_y, "E", "Input/Keybinds/Controller", "Y button");
+src\input\mnk\mnk_input_driver.cpp:39:REXCVAR_DEFINE_STRING(keybind_left_trigger, "Z", "Input/Keybinds/Controller", "Left trigger");
+src\input\mnk\mnk_input_driver.cpp:40:REXCVAR_DEFINE_STRING(keybind_right_trigger, "X", "Input/Keybinds/Controller", "Right trigger");
+src\input\mnk\mnk_input_driver.cpp:41:REXCVAR_DEFINE_STRING(keybind_left_shoulder, "Q", "Input/Keybinds/Controller", "Left shoulder");
+src\input\mnk\mnk_input_driver.cpp:42:REXCVAR_DEFINE_STRING(keybind_right_shoulder, "F", "Input/Keybinds/Controller", "Right shoulder");
+src\input\mnk\mnk_input_driver.cpp:43:REXCVAR_DEFINE_STRING(keybind_lstick_up, "W", "Input/Keybinds/Controller", "Left stick up");
+src\input\mnk\mnk_input_driver.cpp:44:REXCVAR_DEFINE_STRING(keybind_lstick_down, "S", "Input/Keybinds/Controller", "Left stick down");
+src\input\mnk\mnk_input_driver.cpp:45:REXCVAR_DEFINE_STRING(keybind_lstick_left, "A", "Input/Keybinds/Controller", "Left stick left");
+src\input\mnk\mnk_input_driver.cpp:46:REXCVAR_DEFINE_STRING(keybind_lstick_right, "D", "Input/Keybinds/Controller", "Left stick right");
+src\input\mnk\mnk_input_driver.cpp:47:REXCVAR_DEFINE_STRING(keybind_lstick_press, "C", "Input/Keybinds/Controller", "Left stick press");
+src\input\mnk\mnk_input_driver.cpp:48:REXCVAR_DEFINE_STRING(keybind_rstick_press, "V", "Input/Keybinds/Controller",
+src\input\mnk\mnk_input_driver.cpp:50:REXCVAR_DEFINE_STRING(keybind_dpad_up, "Up", "Input/Keybinds/Controller", "D-pad up");
+src\input\mnk\mnk_input_driver.cpp:51:REXCVAR_DEFINE_STRING(keybind_dpad_down, "Down", "Input/Keybinds/Controller", "D-pad down");
+src\input\mnk\mnk_input_driver.cpp:52:REXCVAR_DEFINE_STRING(keybind_dpad_left, "Left", "Input/Keybinds/Controller", "D-pad left");
+src\input\mnk\mnk_input_driver.cpp:53:REXCVAR_DEFINE_STRING(keybind_dpad_right, "Right", "Input/Keybinds/Controller", "D-pad right");
+src\input\mnk\mnk_input_driver.cpp:54:REXCVAR_DEFINE_STRING(keybind_back, "Tab", "Input/Keybinds/Controller", "Back button");
+src\input\mnk\mnk_input_driver.cpp:55:REXCVAR_DEFINE_STRING(keybind_start, "Escape", "Input/Keybinds/Controller", "Start button");
+src\input\mnk\mnk_input_driver.cpp:56:REXCVAR_DEFINE_STRING(keybind_guide, "", "Input/Keybinds/Controller", "Guide button");
+src\kernel\xam\xam_content.cpp:24:REXCVAR_DEFINE_UINT32(license_mask, 1, "Kernel", "Set license mask for activated content");
+src\kernel\xam\xam_locale.cpp:24:REXCVAR_DEFINE_UINT32(user_country, 103, "Kernel", "User's country ID");
+src\input\sdl\sdl_input_driver.cpp:23:REXCVAR_DEFINE_STRING(hid_mappings_file, "gamecontrollerdb.txt", "Input",
+src\kernel\xam\xam_ui.cpp:24:REXCVAR_DEFINE_BOOL(headless, false, "Kernel",
+src\kernel\xam\xam_user.cpp:31:REXCVAR_DEFINE_UINT32(user_language, 1, "Kernel", "User's language ID");

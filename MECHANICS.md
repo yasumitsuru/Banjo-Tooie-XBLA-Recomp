@@ -2,7 +2,8 @@
 
 **Análise estática do programa original, feita nas rodadas de revisão da MISSÃO 00** (não é
 uma missão separada; o commit `d938a31` foi rotulado "MISSAO 01" por engano). Revisão 2:
-§6 (cadência) e §10 corrigidos; ver `docs/AUDITORIA-MISSAO-00.md` §0. Todos os valores, fórmulas e regras
+§6 (cadência) e §10 corrigidos; ver `docs/AUDITORIA-MISSAO-00.md` §0. Revisão 3: §10 item 2
+(4K) atualizado com o que o código do runtime da base mostra. Todos os valores, fórmulas e regras
 desta página foram lidos do `default.xex` original (sha256 `3efca627…`), via Craft Anything
 (Ghidra 12.1.3, linguagem `PowerPC:BE:64:A2ALT-32addr`), e conferidos contra o dump headless
 do Ghidra com a extensão XEXLoaderWV. Nada foi inventado; onde a análise ficou parcial,
@@ -69,6 +70,18 @@ Cadeia verificada (pseudocódigo Ghidra):
 6. Se a inicialização falhou (`iVar2 != 0`): **diálogo de erro fatal** `0x8227D128`.
 7. `FUN_0027d340` — validação/carregamento dos dados do jogo (`.cmp`, `.tbl`, `.ctl`).
 8. `FUN_002209e0(0)` — entrada no jogo.
+
+### Carregamento de texturas — `0x8227D0C0` (rev. 3; ev_aa0b87d2a, ev_75f22fe8f, ev_903172f33)
+
+1. `0x822D3980` monta o caminho `"%s%s"` (`0x82003E00`) + `RAWFiles\db360_TexFileList.txt`
+   (`0x82005898`) e tenta abri-lo. **Se o arquivo não existir, devolve 0 sem erro.** Se existir,
+   lê uma lista (`"%s %d"`, `0x8200588C`) de texturas soltas em `RAWFiles\` e monta a tabela delas
+   (registros de 0x48 bytes em `0x826A4F34`).
+2. Quando a lista não existe (caso da pasta fornecida), `0x8227D0C0` carrega o pacote
+   `db360.textures.cmp` (`0x82003520`) por `0x822D3DA0` e grava em `0x8269EE20` o valor **2**
+   (pacote carregado) ou **3** (falha).
+3. Conclusão: `db360_TexFileList.txt` é um caminho alternativo de texturas soltas (provável recurso
+   de desenvolvimento); o jogo publicado usa o pacote, que está presente.
 
 ---
 
@@ -311,7 +324,12 @@ Lista completa: `_audit/out/ghidra_xex_out/functions.txt` (122 imports, 16.996 f
    constantes de tempo; os pontos exatos estão no patch "60 FPS" da comunidade, cujos ganchos
    conferem com este XEX.
 2. **4K**: a resolução vem de `VdSetDisplayMode`/`VdGetCurrentDisplayInformation`
-   (`0x823021A8`); o port troca estes por chamadas nativas equivalentes.
+   (`0x823021A8`). Rev. 3: no runtime da base (fork ReXGlue `035aa25`), o modo de vídeo que essas
+   chamadas devolvem ao jogo vem das opções `video_mode_width`/`video_mode_height` (padrão
+   1280×720, limite 640–4095) ou do preset `resolution=4k` (3840×2160), e a escala de
+   renderização `resolution_scale` vai de 1 a 8×. São opções do runtime, não valores do jogo; qual
+   delas o jogo aceita sem quebrar a interface só será sabido no teste do M7
+   (`docs/AUDITORIA-MISSAO-00.md` §3.5).
 3. **PT-BR**: o XEX tem 6 idiomas no diálogo de erro (EN/DE/FR/ES/IT/JA) e nenhum PT-BR. Já o
    texto do jogo vive nos dados (`db360.cmp`/`banjo2_360.tbl/.ctl`), e **os dados fornecidos já
    estão em PT-BR**: a abertura mostra "PRESSIONE START PARA JOGAR" no smoke test real (rev. 2,

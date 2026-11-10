@@ -1,0 +1,153 @@
+{
+  "gerado_em": "2026-11-09T23:41:57-03:00",
+  "sdk_tarball": {
+    "url": "gh api repos/iron-jay/rexglue-sdk/tarball/035aa253bdf8ad5bbf419b5b150a7be35189bf4f",
+    "sha256": "8c34cce0ff331af24d05a20b2d62f7f446f9ecc6c188790492d16d0a526e8f7d",
+    "bytes": 51179072,
+    "blobs_na_arvore": 1259
+  },
+  "fork_vs_oficial": {
+    "compare": "rexglue/rexglue-sdk@546a082...iron-jay/rexglue-sdk@035aa25",
+    "status": "diverged",
+    "ahead_by": 1,
+    "behind_by": 168,
+    "merge_base": "e8ce24fa73cd7c1ede80262c06f34893b7963dbe",
+    "merge_base_date": "2026-05-16T16:33:05Z",
+    "commits": [
+      {
+        "sha": "035aa253bdf8ad5bbf419b5b150a7be35189bf4f",
+        "date": "2026-07-29T23:04:06Z",
+        "title": "Banjo-Tooie XBLA bring-up fixes: MnK input, audio fallback, XAM shims, GTK icon"
+      }
+    ],
+    "files": [
+      {
+        "status": "modified",
+        "file": "include/rex/input/mnk/mnk_input_driver.h",
+        "additions": 1,
+        "deletions": 0
+      },
+      {
+        "status": "modified",
+        "file": "src/audio/sdl/sdl_audio_driver.cpp",
+        "additions": 29,
+        "deletions": 2
+      },
+      {
+        "status": "modified",
+        "file": "src/input/mnk/mnk_input_driver.cpp",
+        "additions": 52,
+        "deletions": 29
+      },
+      {
+        "status": "modified",
+        "file": "src/kernel/xam/xam_content.cpp",
+        "additions": 1,
+        "deletions": 1
+      },
+      {
+        "status": "modified",
+        "file": "src/kernel/xam/xam_info.cpp",
+        "additions": 3,
+        "deletions": 1
+      },
+      {
+        "status": "modified",
+        "file": "src/kernel/xam/xam_ui.cpp",
+        "additions": 25,
+        "deletions": 1
+      },
+      {
+        "status": "modified",
+        "file": "src/kernel/xboxkrnl/xboxkrnl_io_info.cpp",
+        "additions": 11,
+        "deletions": 1
+      },
+      {
+        "status": "modified",
+        "file": "src/system/runtime.cpp",
+        "additions": 7,
+        "deletions": 0
+      },
+      {
+        "status": "added",
+        "file": "src/ui/app_icon_data.h",
+        "additions": 4105,
+        "deletions": 0
+      },
+      {
+        "status": "modified",
+        "file": "src/ui/rex_app.cpp",
+        "additions": 11,
+        "deletions": 8
+      },
+      {
+        "status": "modified",
+        "file": "src/ui/window_gtk.cpp",
+        "additions": 15,
+        "deletions": 0
+      }
+    ]
+  },
+  "fontes": [
+    {
+      "archived": false,
+      "default_branch": "main",
+      "description": "A tool for recompiling Xbox 360 games to native executables.",
+      "fork": false,
+      "full_name": "hedge-dev/XenonRecomp",
+      "license": "MIT",
+      "parent": null,
+      "pushed_at": "2025-08-04T13:56:30Z",
+      "readme_bytes": 17607
+    },
+    {
+      "archived": false,
+      "default_branch": "main",
+      "description": "Xbox 360 Recompilation Runtime and Toolkit",
+      "fork": false,
+      "full_name": "rexglue/rexglue-sdk",
+      "license": "NOASSERTION",
+      "parent": null,
+      "pushed_at": "2026-11-10T01:14:44Z",
+      "readme_bytes": 4610
+    },
+    {
+      "archived": false,
+      "default_branch": "main",
+      "description": "Midnight Club: Los Angeles para PC â€” PT-BR, ultrawide automÃ¡tico, AMD FSR e instalador/configurador. Base mcla-recomp/ReXGlue.",
+      "fork": false,
+      "full_name": "robertoaraujo77/MC_LA_Recompiled",
+      "license": "GPL-3.0",
+      "parent": null,
+      "pushed_at": "2026-10-28T02:48:44Z",
+      "readme_bytes": 6674
+    },
+    {
+      "archived": false,
+      "default_branch": "main",
+      "description": "A tool for recompiling Xbox 360 games to native executables.",
+      "fork": true,
+      "full_name": "sonicnext-dev/XenonRecomp",
+      "license": "MIT",
+      "parent": "hedge-dev/XenonRecomp",
+      "pushed_at": "2026-10-19T08:25:34Z",
+      "readme_bytes": 17607
+    },
+    {
+      "archived": false,
+      "default_branch": "main",
+      "description": "XenonRecompUnlimited - it's special fork of XenonRecomp for TDU engine, like experimental fork-version with fresh updates",
+      "fork": true,
+      "full_name": "testdriveupgrade/XenonRecompUnlimited",
+      "license": "MIT",
+      "parent": "hedge-dev/XenonRecomp",
+      "pushed_at": "2025-12-12T01:23:48Z",
+      "readme_bytes": 21274
+    }
+  ],
+  "licencas": {
+    "iron-jay/banjo_tooie_xbla_recomp": "sem arquivo LICENSE (GitHub: license null)",
+    "iron-jay/rexglue-sdk": "BSD-3 (texto em LICENSE: Tom Clay + Xenia)"
+  }
+}

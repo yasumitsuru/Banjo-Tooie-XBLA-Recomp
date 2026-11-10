@@ -9,10 +9,11 @@ Projeto de port nativo para Windows 11 (x86-64) do Banjo-Tooie (XBLA), por recom
 reproduzível a partir do **seu** `default.xex` (22.111 funções recompiladas), inicia com os seus
 dados e mostra a tela de abertura em PT-BR ("PRESSIONE START PARA JOGAR") a ~29,5 FPS, sem
 emulador. Os arquivos do jogo não são copiados para o repositório nem alterados (36/36 hashes
-iguais antes e depois). A pessoa relata que o port carrega além da abertura e confirma a versão
-completa, a tradução aplicada, o original em 720p/30 e o uso só pessoal (`docs/DECISOES.md`).
-**Ainda sem teste automatizado:** menu, jogabilidade, controle e saves. **Ainda não feitos:** 4K
-(será pelo sistema gráfico do ReXGlue, por decisão da pessoa) e 60 FPS.
+iguais antes e depois). Segundo a pessoa, o jogo **funciona normalmente**: o menu do próprio jogo
+(o "menu START"), a seleção de save, a introdução, o jogo, o controle/teclado e gravar/carregar.
+Ela também confirma a versão completa, a tradução aplicada, o original em 720p/30 e o uso só
+pessoal (`docs/DECISOES.md`). O teste automatizado do projeto vai até a abertura. **Ainda não
+feitos:** 4K (será pelo sistema gráfico do ReXGlue, por decisão da pessoa) e 60 FPS.
 
 ## Como compilar e rodar
 

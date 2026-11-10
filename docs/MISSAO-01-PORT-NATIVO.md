@@ -126,9 +126,9 @@ Do log do runtime (`banjotooie.log`: 58 linhas, **0 erros**, 3 avisos):
 
 | Item | Status | Causa |
 |---|---|---|
-| Passar da tela de abertura (menu, seleção de save, introdução, jogo) | **PENDENTE** | Nenhuma entrada automatizada foi enviada. O teste só observa a abertura. Injetar controle é tarefa de harness (próximas missões) |
-| Controle/teclado funcionando no jogo | **PENDENTE** | O controle é detectado, mas não foi acionado |
-| Saves | **PENDENTE** | Nada foi gravado: a pasta `user_data` do teste ficou vazia, porque o jogo não saiu da abertura |
+| Passar da tela de abertura (menu, seleção de save, introdução, jogo) | **Sem teste automatizado**; funciona segundo a pessoa (`DECISOES.md` nº 1) | O teste do projeto só observa a abertura, sem entrada. Um teste com entrada simulada fica como melhoria futura |
+| Controle/teclado funcionando no jogo | **Sem teste automatizado**; funciona segundo a pessoa | O controle é detectado pelo SDL (log), mas o teste não o aciona |
+| Saves | **Sem teste automatizado**; gravar/carregar funciona segundo a pessoa | No teste do projeto nada foi gravado (a pasta `user_data` ficou vazia, porque o jogo não saiu da abertura) |
 | Áudio audível | **PENDENTE** | Testes com `--audio_mute`; o sistema de áudio inicializou (log) |
 | Estabilidade em sessões longas | **PENDENTE** | Execuções de ~76 s |
 | Checagem automática do Craft Anything (`rebuild_check`) | **FAIL esperado, não aplicável** | ela procura um projeto Unity ("No Unity project found"); este projeto é C++/CMake + ReXGlue, conforme pedido |
@@ -142,13 +142,13 @@ Do log do runtime (`banjotooie.log`: 58 linhas, **0 erros**, 3 avisos):
 | Inicia com os dados fornecidos | PENDENTE | **IMPLEMENTADO** até a tela de abertura | 5.2 passo 4 |
 | Diagnóstico de inicialização e arquivos ausentes | — | **IMPLEMENTADO** (preflight, relatório, minidump; códigos 2/3/4/5) | 5.2 passos 1, 2, 3, 5 |
 | Preservação dos arquivos originais | forte no código | **IMPLEMENTADO** (36/36 antes e depois) | 5.2 passos 0 e 6 |
-| PT-BR | PARCIAL | **PARCIAL**: abertura em PT-BR no port nativo; a pessoa confirma que a tradução está aplicada nos dados; a cobertura não foi verificada pelo projeto | captura; `DECISOES.md` nº 2 |
-| Menu START / jogabilidade | PENDENTE | **PARCIAL (relato)**: a pessoa relata que o port "está carregando". Sem teste automatizado (sem entrada simulada). O significado de "menu START" segue em aberto | 5.3; `DECISOES.md` nº 1 e 2 |
+| PT-BR | PARCIAL | **IMPLEMENTADO (dados)**: a abertura em PT-BR foi vista no port nativo, e a pessoa confirma que a tradução está aplicada no jogo. Cobertura total não verificada pelo próprio projeto | captura; `DECISOES.md` nº 2 |
+| Menu START / jogabilidade | PENDENTE | **IMPLEMENTADO (relato da pessoa)**: "menu START" = o menu do próprio jogo. Segundo a pessoa, menu, seleção de save, introdução e jogo "estão funcionando normalmente". O teste automatizado do projeto vai só até a abertura | 5.3; `DECISOES.md` nº 1 e 2 |
 | 4K | PENDENTE | **PENDENTE**: o port roda em 1280×720 (padrão = original). **Decisão da pessoa:** fazer o 4K pelo sistema gráfico do ReXGlue (`resolution_scale`/`resolution=4k`/FSR) | 5.2; `DECISOES.md` nº 3 |
 | 60 FPS | PENDENTE | **PENDENTE**. **Medido**: o original roda a **~29,5 FPS** no port; a pessoa confirma 720p/30. O runtime não tem opção de FPS, então os 60 exigem trocar o intervalo do jogo (`0x82276E34`) | `boot_jogo.json`; `DECISOES.md` nº 3 |
 | Draw distance, QoL | PENDENTE | **PENDENTE** | — |
-| Gamepad | PENDENTE | **PARCIAL**: controle detectado pelo SDL; a pessoa relata que carrega; entrada não testada pelo projeto | log; `DECISOES.md` nº 1 |
-| Saves | PENDENTE | **PENDENTE**: a resposta da pessoa não diz se gravou e carregou | 5.3; `DECISOES.md` nº 1 |
+| Gamepad | PENDENTE | **IMPLEMENTADO (relato da pessoa)**: controle detectado pelo SDL (log); a pessoa relata controle/teclado funcionando | log; `DECISOES.md` nº 1 |
+| Saves | PENDENTE | **IMPLEMENTADO (relato da pessoa)**: gravar/carregar funcionando, segundo a pessoa. O projeto ainda não tem evidência automatizada própria | `DECISOES.md` nº 1 |
 | Versão completa | PENDENTE (forte no código) | **IMPLEMENTADO**: a pessoa confirma a versão completa; o runtime informa a licença como comprada | `DECISOES.md` nº 5 |
 | Uso / licenças | risco | **Decidido: uso pessoal**, sem publicar | `DECISOES.md` nº 4 |
 
@@ -165,7 +165,7 @@ Atalhos do runtime: F3 = FPS, F4 = ajustes, crase (`` ` ``) = console.
 
 ## 8. Riscos e pendências
 
-1. **Entrada automatizada** é o próximo bloqueio para testar menu, jogo, controle e saves.
+1. **Entrada automatizada:** não é mais um bloqueio, porque a pessoa relata menu, jogo, controle e saves funcionando. Continua útil para regressão automática nas próximas missões (4K/60 vão mexer no jogo).
 2. **Antivírus (Kaspersky)**: removeu (inferido) o `TracyClient.dll`. O build atual não usa Tracy,
    mas `banjotooie.exe`/`rexruntime.dll` também podem ser analisados; até agora não sumiram.
 3. **Licença da base**: sem licença declarada. **A pessoa decidiu uso pessoal** (`DECISOES.md`

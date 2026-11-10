@@ -1,0 +1,20 @@
+# MISSAO 01 - resumo do build (2026-11-10T01:47:05-03:00)
+comando: tools\build_port.cmd  (fases sdk / codegen / game)
+clang: clang version 19.1.5
+alvo: Target: x86_64-pc-windows-msvc
+cmake: cmake version 4.4.0-rc3
+ninja: 1.13.2
+msvc: 14.44.35207 (VS 2022 Build Tools, vcvars64)
+sdk: iron-jay/rexglue-sdk 035aa253bdf8ad5bbf419b5b150a7be35189bf4f
+base: iron-jay/banjo_tooie_xbla_recomp 72c239733 (copiada em banjotooie-recomp/)
+opcoes: Release, -march=x86-64-v3, D3D12=ON Vulkan=OFF, Tracy=OFF, FidelityFX=OFF
+codegen: 19 linhas de log; 22111 funcoes; 47 arquivos .cpp; 3378583 linhas
+fase game (build completo com Tracy=OFF): exit 0 em 167 s (run_game2)
+saidas:
+8f1ec4cf114638a6f5dae512863bb47ec3b129a87abc49a4c9b68900b93d7378  banjotooie-recomp/out/build/win-amd64-release/banjotooie.exe
+42f7ddbc614b1624c0e1d925ca19f093248f7fcfd13ded59373e0d6c06da1f68  banjotooie-recomp/out/build/win-amd64-release/rexruntime.dll
+89b7d64d31845aee401e031cf12770372fc9e7a729e0643fbbd555de30a3d65d  rexglue-sdk/out/win-amd64/rexglue.exe
+31528960 banjotooie-recomp/out/build/win-amd64-release/banjotooie.exe*
+12424704 banjotooie-recomp/out/build/win-amd64-release/rexruntime.dll*
+imports banjotooie.exe: KERNEL32.dll MSVCP140.dll SHELL32.dll USER32.dll VCRUNTIME140.dll api-ms-win-crt-convert-l1-1-0.dll api-ms-win-crt-environment-l1-1-0.dll api-ms-win-crt-filesystem-l1-1-0.dll api-ms-win-crt-heap-l1-1-0.dll api-ms-win-crt-locale-l1-1-0.dll api-ms-win-crt-math-l1-1-0.dll api-ms-win-crt-runtime-l1-1-0.dll api-ms-win-crt-stdio-l1-1-0.dll api-ms-win-crt-string-l1-1-0.dll api-ms-win-crt-time-l1-1-0.dll dbghelp.dll ole32.dll rexruntime.dll 
+captura (nao versionada, arte do jogo): _audit/out/m01/smoke/captura_jogo.png sha256 a2c45f0d4b744a10a818d33a4674f7f310dad7cdbaaa17f2b79a86a92c3e62c8

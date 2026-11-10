@@ -246,7 +246,11 @@ percentual = min(100, ((TBLr − último_vblank) × 100) / ticks_por_vblank + 1)
 - Intervalo 2 numa tela de 60 Hz = **30 FPS** (inferido). O patch "60 FPS" da comunidade do Xenia
   troca exatamente esta instrução por um desvio que escolhe 1 (60 FPS) ou 2 conforme o byte
   `0x8266EF30`. Também troca `lwz r11,0x351C(r31)` em `0x822F9F18` e 17 constantes de tempo
-  (ver `docs/evidencias/xenia_patches_vs_xex.json`). Não foi medido em execução.
+  (ver `docs/evidencias/xenia_patches_vs_xex.json`).
+- **Medido na Missão 01** (port nativo, tela de abertura, 2 execuções): **29,45 e 29,61 quadros
+  por segundo** (chamadas de `0x822FA358`, a função que chama `VdSwap`, contadas no último segundo
+  antes da captura); 2.235 e 2.239 quadros em ~76 s (`docs/evidencias/m01/boot_jogo.json`). Confirma
+  os 30 FPS do original. Só foi medido na abertura; ainda não durante o jogo.
 
 ### Inatividade (protetor de tela) — `FUN_005b36a0` (`0x825B36A0`, ev_92d9a18b5)
 

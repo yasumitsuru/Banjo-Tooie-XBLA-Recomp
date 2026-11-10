@@ -1,0 +1,33 @@
+{
+  "schema": 1,
+  "app": "banjotooie (Banjo-Tooie XBLA PT-BR Recompiled)",
+  "started_at": "2026-11-10T01:45:24",
+  "updated_at": "2026-11-10T01:46:41",
+  "info": {
+    "cache_root": "W:\\Decomp\\Banjo 3\\app\\_audit\\out\\m01\\smoke\\cache",
+    "command_line": "\"W:\\Decomp\\Banjo 3\\app\\banjotooie-recomp\\out\\build\\win-amd64-release\\banjotooie.exe\" --game_data_root \"W:\\Decomp\\Banjo 3\\Banjo Tooie BR\" --user_data_root \"W:\\Decomp\\Banjo 3\\app\\_audit\\out\\m01\\smoke\\user_data\" --cache_path \"W:\\Decomp\\Banjo 3\\app\\_audit\\out\\m01\\smoke\\cache\" --audio_mute --log_file \"W:\\Decomp\\Banjo 3\\app\\_audit\\out\\m01\\smoke\\banjotooie.log\" --boot_report \"W:\\Decomp\\Banjo 3\\app\\_audit\\out\\m01\\smoke\\boot_jogo.json\" --screenshot \"W:\\Decomp\\Banjo 3\\app\\_audit\\out\\m01\\smoke\\captura_jogo.png\" --screenshot_seconds 75 --smoke_timeout_seconds 240",
+    "config_path": "W:\\Decomp\\Banjo 3\\app\\banjotooie-recomp\\out\\build\\win-amd64-release\\banjotooie.toml",
+    "exe_dir": "W:\\Decomp\\Banjo 3\\app\\banjotooie-recomp\\out\\build\\win-amd64-release",
+    "game_data_root": "W:\\Decomp\\Banjo 3\\Banjo Tooie BR",
+    "mode": "automatico",
+    "user_data_root": "W:\\Decomp\\Banjo 3\\app\\_audit\\out\\m01\\smoke\\user_data"
+  },
+  "preflight": {"game_root":"W:\\Decomp\\Banjo 3\\Banjo Tooie BR","root_ok":true,"xex_magic_ok":true,"passed":true,"files":[{"rel":"default.xex","role":"obrigatorio","present":true,"found_at":"default.xex","size":7413760,"note":"executavel original do XBLA (XEX2)"},{"rel":"RAWFiles\\db360.cmp","role":"obrigatorio","present":true,"found_at":"RAWFiles\\db360.cmp","size":12525322,"note":"banco de dados do jogo (inclui o texto)"},{"rel":"RAWFiles\\db360.textures.cmp","role":"obrigatorio","present":true,"found_at":"RAWFiles\\db360.textures.cmp","size":50625264,"note":"pacote de texturas"},{"rel":"RAWFiles\\banjo2_360.tbl","role":"obrigatorio","present":true,"found_at":"RAWFiles\\banjo2_360.tbl","size":14555180,"note":"tabela de dados"},{"rel":"RAWFiles\\banjo2_360.ctl","role":"obrigatorio","present":true,"found_at":"RAWFiles\\banjo2_360.ctl","size":187992,"note":"indice da tabela de dados"},{"rel":"RAWFiles\\X360_strings.dat","role":"recomendado","present":true,"found_at":"RAWFiles\\X360_strings.dat","size":427089,"note":"textos de sistema do XBLA"},{"rel":"RAWFiles\\xarialuni.ttf","role":"recomendado","present":true,"found_at":"RAWFiles\\xarialuni.ttf","size":6608540,"note":"fonte Unicode"},{"rel":"RAWFiles\\ArcadeNormal.ptc","role":"recomendado","present":true,"found_at":"RAWFiles\\ArcadeNormal.ptc","size":101229,"note":"layout de tela 4:3"},{"rel":"RAWFiles\\ArcadeWide.ptc","role":"recomendado","present":true,"found_at":"RAWFiles\\ArcadeWide.ptc","size":99557,"note":"layout de tela 16:9"},{"rel":"RAWFiles\\58410955033F0001","role":"recomendado","present":true,"found_at":"RAWFiles\\58410955033F0001","size":5206016,"note":"pacote PIRS do tema do painel"},{"rel":"RAWFiles\\db360_TexFileList.txt","role":"opcional","present":false,"found_at":"","size":0,"note":"lista de texturas soltas; sem ela o jogo usa db360.textures.cmp (0x8227D0C0)"}],"missing_required":[],"missing_recommended":[]},
+  "stages": [
+    {"name": "environment", "t_ms": 20.6, "detail": ""},
+    {"name": "preflight_ok", "t_ms": 25.3, "detail": "Pasta do jogo OK: W:\\Decomp\\Banjo 3\\Banjo Tooie BR"},
+    {"name": "logging", "t_ms": 28.6, "detail": ""},
+    {"name": "presentation_setup", "t_ms": 30.8, "detail": ""},
+    {"name": "window_open", "t_ms": 698.1, "detail": ""},
+    {"name": "xex_loaded", "t_ms": 983.1, "detail": "game:\\default.xex"},
+    {"name": "module_launched", "t_ms": 1007.2, "detail": ""},
+    {"name": "first_guest_frame", "t_ms": 1111.5, "detail": "0.10 s apos o inicio do modulo"},
+    {"name": "exit_requested", "t_ms": 76115.2, "detail": "codigo 0: captura de tela concluida"},
+    {"name": "guest_thread_exit", "t_ms": 76119.1, "detail": ""},
+    {"name": "shutdown", "t_ms": 76193.7, "detail": ""}
+  ],
+  "guest": {"frames": 2239, "fps": 29.61, "elapsed_s": 75.18, "counter": "chamadas de 0x822FA358 (VdSwap)"},
+  "screenshot": {"path":"W:\\Decomp\\Banjo 3\\app\\_audit\\out\\m01\\smoke\\captura_jogo.png","width":1280,"height":720,"ok":true,"detail":"PNG gravado; quadros=2238; brilho_medio=30.8; pixels_acesos=64.8%"},
+  "crash": null,
+  "exit": {"code":0,"reason":"captura de tela concluida"}
+}

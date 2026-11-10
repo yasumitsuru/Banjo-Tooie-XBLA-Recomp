@@ -1,0 +1,24 @@
+{
+  "schema": 1,
+  "app": "banjotooie (Banjo-Tooie XBLA PT-BR Recompiled)",
+  "started_at": "2026-11-10T01:45:24",
+  "updated_at": "2026-11-10T01:45:24",
+  "info": {
+    "cache_root": "C:\\Users\\<usuario>\\OneDrive\\All\\Documentos\\banjotooie\\cache",
+    "command_line": "\"W:\\Decomp\\Banjo 3\\app\\banjotooie-recomp\\out\\build\\win-amd64-release\\banjotooie.exe\" --game_data_root \"W:\\Decomp\\Banjo 3\\Banjo Tooie BR\" --preflight_only --boot_report \"W:\\Decomp\\Banjo 3\\app\\_audit\\out\\m01\\smoke\\preflight_ok.json\"",
+    "config_path": "W:\\Decomp\\Banjo 3\\app\\banjotooie-recomp\\out\\build\\win-amd64-release\\banjotooie.toml",
+    "exe_dir": "W:\\Decomp\\Banjo 3\\app\\banjotooie-recomp\\out\\build\\win-amd64-release",
+    "game_data_root": "W:\\Decomp\\Banjo 3\\Banjo Tooie BR",
+    "mode": "automatico",
+    "user_data_root": "C:\\Users\\<usuario>\\OneDrive\\All\\Documentos\\banjotooie"
+  },
+  "preflight": {"game_root":"W:\\Decomp\\Banjo 3\\Banjo Tooie BR","root_ok":true,"xex_magic_ok":true,"passed":true,"files":[{"rel":"default.xex","role":"obrigatorio","present":true,"found_at":"default.xex","size":7413760,"note":"executavel original do XBLA (XEX2)"},{"rel":"RAWFiles\\db360.cmp","role":"obrigatorio","present":true,"found_at":"RAWFiles\\db360.cmp","size":12525322,"note":"banco de dados do jogo (inclui o texto)"},{"rel":"RAWFiles\\db360.textures.cmp","role":"obrigatorio","present":true,"found_at":"RAWFiles\\db360.textures.cmp","size":50625264,"note":"pacote de texturas"},{"rel":"RAWFiles\\banjo2_360.tbl","role":"obrigatorio","present":true,"found_at":"RAWFiles\\banjo2_360.tbl","size":14555180,"note":"tabela de dados"},{"rel":"RAWFiles\\banjo2_360.ctl","role":"obrigatorio","present":true,"found_at":"RAWFiles\\banjo2_360.ctl","size":187992,"note":"indice da tabela de dados"},{"rel":"RAWFiles\\X360_strings.dat","role":"recomendado","present":true,"found_at":"RAWFiles\\X360_strings.dat","size":427089,"note":"textos de sistema do XBLA"},{"rel":"RAWFiles\\xarialuni.ttf","role":"recomendado","present":true,"found_at":"RAWFiles\\xarialuni.ttf","size":6608540,"note":"fonte Unicode"},{"rel":"RAWFiles\\ArcadeNormal.ptc","role":"recomendado","present":true,"found_at":"RAWFiles\\ArcadeNormal.ptc","size":101229,"note":"layout de tela 4:3"},{"rel":"RAWFiles\\ArcadeWide.ptc","role":"recomendado","present":true,"found_at":"RAWFiles\\ArcadeWide.ptc","size":99557,"note":"layout de tela 16:9"},{"rel":"RAWFiles\\58410955033F0001","role":"recomendado","present":true,"found_at":"RAWFiles\\58410955033F0001","size":5206016,"note":"pacote PIRS do tema do painel"},{"rel":"RAWFiles\\db360_TexFileList.txt","role":"opcional","present":false,"found_at":"","size":0,"note":"lista de texturas soltas; sem ela o jogo usa db360.textures.cmp (0x8227D0C0)"}],"missing_required":[],"missing_recommended":[]},
+  "stages": [
+    {"name": "environment", "t_ms": 30.2, "detail": ""},
+    {"name": "preflight_ok", "t_ms": 35.0, "detail": "Pasta do jogo OK: W:\\Decomp\\Banjo 3\\Banjo Tooie BR"}
+  ],
+  "guest": {"frames": 0, "fps": 0.00, "elapsed_s": 0.00, "counter": "chamadas de 0x822FA358 (VdSwap)"},
+  "screenshot": null,
+  "crash": null,
+  "exit": {"code":0,"reason":"preflight_only"}
+}

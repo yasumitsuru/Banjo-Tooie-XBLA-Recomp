@@ -1,0 +1,24 @@
+{
+  "schema": 1,
+  "app": "banjotooie (Banjo-Tooie XBLA PT-BR Recompiled)",
+  "started_at": "2026-11-10T01:45:24",
+  "updated_at": "2026-11-10T01:45:24",
+  "info": {
+    "cache_root": "C:\\Users\\<usuario>\\OneDrive\\All\\Documentos\\banjotooie\\cache",
+    "command_line": "\"W:\\Decomp\\Banjo 3\\app\\banjotooie-recomp\\out\\build\\win-amd64-release\\banjotooie.exe\" --preflight_only --boot_report \"W:\\Decomp\\Banjo 3\\app\\_audit\\out\\m01\\smoke\\preflight_sem_pasta.json\"",
+    "config_path": "W:\\Decomp\\Banjo 3\\app\\banjotooie-recomp\\out\\build\\win-amd64-release\\banjotooie.toml",
+    "exe_dir": "W:\\Decomp\\Banjo 3\\app\\banjotooie-recomp\\out\\build\\win-amd64-release",
+    "game_data_root": "",
+    "mode": "automatico",
+    "user_data_root": "C:\\Users\\<usuario>\\OneDrive\\All\\Documentos\\banjotooie"
+  },
+  "preflight": {"game_root":"","root_ok":false,"xex_magic_ok":false,"passed":false,"files":[{"rel":"default.xex","role":"obrigatorio","present":false,"found_at":"","size":0,"note":"executavel original do XBLA (XEX2)"},{"rel":"RAWFiles\\db360.cmp","role":"obrigatorio","present":false,"found_at":"","size":0,"note":"banco de dados do jogo (inclui o texto)"},{"rel":"RAWFiles\\db360.textures.cmp","role":"obrigatorio","present":false,"found_at":"","size":0,"note":"pacote de texturas"},{"rel":"RAWFiles\\banjo2_360.tbl","role":"obrigatorio","present":false,"found_at":"","size":0,"note":"tabela de dados"},{"rel":"RAWFiles\\banjo2_360.ctl","role":"obrigatorio","present":false,"found_at":"","size":0,"note":"indice da tabela de dados"},{"rel":"RAWFiles\\X360_strings.dat","role":"recomendado","present":false,"found_at":"","size":0,"note":"textos de sistema do XBLA"},{"rel":"RAWFiles\\xarialuni.ttf","role":"recomendado","present":false,"found_at":"","size":0,"note":"fonte Unicode"},{"rel":"RAWFiles\\ArcadeNormal.ptc","role":"recomendado","present":false,"found_at":"","size":0,"note":"layout de tela 4:3"},{"rel":"RAWFiles\\ArcadeWide.ptc","role":"recomendado","present":false,"found_at":"","size":0,"note":"layout de tela 16:9"},{"rel":"RAWFiles\\58410955033F0001","role":"recomendado","present":false,"found_at":"","size":0,"note":"pacote PIRS do tema do painel"},{"rel":"RAWFiles\\db360_TexFileList.txt","role":"opcional","present":false,"found_at":"","size":0,"note":"lista de texturas soltas; sem ela o jogo usa db360.textures.cmp (0x8227D0C0)"}],"missing_required":["default.xex","RAWFiles\\db360.cmp","RAWFiles\\db360.textures.cmp","RAWFiles\\banjo2_360.tbl","RAWFiles\\banjo2_360.ctl"],"missing_recommended":["RAWFiles\\X360_strings.dat","RAWFiles\\xarialuni.ttf","RAWFiles\\ArcadeNormal.ptc","RAWFiles\\ArcadeWide.ptc","RAWFiles\\58410955033F0001"]},
+  "stages": [
+    {"name": "environment", "t_ms": 23.9, "detail": ""},
+    {"name": "preflight_failed", "t_ms": 27.7, "detail": "A pasta do jogo não foi informada.\n\nInicie com: banjotooie.exe --game_data_root \"<pasta com default.xex e RAWFiles>\""}
+  ],
+  "guest": {"frames": 0, "fps": 0.00, "elapsed_s": 0.00, "counter": "chamadas de 0x822FA358 (VdSwap)"},
+  "screenshot": null,
+  "crash": null,
+  "exit": {"code":3,"reason":"preflight: arquivos do jogo ausentes ou pasta invalida"}
+}

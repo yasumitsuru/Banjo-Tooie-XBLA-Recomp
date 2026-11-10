@@ -1,0 +1,4 @@
+[submodule "rexglue-sdk"]
+	path = rexglue-sdk
+	url = https://github.com/iron-jay/rexglue-sdk.git
+	ignore = dirty

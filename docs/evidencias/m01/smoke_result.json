@@ -1,0 +1,55 @@
+{
+  "started": "2026-11-10T01:45:23",
+  "exe": "W:\\Decomp\\Banjo 3\\app\\banjotooie-recomp\\out\\build\\win-amd64-release\\banjotooie.exe",
+  "game_dir": "W:\\Decomp\\Banjo 3\\Banjo Tooie BR",
+  "steps": [
+    {
+      "step": "hashes_antes",
+      "passed": true,
+      "detail": "36/36 iguais"
+    },
+    {
+      "step": "preflight_pasta_real",
+      "passed": true,
+      "detail": "codigo 0; obrigatorios ausentes: ",
+      "exit_code": 0
+    },
+    {
+      "step": "preflight_arquivo_faltando",
+      "passed": true,
+      "detail": "codigo 2; ausentes citados: RAWFiles\\db360.cmp",
+      "exit_code": 2
+    },
+    {
+      "step": "preflight_sem_pasta",
+      "passed": true,
+      "detail": "codigo 3",
+      "exit_code": 3
+    },
+    {
+      "step": "jogo_inicia_e_apresenta_quadros",
+      "passed": true,
+      "detail": "codigo 0; 2239 quadros; fps(ultimo s)=29,61; 76 s; etapas: environment > preflight_ok > logging > presentation_setup > window_open > xex_loaded > module_launched > first_guest_frame > exit_requested > guest_thread_exit > shutdown",
+      "exit_code": 0,
+      "frames": 2239
+    },
+    {
+      "step": "captura_png",
+      "passed": true,
+      "detail": "1280x720; PNG gravado; quadros=2238; brilho_medio=30.8; pixels_acesos=64.8%"
+    },
+    {
+      "step": "falha_provocada_gera_minidump",
+      "passed": true,
+      "detail": "codigo 0xE0425442; minidump: banjotooie-crash-49168.dmp (221545 bytes); relatorio: excecao 0xE0425442 em 00007FFC089B569A (C:\\WINDOWS\\System32\\KERNELBASE.dll+0xC569A), thread 62416 minidump: W:\\Decomp\\Banjo 3\\app\\_audit\\out\\m01\\smoke\\crashdumps\\banjotooie-crash-49168.dmp"
+    },
+    {
+      "step": "hashes_depois",
+      "passed": true,
+      "detail": "36/36 iguais; novos: "
+    }
+  ],
+  "screenshot_sha256": "a2c45f0d4b744a10a818d33a4674f7f310dad7cdbaaa17f2b79a86a92c3e62c8",
+  "finished": "2026-11-10T01:46:44",
+  "passed": true
+}

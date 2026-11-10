@@ -5,24 +5,41 @@ This build contains the original game's own files, for the private use of the pe
 Projeto de port nativo para Windows 11 (x86-64) do Banjo-Tooie (XBLA), por recompilação estática
 (ReXGlue), visando 4K/60 FPS e PT-BR, preservando o jogo original.
 
-**Status atual: MISSÃO 00 (auditoria) concluída, revisão 3.** Ainda não existe código do port
-nem executável recompilado aqui; nenhuma funcionalidade foi implementada; os arquivos do jogo
-não foram modificados (verificado por hash antes e depois). A rev. 3 leu o código-fonte da ponte
-gráfica da base (fork ReXGlue `035aa25`, 30/30 afirmações conferidas) e avaliou a compatibilidade
-das demais fontes de consulta.
+**Status atual: MISSÃO 01 (port nativo) concluída.** O `banjotooie.exe` nativo é compilado de forma
+reproduzível a partir do **seu** `default.xex` (22.111 funções recompiladas), inicia com os seus
+dados e mostra a tela de abertura em PT-BR ("PRESSIONE START PARA JOGAR") a ~29,5 FPS, sem
+emulador. Os arquivos do jogo não são copiados para o repositório nem alterados (36/36 hashes
+iguais antes e depois). **Ainda não comprovado:** menu, jogabilidade, controle, saves (sem
+entrada automatizada); 4K e 60 FPS ainda não foram feitos.
 
-- **Relatório da auditoria:** `docs/AUDITORIA-MISSAO-00.md` (inventário, comparação com a base,
-  testes executados, matriz IMPLEMENTADO/PARCIAL/PENDENTE/BLOQUEADO, mapa de módulos, ordem de
-  implementação, correções da rev. 1)
-- **Evidências versionadas:** `docs/evidencias/` (hashes, integridade do XEX, 49/49 overrides,
-  patches × XEX, smoke test do original, ferramentas, HEADs remotos)
+## Como compilar e rodar
+
+```
+git submodule update --init --recursive        (runtime ReXGlue fixado em 035aa25)
+tools\build_port.cmd                           (VS 2022 Build Tools + Clang 19; ~5 min)
+banjotooie-recomp\out\build\win-amd64-release\banjotooie.exe --game_data_root "<pasta com default.xex e RAWFiles>"
+pwsh -File tools\smoke_port.ps1                (teste automatizado: preflight, jogo, captura, falha, hashes)
+```
+
+Opções do port: `--preflight_only`, `--boot_report <json>`, `--screenshot <png>`,
+`--screenshot_frames <n>`, `--screenshot_seconds <s>`, `--smoke_seconds <s>`,
+`--background_window`, `--port_silent` (ver `banjotooie-recomp/src/banjotooie_app.cpp`).
+
+## Documentos
+
+- **Missão 01 (port nativo):** `docs/MISSAO-01-PORT-NATIVO.md`: arquitetura, toolchain, mudanças,
+  testes com evidências (`docs/evidencias/m01/`), matriz atualizada e pendências
+- **Missão 00 (auditoria):** `docs/AUDITORIA-MISSAO-00.md`, com evidências em `docs/evidencias/`
 - **Valores reais do executável original:** `MECHANICS.md` (endereços do XEX, base `0x82000000`)
-- **Ferramentas de auditoria (reproduzíveis, só leitura):** `_audit/verify_baseline.py`,
-  `_audit/verify_xex_integrity.py`, `_audit/check_overrides.py`, `_audit/check_xenia_patches.py`,
-  `_audit/check_tools.ps1`, `_audit/check_sdk_fork.py` (rev. 3), além de `_audit/xex_unpack.py` e
-  `_audit/run_headless.cmd` (Ghidra)
-- `_audit/out/`: saídas regeneráveis e capturas do jogo (não versionadas)
+- **Créditos e licenças:** `CREDITS.md`
+
+## Estrutura
+
+- `banjotooie-recomp/`: projeto do jogo (da base iron-jay @ `72c2397`, com os ganchos de
+  diagnóstico deste projeto); `generated/` e `out/` não são versionados
+- `rexglue-sdk/`: submódulo do runtime/gerador (fork `iron-jay/rexglue-sdk` @ `035aa25`)
+- `tools/`: build, teste de fumaça e correção de links simbólicos
+- `_audit/`: ferramentas da auditoria (só leitura); `_audit/out/` guarda saídas e capturas não versionadas
 - Arquivos originais do jogo: fora desta pasta, em `..\Banjo Tooie BR` (somente leitura)
 
-**Próximo passo (só quando for pedido):** trazer a base do port e gerar o código recompilado a
-partir do seu executável (M1 + M2 do relatório).
+**Próximo passo (só quando for pedido):** a missão seguinte.

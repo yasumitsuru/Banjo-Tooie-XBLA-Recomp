@@ -1,0 +1,60 @@
+[2026-11-10 01:45:24.916] [info] [core] [t51304] [port] Banjo-Tooie XBLA PT-BR Recompiled (MISSAO 01) - relatorio: W:\Decomp\Banjo 3\app\_audit\out\m01\smoke\boot_jogo.json
+[2026-11-10 01:45:24.916] [info] [core] [t51304] [port] preflight obrigatorio  default.xex                        ok (7413760 bytes)
+[2026-11-10 01:45:24.916] [info] [core] [t51304] [port] preflight obrigatorio  RAWFiles\db360.cmp                 ok (12525322 bytes)
+[2026-11-10 01:45:24.916] [info] [core] [t51304] [port] preflight obrigatorio  RAWFiles\db360.textures.cmp        ok (50625264 bytes)
+[2026-11-10 01:45:24.916] [info] [core] [t51304] [port] preflight obrigatorio  RAWFiles\banjo2_360.tbl            ok (14555180 bytes)
+[2026-11-10 01:45:24.916] [info] [core] [t51304] [port] preflight obrigatorio  RAWFiles\banjo2_360.ctl            ok (187992 bytes)
+[2026-11-10 01:45:24.916] [info] [core] [t51304] [port] preflight recomendado  RAWFiles\X360_strings.dat          ok (427089 bytes)
+[2026-11-10 01:45:24.916] [info] [core] [t51304] [port] preflight recomendado  RAWFiles\xarialuni.ttf             ok (6608540 bytes)
+[2026-11-10 01:45:24.916] [info] [core] [t51304] [port] preflight recomendado  RAWFiles\ArcadeNormal.ptc          ok (101229 bytes)
+[2026-11-10 01:45:24.916] [info] [core] [t51304] [port] preflight recomendado  RAWFiles\ArcadeWide.ptc            ok (99557 bytes)
+[2026-11-10 01:45:24.916] [info] [core] [t51304] [port] preflight recomendado  RAWFiles\58410955033F0001          ok (5206016 bytes)
+[2026-11-10 01:45:24.916] [info] [core] [t51304] [port] preflight opcional     RAWFiles\db360_TexFileList.txt     AUSENTE
+[2026-11-10 01:45:24.918] [info] [core] [t51304] banjotooie starting
+[2026-11-10 01:45:24.918] [info] [core] [t51304]   Game directory: W:\Decomp\Banjo 3\Banjo Tooie BR
+[2026-11-10 01:45:24.918] [info] [core] [t51304]   User data:      W:\Decomp\Banjo 3\app\_audit\out\m01\smoke\user_data
+[2026-11-10 01:45:24.918] [info] [core] [t51304]   Cache root:     W:\Decomp\Banjo 3\app\_audit\out\m01\smoke\cache
+[2026-11-10 01:45:25.241] [info] [gpu] [t51304] DXGI adapter: NVIDIA GeForce RTX 5080 (vendor 0x10DE, device 0x2C02)
+[2026-11-10 01:45:25.509] [info] [gpu] [t51304] Direct3D 12 device and OS features:
+* Max GPU virtual address bits per resource: 40
+* Non-zeroed heap creation: yes
+* Pixel-shader-specified stencil reference: no
+* Programmable sample positions: tier 2
+* Rasterizer-ordered views: yes
+* Resource binding: tier 3
+* Tiled resources: tier 4
+* Unaligned block-compressed textures: yes
+[2026-11-10 01:45:25.599] [info] [sys] [t51304] FunctionDispatcher initialized
+[2026-11-10 01:45:25.599] [info] [core] [t51304] SDL: Using version 3.5.0
+[2026-11-10 01:45:25.599] [info] [core] [t51304] MnK input driver initialized
+[2026-11-10 01:45:25.599] [info] [sys] [t51304] Input system initialized
+[2026-11-10 01:45:25.644] [info] [sys] [t51108] XThread::Execute thid 1 (handle=F8000010, 'XMA Decoder (F8000010)', native=0000C7A4, <host>)
+[2026-11-10 01:45:25.645] [info] [sys] [t51304] Audio system initialized
+[2026-11-10 01:45:25.645] [info] [sys] [t44228] XThread::Execute thid 2 (handle=F8000014, 'Audio Worker (F8000014)', native=0000ACC4, <host>)
+[2026-11-10 01:45:25.646] [info] [sys] [t51304]   Mounted W:\Decomp\Banjo 3\Banjo Tooie BR at \Device\Harddisk0\Partition1
+[2026-11-10 01:45:25.647] [info] [sys] [t62188] XThread::Execute thid 3 (handle=F8000018, 'GPU Commands (F8000018)', native=0000F2EC, <host>)
+[2026-11-10 01:45:25.648] [info] [sys] [t51304] GPU system initialized (presentation=true)
+[2026-11-10 01:45:25.648] [info] [sys] [t51304] Runtime initialized successfully
+[2026-11-10 01:45:25.651] [info] [sys] [t45900] XThread::Execute thid 4 (handle=F800001C, 'GPU VSync (F800001C)', native=0000B34C, <host>)
+[2026-11-10 01:45:25.654] [info] [core] [t51304] Function table initialized for module: code=820A0000-825F39C8, image=82000000-82710000
+[2026-11-10 01:45:25.861] [warning] [core] [t51304] SDL GameControllerDB: file 'gamecontrollerdb.txt' does not exist.
+[2026-11-10 01:45:25.862] [info] [core] [t51304] SDL input driver initialized successfully
+[2026-11-10 01:45:25.862] [info] [sys] [t51304] Loading XEX image: game:\default.xex
+[2026-11-10 01:45:25.871] [info] [sys] [t9068] XThread::Execute thid 5 (handle=F8000024, 'Kernel Dispatch (F8000024)', native=0000236C, <host>)
+[2026-11-10 01:45:25.873] [info] [core] [t51304] [port] XEX carregado
+[2026-11-10 01:45:25.873] [info] [sys] [t51304] KernelState: Preparing module launch...
+[2026-11-10 01:45:25.874] [info] [core] [t51304] Initializing shader storage for title 58410955...
+[2026-11-10 01:45:25.882] [info] [gpu] [t62188] Translated 19 shaders from the storage in 2 milliseconds
+[2026-11-10 01:45:25.894] [info] [gpu] [t62188] Created 38 graphics pipelines (not including reading the descriptions) from the storage in 11 milliseconds
+[2026-11-10 01:45:25.897] [info] [core] [t51304] [port] modulo iniciado; monitor de quadros ativo
+[2026-11-10 01:45:25.899] [info] [gpu] [t45960] SetInterruptCallback(822FF958, 40001880)
+[2026-11-10 01:45:25.901] [warning] [fs] [t45960] VFS: 'ShaderDumpxe:\CompareBackEnds' -> [no device]
+[2026-11-10 01:45:25.996] [warning] [krnl] [t54536] [NtCreateFile] FAILED: path='GAME:\RAWFiles\db360_TexFileList.txt' -> 0xc000000f
+[2026-11-10 01:45:26.001] [info] [core] [t22252] [port] primeiro quadro do jogo apos 0.10 s
+[2026-11-10 01:45:29.036] [info] [core] [t45960] SDL OnControllerDeviceAdded: "Xbox Series X Controller", JoystickType(1), GameControllerType(3), VendorID(0x045E), ProductID(0x0B13)
+[2026-11-10 01:45:29.036] [info] [core] [t45960] SDL OnControllerDeviceAdded: Added at index 0.
+[2026-11-10 01:46:41.000] [info] [core] [t51304] [port] captura: W:\Decomp\Banjo 3\app\_audit\out\m01\smoke\captura_jogo.png (1280x720) PNG gravado; quadros=2238; brilho_medio=30.8; pixels_acesos=64.8%
+[2026-11-10 01:46:41.006] [info] [core] [t51304] [port] saindo com codigo 0: captura de tela concluida
+[2026-11-10 01:46:41.006] [info] [core] [t51304] Window closing, shutting down...
+[2026-11-10 01:46:41.010] [info] [core] [t58384] [port] thread principal do jogo terminou
+[2026-11-10 01:46:41.010] [info] [core] [t58384] Execution complete

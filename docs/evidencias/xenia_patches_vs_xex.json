@@ -1,0 +1,1030 @@
+{
+  "title_name": "Banjo-Tooie",
+  "title_id": "58410955",
+  "hash": {
+    "patch_hash": "CFE7D4B66FAC7096",
+    "candidatos": {
+      "xxh64(imagem)": "75C04869FBDDC0BC",
+      "xxh64(arquivo)": "E48DC646F3D2E818",
+      "xxh64(cabecalho 0..offset_pe)": "607FE8612E24ECBE"
+    },
+    "algum_bate": false
+  },
+  "patches": [
+    {
+      "name": "60 FPS",
+      "enabled_in_user_config": true,
+      "sites": 42,
+      "cave_words": 21,
+      "cave_empty_in_original": true,
+      "hooks": [
+        {
+          "hook": "0x82276E34",
+          "to_cave": "0x825F4000",
+          "original_at_hook": "0x39200002",
+          "original_relocated_into_cave": true
+        },
+        {
+          "hook": "0x822F9F10",
+          "to_cave": "0x825F4028",
+          "original_at_hook": "0x94C30004",
+          "original_relocated_into_cave": true
+        }
+      ],
+      "all_hooks_relocate_original": true,
+      "site_details": [
+        {
+          "address": "0x822C8932",
+          "size": 2,
+          "original": "0x0B48",
+          "patched": "0x073C"
+        },
+        {
+          "address": "0x821A22E6",
+          "size": 2,
+          "original": "0x0800",
+          "patched": "0x1EDC"
+        },
+        {
+          "address": "0x821A22EA",
+          "size": 2,
+          "original": "0x0924",
+          "patched": "0x4238"
+        },
+        {
+          "address": "0x821A22EE",
+          "size": 2,
+          "original": "0x0748",
+          "patched": "0x0B20"
+        },
+        {
+          "address": "0x821A2326",
+          "size": 2,
+          "original": "0x0800",
+          "patched": "0x1EDC"
+        },
+        {
+          "address": "0x821A232A",
+          "size": 2,
+          "original": "0x0778",
+          "patched": "0x0B30"
+        },
+        {
+          "address": "0x821A232E",
+          "size": 2,
+          "original": "0x0738",
+          "patched": "0x0800"
+        },
+        {
+          "address": "0x821A235A",
+          "size": 2,
+          "original": "0x07C0",
+          "patched": "0x0774"
+        },
+        {
+          "address": "0x8213E2EE",
+          "size": 2,
+          "original": "0x0800",
+          "patched": "0x2060"
+        },
+        {
+          "address": "0x8213E2F2",
+          "size": 2,
+          "original": "0x0924",
+          "patched": "0x4238"
+        },
+        {
+          "address": "0x8213E2F6",
+          "size": 2,
+          "original": "0x0748",
+          "patched": "0x28F0"
+        },
+        {
+          "address": "0x8213E32E",
+          "size": 2,
+          "original": "0x0800",
+          "patched": "0x2060"
+        },
+        {
+          "address": "0x8213E332",
+          "size": 2,
+          "original": "0x0778",
+          "patched": "0x0B30"
+        },
+        {
+          "address": "0x8213E336",
+          "size": 2,
+          "original": "0x0738",
+          "patched": "0x13F4"
+        },
+        {
+          "address": "0x8213E342",
+          "size": 2,
+          "original": "0x0924",
+          "patched": "0x4238"
+        },
+        {
+          "address": "0x8213E362",
+          "size": 2,
+          "original": "0x08F4",
+          "patched": "0x0B0C"
+        },
+        {
+          "address": "0x821129BA",
+          "size": 2,
+          "original": "0x0974",
+          "patched": "0x1EF8"
+        },
+        {
+          "address": "0x825F4000",
+          "size": 4,
+          "original": "0x00000000",
+          "patched": "0x3D208267"
+        },
+        {
+          "address": "0x825F4004",
+          "size": 4,
+          "original": "0x00000000",
+          "patched": "0x8929EF30"
+        },
+        {
+          "address": "0x825F4008",
+          "size": 4,
+          "original": "0x00000000",
+          "patched": "0x814B0000"
+        },
+        {
+          "address": "0x825F400C",
+          "size": 4,
+          "original": "0x00000000",
+          "patched": "0x2C090000"
+        },
+        {
+          "address": "0x825F4010",
+          "size": 4,
+          "original": "0x00000000",
+          "patched": "0x4182000C"
+        },
+        {
+          "address": "0x825F4014",
+          "size": 4,
+          "original": "0x00000000",
+          "patched": "0x39200002"
+        },
+        {
+          "address": "0x825F4018",
+          "size": 4,
+          "original": "0x00000000",
+          "patched": "0x4BC82E20"
+        },
+        {
+          "address": "0x825F401C",
+          "size": 4,
+          "original": "0x00000000",
+          "patched": "0x39200001"
+        },
+        {
+          "address": "0x825F4020",
+          "size": 4,
+          "original": "0x00000000",
+          "patched": "0x4BC82E18"
+        },
+        {
+          "address": "0x825F4024",
+          "size": 4,
+          "original": "0x00000000",
+          "patched": "0x60000000"
+        },
+        {
+          "address": "0x825F4028",
+          "size": 4,
+          "original": "0x00000000",
+          "patched": "0x3D608267"
+        },
+        {
+          "address": "0x825F402C",
+          "size": 4,
+          "original": "0x00000000",
+          "patched": "0x896BEF30"
+        },
+        {
+          "address": "0x825F4030",
+          "size": 4,
+          "original": "0x00000000",
+          "patched": "0x94C30004"
+        },
+        {
+          "address": "0x825F4034",
+          "size": 4,
+          "original": "0x00000000",
+          "patched": "0x907F0030"
+        },
+        {
+          "address": "0x825F4038",
+          "size": 4,
+          "original": "0x00000000",
+          "patched": "0x2C0B0000"
+        },
+        {
+          "address": "0x825F403C",
+          "size": 4,
+          "original": "0x00000000",
+          "patched": "0x4182000C"
+        },
+        {
+          "address": "0x825F4040",
+          "size": 4,
+          "original": "0x00000000",
+          "patched": "0x39600002"
+        },
+        {
+          "address": "0x825F4044",
+          "size": 4,
+          "original": "0x00000000",
+          "patched": "0x4BD05ED4"
+        },
+        {
+          "address": "0x825F4048",
+          "size": 4,
+          "original": "0x00000000",
+          "patched": "0x39600001"
+        },
+        {
+          "address": "0x825F404C",
+          "size": 4,
+          "original": "0x00000000",
+          "patched": "0x4BD05ECC"
+        },
+        {
+          "address": "0x825F4050",
+          "size": 4,
+          "original": "0x00000000",
+          "patched": "0x60000000"
+        },
+        {
+          "address": "0x82276E34",
+          "size": 4,
+          "original": "0x39200002",
+          "patched": "0x4837D1CC"
+        },
+        {
+          "address": "0x822F9F10",
+          "size": 4,
+          "original": "0x94C30004",
+          "patched": "0x482FA118"
+        },
+        {
+          "address": "0x822F9F14",
+          "size": 4,
+          "original": "0x907F0030",
+          "patched": "0x60000000"
+        },
+        {
+          "address": "0x822F9F18",
+          "size": 4,
+          "original": "0x817F351C",
+          "patched": "0x60000000"
+        }
+      ]
+    },
+    {
+      "name": "HD Shadows",
+      "enabled_in_user_config": true,
+      "sites": 8,
+      "cave_words": 0,
+      "cave_empty_in_original": null,
+      "hooks": [],
+      "all_hooks_relocate_original": null,
+      "site_details": [
+        {
+          "address": "0x82601ECE",
+          "size": 2,
+          "original": "0x0853",
+          "patched": "0x062A"
+        },
+        {
+          "address": "0x82601EE2",
+          "size": 2,
+          "original": "0x085E",
+          "patched": "0x0613"
+        },
+        {
+          "address": "0x82601EE6",
+          "size": 2,
+          "original": "0x0800",
+          "patched": "0x060C"
+        },
+        {
+          "address": "0x82601EF2",
+          "size": 2,
+          "original": "0x0853",
+          "patched": "0x062A"
+        },
+        {
+          "address": "0x82601EF6",
+          "size": 2,
+          "original": "0x0855",
+          "patched": "0x061C"
+        },
+        {
+          "address": "0x82601EFE",
+          "size": 2,
+          "original": "0x0854",
+          "patched": "0x0665"
+        },
+        {
+          "address": "0x82601F0A",
+          "size": 2,
+          "original": "0x06C1",
+          "patched": "0x0624"
+        },
+        {
+          "address": "0x82601F0E",
+          "size": 2,
+          "original": "0x080A",
+          "patched": "0x060E"
+        }
+      ]
+    },
+    {
+      "name": "Nests And Stairs LOD Hack",
+      "enabled_in_user_config": true,
+      "sites": 20,
+      "cave_words": 16,
+      "cave_empty_in_original": true,
+      "hooks": [
+        {
+          "hook": "0x82263004",
+          "to_cave": "0x825F4054",
+          "original_at_hook": "0x81784670",
+          "original_relocated_into_cave": true
+        },
+        {
+          "hook": "0x82262088",
+          "to_cave": "0x825F4074",
+          "original_at_hook": "0x38210070",
+          "original_relocated_into_cave": true
+        }
+      ],
+      "all_hooks_relocate_original": true,
+      "site_details": [
+        {
+          "address": "0x82261FDC",
+          "size": 4,
+          "original": "0x41990014",
+          "patched": "0x60000000"
+        },
+        {
+          "address": "0x82262074",
+          "size": 4,
+          "original": "0x41990014",
+          "patched": "0x60000000"
+        },
+        {
+          "address": "0x82263004",
+          "size": 4,
+          "original": "0x81784670",
+          "patched": "0x48391050"
+        },
+        {
+          "address": "0x825F4054",
+          "size": 4,
+          "original": "0x00000000",
+          "patched": "0x817C0004"
+        },
+        {
+          "address": "0x825F4058",
+          "size": 4,
+          "original": "0x00000000",
+          "patched": "0x2C0B07A8"
+        },
+        {
+          "address": "0x825F405C",
+          "size": 4,
+          "original": "0x00000000",
+          "patched": "0x40820010"
+        },
+        {
+          "address": "0x825F4060",
+          "size": 4,
+          "original": "0x00000000",
+          "patched": "0x3D604F80"
+        },
+        {
+          "address": "0x825F4064",
+          "size": 4,
+          "original": "0x00000000",
+          "patched": "0x917C07E0"
+        },
+        {
+          "address": "0x825F4068",
+          "size": 4,
+          "original": "0x00000000",
+          "patched": "0x917C07E4"
+        },
+        {
+          "address": "0x825F406C",
+          "size": 4,
+          "original": "0x00000000",
+          "patched": "0x81784670"
+        },
+        {
+          "address": "0x825F4070",
+          "size": 4,
+          "original": "0x00000000",
+          "patched": "0x4BC6EF98"
+        },
+        {
+          "address": "0x82262088",
+          "size": 4,
+          "original": "0x38210070",
+          "patched": "0x48391FEC"
+        },
+        {
+          "address": "0x825F4074",
+          "size": 4,
+          "original": "0x00000000",
+          "patched": "0x819F0004"
+        },
+        {
+          "address": "0x825F4078",
+          "size": 4,
+          "original": "0x00000000",
+          "patched": "0x2C0C0188"
+        },
+        {
+          "address": "0x825F407C",
+          "size": 4,
+          "original": "0x00000000",
+          "patched": "0x40820010"
+        },
+        {
+          "address": "0x825F4080",
+          "size": 4,
+          "original": "0x00000000",
+          "patched": "0x3D804F80"
+        },
+        {
+          "address": "0x825F4084",
+          "size": 4,
+          "original": "0x00000000",
+          "patched": "0x919F0190"
+        },
+        {
+          "address": "0x825F4088",
+          "size": 4,
+          "original": "0x00000000",
+          "patched": "0x919F0194"
+        },
+        {
+          "address": "0x825F408C",
+          "size": 4,
+          "original": "0x00000000",
+          "patched": "0x38210070"
+        },
+        {
+          "address": "0x825F4090",
+          "size": 4,
+          "original": "0x00000000",
+          "patched": "0x4BC6DFFC"
+        }
+      ]
+    },
+    {
+      "name": "Draw Distance Hack",
+      "enabled_in_user_config": true,
+      "sites": 22,
+      "cave_words": 19,
+      "cave_empty_in_original": true,
+      "hooks": [
+        {
+          "hook": "0x82240DF8",
+          "to_cave": "0x825F4100",
+          "original_at_hook": "0x5463103A",
+          "original_relocated_into_cave": false
+        }
+      ],
+      "all_hooks_relocate_original": false,
+      "site_details": [
+        {
+          "address": "0x82240DF8",
+          "size": 4,
+          "original": "0x5463103A",
+          "patched": "0x483B3308"
+        },
+        {
+          "address": "0x8223F714",
+          "size": 4,
+          "original": "0x4182000C",
+          "patched": "0x60000000"
+        },
+        {
+          "address": "0x822A9F84",
+          "size": 4,
+          "original": "0x409A0044",
+          "patched": "0x60000000"
+        },
+        {
+          "address": "0x825F4100",
+          "size": 4,
+          "original": "0x00000000",
+          "patched": "0x3C608267"
+        },
+        {
+          "address": "0x825F4104",
+          "size": 4,
+          "original": "0x00000000",
+          "patched": "0xA0633720"
+        },
+        {
+          "address": "0x825F4108",
+          "size": 4,
+          "original": "0x00000000",
+          "patched": "0x2C030112"
+        },
+        {
+          "address": "0x825F410C",
+          "size": 4,
+          "original": "0x00000000",
+          "patched": "0x4182000C"
+        },
+        {
+          "address": "0x825F4110",
+          "size": 4,
+          "original": "0x00000000",
+          "patched": "0x2C030128"
+        },
+        {
+          "address": "0x825F4114",
+          "size": 4,
+          "original": "0x00000000",
+          "patched": "0x4082000C"
+        },
+        {
+          "address": "0x825F4118",
+          "size": 4,
+          "original": "0x00000000",
+          "patched": "0x386028A0"
+        },
+        {
+          "address": "0x825F411C",
+          "size": 4,
+          "original": "0x00000000",
+          "patched": "0x4BC4CCE0"
+        },
+        {
+          "address": "0x825F4120",
+          "size": 4,
+          "original": "0x00000000",
+          "patched": "0x2C030127"
+        },
+        {
+          "address": "0x825F4124",
+          "size": 4,
+          "original": "0x00000000",
+          "patched": "0x4082000C"
+        },
+        {
+          "address": "0x825F4128",
+          "size": 4,
+          "original": "0x00000000",
+          "patched": "0x38603200"
+        },
+        {
+          "address": "0x825F412C",
+          "size": 4,
+          "original": "0x00000000",
+          "patched": "0x4BC4CCD0"
+        },
+        {
+          "address": "0x825F4130",
+          "size": 4,
+          "original": "0x00000000",
+          "patched": "0x2C030136"
+        },
+        {
+          "address": "0x825F4134",
+          "size": 4,
+          "original": "0x00000000",
+          "patched": "0x4082000C"
+        },
+        {
+          "address": "0x825F4138",
+          "size": 4,
+          "original": "0x00000000",
+          "patched": "0x38605400"
+        },
+        {
+          "address": "0x825F413C",
+          "size": 4,
+          "original": "0x00000000",
+          "patched": "0x4BC4CCC0"
+        },
+        {
+          "address": "0x825F4140",
+          "size": 4,
+          "original": "0x00000000",
+          "patched": "0x38606400"
+        },
+        {
+          "address": "0x825F4144",
+          "size": 4,
+          "original": "0x00000000",
+          "patched": "0x4BC4CCB8"
+        },
+        {
+          "address": "0x825F4148",
+          "size": 4,
+          "original": "0x00000000",
+          "patched": "0x60000000"
+        }
+      ]
+    },
+    {
+      "name": "Access Breegull Bash",
+      "enabled_in_user_config": false,
+      "sites": 1,
+      "cave_words": 0,
+      "cave_empty_in_original": null,
+      "hooks": [],
+      "all_hooks_relocate_original": null,
+      "site_details": [
+        {
+          "address": "0x820DE0C8",
+          "size": 4,
+          "original": "0x41820010",
+          "patched": "0x60000000"
+        }
+      ]
+    },
+    {
+      "name": "Banjo Kazooie Fire Breath",
+      "enabled_in_user_config": false,
+      "sites": 1,
+      "cave_words": 0,
+      "cave_empty_in_original": null,
+      "hooks": [],
+      "all_hooks_relocate_original": null,
+      "site_details": [
+        {
+          "address": "0x826024E0",
+          "size": 4,
+          "original": "0x820DE3C8",
+          "patched": "0x820D5388"
+        }
+      ]
+    },
+    {
+      "name": "Solo Kazooie Fire Breath",
+      "enabled_in_user_config": false,
+      "sites": 1,
+      "cave_words": 0,
+      "cave_empty_in_original": null,
+      "hooks": [],
+      "all_hooks_relocate_original": null,
+      "site_details": [
+        {
+          "address": "0x82602DB0",
+          "size": 4,
+          "original": "0x820F7A10",
+          "patched": "0x820EE1B8"
+        }
+      ]
+    },
+    {
+      "name": "Infinite Blue Eggs",
+      "enabled_in_user_config": false,
+      "sites": 1,
+      "cave_words": 0,
+      "cave_empty_in_original": null,
+      "hooks": [],
+      "all_hooks_relocate_original": null,
+      "site_details": [
+        {
+          "address": "0x8262E772",
+          "size": 2,
+          "original": "0x0064",
+          "patched": "0xFFFE"
+        }
+      ]
+    },
+    {
+      "name": "Infinite Fire Eggs",
+      "enabled_in_user_config": false,
+      "sites": 1,
+      "cave_words": 0,
+      "cave_empty_in_original": null,
+      "hooks": [],
+      "all_hooks_relocate_original": null,
+      "site_details": [
+        {
+          "address": "0x8262E776",
+          "size": 2,
+          "original": "0x0032",
+          "patched": "0xFFFE"
+        }
+      ]
+    },
+    {
+      "name": "Infinite Ice Eggs",
+      "enabled_in_user_config": false,
+      "sites": 1,
+      "cave_words": 0,
+      "cave_empty_in_original": null,
+      "hooks": [],
+      "all_hooks_relocate_original": null,
+      "site_details": [
+        {
+          "address": "0x8262E77A",
+          "size": 2,
+          "original": "0x0032",
+          "patched": "0xFFFE"
+        }
+      ]
+    },
+    {
+      "name": "Infinite Grenade Eggs",
+      "enabled_in_user_config": false,
+      "sites": 1,
+      "cave_words": 0,
+      "cave_empty_in_original": null,
+      "hooks": [],
+      "all_hooks_relocate_original": null,
+      "site_details": [
+        {
+          "address": "0x8262E77E",
+          "size": 2,
+          "original": "0x0019",
+          "patched": "0xFFFE"
+        }
+      ]
+    },
+    {
+      "name": "Infinite Clockwork Eggs",
+      "enabled_in_user_config": false,
+      "sites": 1,
+      "cave_words": 0,
+      "cave_empty_in_original": null,
+      "hooks": [],
+      "all_hooks_relocate_original": null,
+      "site_details": [
+        {
+          "address": "0x8262E782",
+          "size": 2,
+          "original": "0x000A",
+          "patched": "0xFFFE"
+        }
+      ]
+    },
+    {
+      "name": "Infinite Red Feathers",
+      "enabled_in_user_config": false,
+      "sites": 1,
+      "cave_words": 0,
+      "cave_empty_in_original": null,
+      "hooks": [],
+      "all_hooks_relocate_original": null,
+      "site_details": [
+        {
+          "address": "0x8262E78A",
+          "size": 2,
+          "original": "0x0064",
+          "patched": "0xFFFE"
+        }
+      ]
+    },
+    {
+      "name": "Infinite Gold Feathers",
+      "enabled_in_user_config": false,
+      "sites": 1,
+      "cave_words": 0,
+      "cave_empty_in_original": null,
+      "hooks": [],
+      "all_hooks_relocate_original": null,
+      "site_details": [
+        {
+          "address": "0x8262E78E",
+          "size": 2,
+          "original": "0x000A",
+          "patched": "0xFFFE"
+        }
+      ]
+    },
+    {
+      "name": "Infinite Glowbos",
+      "enabled_in_user_config": false,
+      "sites": 1,
+      "cave_words": 0,
+      "cave_empty_in_original": null,
+      "hooks": [],
+      "all_hooks_relocate_original": null,
+      "site_details": [
+        {
+          "address": "0x8262E792",
+          "size": 2,
+          "original": "0x0010",
+          "patched": "0xFFFE"
+        }
+      ]
+    },
+    {
+      "name": "Replace Blue Eggs With Gold Eggs",
+      "enabled_in_user_config": false,
+      "sites": 1,
+      "cave_words": 0,
+      "cave_empty_in_original": null,
+      "hooks": [],
+      "all_hooks_relocate_original": null,
+      "site_details": [
+        {
+          "address": "0x82601A3C",
+          "size": 1,
+          "original": "0x01",
+          "patched": "0x07"
+        }
+      ]
+    },
+    {
+      "name": "Access Mine Eggs",
+      "enabled_in_user_config": false,
+      "sites": 2,
+      "cave_words": 0,
+      "cave_empty_in_original": null,
+      "hooks": [],
+      "all_hooks_relocate_original": null,
+      "site_details": [
+        {
+          "address": "0x82601A41",
+          "size": 1,
+          "original": "0x00",
+          "patched": "0x06"
+        },
+        {
+          "address": "0x8262E786",
+          "size": 2,
+          "original": "0x0000",
+          "patched": "0xFFFE"
+        }
+      ]
+    },
+    {
+      "name": "Uncapped Blue Egg Shots",
+      "enabled_in_user_config": false,
+      "sites": 1,
+      "cave_words": 0,
+      "cave_empty_in_original": null,
+      "hooks": [],
+      "all_hooks_relocate_original": null,
+      "site_details": [
+        {
+          "address": "0x82601A5A",
+          "size": 1,
+          "original": "0x03",
+          "patched": "0xFF"
+        }
+      ]
+    },
+    {
+      "name": "Uncapped Fire Egg Shots",
+      "enabled_in_user_config": false,
+      "sites": 1,
+      "cave_words": 0,
+      "cave_empty_in_original": null,
+      "hooks": [],
+      "all_hooks_relocate_original": null,
+      "site_details": [
+        {
+          "address": "0x82601A5C",
+          "size": 1,
+          "original": "0x02",
+          "patched": "0xFF"
+        }
+      ]
+    },
+    {
+      "name": "Uncapped Ice Egg Shots",
+      "enabled_in_user_config": false,
+      "sites": 1,
+      "cave_words": 0,
+      "cave_empty_in_original": null,
+      "hooks": [],
+      "all_hooks_relocate_original": null,
+      "site_details": [
+        {
+          "address": "0x82601A5E",
+          "size": 1,
+          "original": "0x02",
+          "patched": "0xFF"
+        }
+      ]
+    },
+    {
+      "name": "Uncapped Grenade Egg Shots",
+      "enabled_in_user_config": false,
+      "sites": 1,
+      "cave_words": 0,
+      "cave_empty_in_original": null,
+      "hooks": [],
+      "all_hooks_relocate_original": null,
+      "site_details": [
+        {
+          "address": "0x82601A60",
+          "size": 1,
+          "original": "0x01",
+          "patched": "0xFF"
+        }
+      ]
+    },
+    {
+      "name": "Pointless Uncapped Clockwork Egg Shots",
+      "enabled_in_user_config": false,
+      "sites": 1,
+      "cave_words": 0,
+      "cave_empty_in_original": null,
+      "hooks": [],
+      "all_hooks_relocate_original": null,
+      "site_details": [
+        {
+          "address": "0x82601A62",
+          "size": 1,
+          "original": "0x01",
+          "patched": "0xFF"
+        }
+      ]
+    },
+    {
+      "name": "Uncapped Mine Egg Shots",
+      "enabled_in_user_config": false,
+      "sites": 1,
+      "cave_words": 0,
+      "cave_empty_in_original": null,
+      "hooks": [],
+      "all_hooks_relocate_original": null,
+      "site_details": [
+        {
+          "address": "0x82601A64",
+          "size": 1,
+          "original": "0x01",
+          "patched": "0xFF"
+        }
+      ]
+    },
+    {
+      "name": "Uncapped Gold Egg Shots",
+      "enabled_in_user_config": false,
+      "sites": 1,
+      "cave_words": 0,
+      "cave_empty_in_original": null,
+      "hooks": [],
+      "all_hooks_relocate_original": null,
+      "site_details": [
+        {
+          "address": "0x82601A66",
+          "size": 1,
+          "original": "0x00",
+          "patched": "0xFF"
+        }
+      ]
+    },
+    {
+      "name": "Infinite Ice Keys",
+      "enabled_in_user_config": false,
+      "sites": 1,
+      "cave_words": 0,
+      "cave_empty_in_original": null,
+      "hooks": [],
+      "all_hooks_relocate_original": null,
+      "site_details": [
+        {
+          "address": "0x8262E7BE",
+          "size": 2,
+          "original": "0x0001",
+          "patched": "0xFFFE"
+        }
+      ]
+    },
+    {
+      "name": "Classic Jump Sounds",
+      "enabled_in_user_config": false,
+      "sites": 2,
+      "cave_words": 0,
+      "cave_empty_in_original": null,
+      "hooks": [],
+      "all_hooks_relocate_original": null,
+      "site_details": [
+        {
+          "address": "0x826020A0",
+          "size": 2,
+          "original": "0x057E",
+          "patched": "0x043D"
+        },
+        {
+          "address": "0x8260209C",
+          "size": 4,
+          "original": "0x057C057D",
+          "patched": "0x043B043C"
+        }
+      ]
+    }
+  ]
+}

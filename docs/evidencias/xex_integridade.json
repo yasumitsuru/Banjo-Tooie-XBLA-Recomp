@@ -1,0 +1,72 @@
+{
+  "file": "W:\\Decomp\\Banjo 3\\Banjo Tooie BR\\default.xex",
+  "file_size": 7413760,
+  "file_sha256": "3efca627d60a6425af5c1891e3fe2666bf544b288c3e27e3259fa99ad50c1ee1",
+  "module_flags": "0x00000001",
+  "offset_pe": "0x2000",
+  "offset_security_info": "0x98",
+  "optional_header_ids": [
+    "0x000002FF",
+    "0x000003FF",
+    "0x00010100",
+    "0x00010201",
+    "0x000103FF",
+    "0x00018002",
+    "0x000183FF",
+    "0x000200FF",
+    "0x00020104",
+    "0x00020200",
+    "0x00030000",
+    "0x00040006",
+    "0x00040310",
+    "0x00040404",
+    "0x000405FF",
+    "0x000407FF"
+  ],
+  "base_file_format": {
+    "encryption": 0,
+    "encryption_name": "none",
+    "compression": 0,
+    "compression_name": "none"
+  },
+  "execution_info": {
+    "media_id": "0x65D27094",
+    "version": "0.0.1.2",
+    "version_raw": "0x00000102",
+    "base_version": "0.0.1.2",
+    "title_id": "0x58410955",
+    "disc": "0/0",
+    "savegame_id": "0x00000000"
+  },
+  "security_info": {
+    "header_size": "0xC1C",
+    "image_size": "0x710000",
+    "image_flags": "0x00000000",
+    "page_size": "0x10000",
+    "load_address": "0x82000000",
+    "region": "0xFFFFFFFF",
+    "page_descriptor_count": 113,
+    "total_pages": 113,
+    "pages_x_size_equals_image_size": true
+  },
+  "image_bytes_in_file": 7405568,
+  "page_hash_chain": {
+    "schemes_tested": {
+      "A_sha1(bloco_i)": {
+        "ok": 113,
+        "total": 113
+      },
+      "B_sha1(bloco_i||desc_i+1)": {
+        "ok": 1,
+        "total": 113
+      },
+      "C_raiz=sha1(bloco0||desc0); desc_i=sha1(bloco_i+1||desc_i+1)": {
+        "ok": 0,
+        "total": 113
+      }
+    },
+    "verified_scheme": "A_sha1(bloco_i)",
+    "status": "PASS",
+    "meaning": "a imagem do XEX e identica a imagem assinada pela Microsoft"
+  }
+}

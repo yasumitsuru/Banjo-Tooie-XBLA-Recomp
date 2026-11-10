@@ -1,0 +1,60 @@
+{
+  "overrides_total": 49,
+  "conferem": 49,
+  "nao_conferem": [],
+  "text_range": [
+    "0x820A0000",
+    "0x825F39C8"
+  ],
+  "pdata_function_starts": 15295,
+  "ghidra_function_starts": 16996
+}
+0x8259FD90 setjmp   op15                   prev=zero (sem codigo)      ptr=  0 b=  0 bl=  7 pdata=0 ghidra=1 OK
+0x8259FA70 longjmp  mflr r0 (prologo)      prev=zero (sem codigo)      ptr=  0 b=  3 bl= 18 pdata=1 ghidra=1 OK
+0x8223F200 function op34                   prev=b                      ptr=  0 b=  1 bl=  0 pdata=0 ghidra=1 OK
+0x8223AC28 function op14                   prev=b                      ptr=  0 b=  1 bl=  0 pdata=0 ghidra=0 OK
+0x82523A78 function op11                   prev=b                      ptr=  0 b=  1 bl=  0 pdata=0 ghidra=0 OK
+0x822E8C00 function op32                   prev=b                      ptr=  0 b=  1 bl=  0 pdata=0 ghidra=1 OK
+0x82415170 function op32                   prev=b                      ptr=  0 b=  0 bl=  0 pdata=0 ghidra=0 OK
+0x820B0C04 function op14                   prev=op14                   ptr=  1 b=  0 bl=  0 pdata=0 ghidra=0 OK
+0x820CBA10 function op15                   prev=b                      ptr=  1 b=  0 bl=  0 pdata=0 ghidra=0 OK
+0x820F8010 function op31                   prev=op14                   ptr=  1 b=  0 bl=  0 pdata=0 ghidra=0 OK
+0x82109DF0 function op15                   prev=b                      ptr=  9 b=  0 bl=  0 pdata=0 ghidra=0 OK
+0x8210E538 function op15                   prev=b                      ptr=  9 b=  0 bl=  0 pdata=0 ghidra=0 OK
+0x82115BC0 function op15                   prev=b                      ptr=  1 b=  0 bl=  0 pdata=0 ghidra=0 OK
+0x82137588 function op15                   prev=b                      ptr=  1 b=  0 bl=  0 pdata=0 ghidra=0 OK
+0x82140030 function op15                   prev=b                      ptr=  1 b=  0 bl=  0 pdata=0 ghidra=0 OK
+0x82185530 function op15                   prev=b                      ptr=  1 b=  0 bl=  0 pdata=0 ghidra=0 OK
+0x82204080 function bl                     prev=bl                     ptr=  1 b=  0 bl=  0 pdata=0 ghidra=0 OK
+0x82348C40 function op32                   prev=bctr                   ptr=  9 b=  0 bl=  0 pdata=0 ghidra=0 OK
+0x82348EA8 function op32                   prev=bctr                   ptr=  3 b=  0 bl=  0 pdata=0 ghidra=0 OK
+0x82348ED0 function op32                   prev=bctr                   ptr=  3 b=  0 bl=  0 pdata=0 ghidra=0 OK
+0x82348EF8 function op32                   prev=bctr                   ptr=  3 b=  0 bl=  0 pdata=0 ghidra=0 OK
+0x82348F20 function op32                   prev=bctr                   ptr=  3 b=  0 bl=  0 pdata=0 ghidra=0 OK
+0x82349350 function op32                   prev=bctr                   ptr=  2 b=  0 bl=  0 pdata=0 ghidra=0 OK
+0x8239F008 function op32                   prev=b                      ptr=  3 b=  0 bl=  0 pdata=0 ghidra=0 OK
+0x8249AB80 function op32                   prev=bctr                   ptr=  1 b=  0 bl=  0 pdata=0 ghidra=0 OK
+0x824E3C58 function op31                   prev=b                      ptr= 13 b=  0 bl=  0 pdata=0 ghidra=0 OK
+0x824F6EB8 function op14                   prev=b                      ptr=  1 b=  0 bl=  0 pdata=0 ghidra=0 OK
+0x824FA6B0 function op40                   prev=b                      ptr=  1 b=  0 bl=  0 pdata=0 ghidra=0 OK
+0x824FB4A8 function op14                   prev=b                      ptr=  3 b=  0 bl=  0 pdata=0 ghidra=0 OK
+0x824FE4D8 function op14                   prev=b                      ptr=  1 b=  0 bl=  0 pdata=0 ghidra=0 OK
+0x824FE4E8 function op14                   prev=b                      ptr=  5 b=  0 bl=  0 pdata=0 ghidra=0 OK
+0x824FE4F0 function op14                   prev=b                      ptr=  5 b=  0 bl=  0 pdata=0 ghidra=0 OK
+0x824FE4F8 function op14                   prev=b                      ptr=  5 b=  0 bl=  0 pdata=0 ghidra=0 OK
+0x824FE500 function op14                   prev=b                      ptr=  3 b=  0 bl=  0 pdata=0 ghidra=0 OK
+0x82502710 function op14                   prev=b                      ptr=  2 b=  0 bl=  0 pdata=0 ghidra=0 OK
+0x82502718 function op14                   prev=b                      ptr=  2 b=  0 bl=  0 pdata=0 ghidra=0 OK
+0x82502720 function op14                   prev=b                      ptr=  5 b=  0 bl=  0 pdata=0 ghidra=0 OK
+0x82502728 function op14                   prev=b                      ptr=  5 b=  0 bl=  0 pdata=0 ghidra=0 OK
+0x82502730 function op14                   prev=b                      ptr=  5 b=  0 bl=  0 pdata=0 ghidra=0 OK
+0x82504E98 function op14                   prev=b                      ptr=  5 b=  0 bl=  0 pdata=0 ghidra=0 OK
+0x82504EA0 function op14                   prev=b                      ptr=  2 b=  0 bl=  0 pdata=0 ghidra=0 OK
+0x82504EA8 function op14                   prev=b                      ptr=  5 b=  0 bl=  0 pdata=0 ghidra=0 OK
+0x82504EB0 function op14                   prev=b                      ptr=  5 b=  0 bl=  0 pdata=0 ghidra=0 OK
+0x82504EB8 function op14                   prev=b                      ptr=  5 b=  0 bl=  0 pdata=0 ghidra=0 OK
+0x82515700 function op14                   prev=b                      ptr=  1 b=  0 bl=  0 pdata=0 ghidra=0 OK
+0x82515F10 function op32                   prev=b                      ptr=  1 b=  0 bl=  0 pdata=0 ghidra=0 OK
+0x825270F0 function op14                   prev=bctr                   ptr=  2 b=  0 bl=  0 pdata=0 ghidra=0 OK
+0x8254A6F0 function op32                   prev=bctr                   ptr=  2 b=  0 bl=  0 pdata=0 ghidra=0 OK
+0x82280AF8 function op21                   prev=b                      ptr=  0 b=  0 bl=  0 pdata=0 ghidra=0 OK

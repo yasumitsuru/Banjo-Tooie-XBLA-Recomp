@@ -1,0 +1,1005 @@
+{
+  "summary": {
+    "overrides_total": 49,
+    "conferem": 49,
+    "nao_conferem": [],
+    "text_range": [
+      "0x820A0000",
+      "0x825F39C8"
+    ],
+    "pdata_function_starts": 15295,
+    "ghidra_function_starts": 16996
+  },
+  "rows": [
+    {
+      "address": "0x8259FD90",
+      "kind": "setjmp",
+      "in_text": true,
+      "word": "0x3C80826D",
+      "instr": "op15",
+      "prev_instr": "zero (sem codigo)",
+      "prev_is_boundary": true,
+      "in_pdata": false,
+      "in_ghidra_functions": true,
+      "data_pointers": 0,
+      "b_refs": 0,
+      "bl_refs": 7,
+      "first5": [
+        "0x3C80826D",
+        "0x8004CC58",
+        "0x2C000000",
+        "0x7C0903A6",
+        "0x4C820420"
+      ],
+      "checks": {
+        "in_text": true,
+        "codigo_nao_zero": true,
+        "le_gancho_0x826CCC58": true,
+        "chamado_por_bl": true
+      },
+      "confere": true
+    },
+    {
+      "address": "0x8259FA70",
+      "kind": "longjmp",
+      "in_text": true,
+      "word": "0x7C0802A6",
+      "instr": "mflr r0 (prologo)",
+      "prev_instr": "zero (sem codigo)",
+      "prev_is_boundary": true,
+      "in_pdata": true,
+      "in_ghidra_functions": true,
+      "data_pointers": 0,
+      "b_refs": 3,
+      "bl_refs": 18,
+      "checks": {
+        "in_text": true,
+        "codigo_nao_zero": true,
+        "inicio_de_funcao": true
+      },
+      "confere": true
+    },
+    {
+      "address": "0x8223F200",
+      "kind": "function",
+      "in_text": true,
+      "word": "0x88630006",
+      "instr": "op34",
+      "prev_instr": "b",
+      "prev_is_boundary": true,
+      "in_pdata": false,
+      "in_ghidra_functions": true,
+      "data_pointers": 0,
+      "b_refs": 1,
+      "bl_refs": 0,
+      "checks": {
+        "in_text": true,
+        "codigo_nao_zero": true,
+        "alvo_de_b_tail_call": true
+      },
+      "confere": true
+    },
+    {
+      "address": "0x8223AC28",
+      "kind": "function",
+      "in_text": true,
+      "word": "0x39600000",
+      "instr": "op14",
+      "prev_instr": "b",
+      "prev_is_boundary": true,
+      "in_pdata": false,
+      "in_ghidra_functions": false,
+      "data_pointers": 0,
+      "b_refs": 1,
+      "bl_refs": 0,
+      "checks": {
+        "in_text": true,
+        "codigo_nao_zero": true,
+        "alvo_de_b_tail_call": true
+      },
+      "confere": true
+    },
+    {
+      "address": "0x82523A78",
+      "kind": "function",
+      "in_text": true,
+      "word": "0x2F040000",
+      "instr": "op11",
+      "prev_instr": "b",
+      "prev_is_boundary": true,
+      "in_pdata": false,
+      "in_ghidra_functions": false,
+      "data_pointers": 0,
+      "b_refs": 1,
+      "bl_refs": 0,
+      "checks": {
+        "in_text": true,
+        "codigo_nao_zero": true,
+        "alvo_de_b_tail_call": true
+      },
+      "confere": true
+    },
+    {
+      "address": "0x822E8C00",
+      "kind": "function",
+      "in_text": true,
+      "word": "0x816301C4",
+      "instr": "op32",
+      "prev_instr": "b",
+      "prev_is_boundary": true,
+      "in_pdata": false,
+      "in_ghidra_functions": true,
+      "data_pointers": 0,
+      "b_refs": 1,
+      "bl_refs": 0,
+      "checks": {
+        "in_text": true,
+        "codigo_nao_zero": true,
+        "alvo_de_b_tail_call": true
+      },
+      "confere": true
+    },
+    {
+      "address": "0x82415170",
+      "kind": "function",
+      "in_text": true,
+      "word": "0x81630000",
+      "instr": "op32",
+      "prev_instr": "b",
+      "prev_is_boundary": true,
+      "in_pdata": false,
+      "in_ghidra_functions": false,
+      "data_pointers": 0,
+      "b_refs": 0,
+      "bl_refs": 0,
+      "checks": {
+        "in_text": true,
+        "codigo_nao_zero": true,
+        "anterior_e_fronteira": true
+      },
+      "confere": true
+    },
+    {
+      "address": "0x820B0C04",
+      "kind": "function",
+      "in_text": true,
+      "word": "0x38610070",
+      "instr": "op14",
+      "prev_instr": "op14",
+      "prev_is_boundary": false,
+      "in_pdata": false,
+      "in_ghidra_functions": false,
+      "data_pointers": 1,
+      "b_refs": 0,
+      "bl_refs": 0,
+      "checks": {
+        "in_text": true,
+        "codigo_nao_zero": true,
+        "ponteiro_em_rdata_data": true
+      },
+      "confere": true
+    },
+    {
+      "address": "0x820CBA10",
+      "kind": "function",
+      "in_text": true,
+      "word": "0x3D608260",
+      "instr": "op15",
+      "prev_instr": "b",
+      "prev_is_boundary": true,
+      "in_pdata": false,
+      "in_ghidra_functions": false,
+      "data_pointers": 1,
+      "b_refs": 0,
+      "bl_refs": 0,
+      "checks": {
+        "in_text": true,
+        "codigo_nao_zero": true,
+        "ponteiro_em_rdata_data": true
+      },
+      "confere": true
+    },
+    {
+      "address": "0x820F8010",
+      "kind": "function",
+      "in_text": true,
+      "word": "0x7FE3FB78",
+      "instr": "op31",
+      "prev_instr": "op14",
+      "prev_is_boundary": false,
+      "in_pdata": false,
+      "in_ghidra_functions": false,
+      "data_pointers": 1,
+      "b_refs": 0,
+      "bl_refs": 0,
+      "checks": {
+        "in_text": true,
+        "codigo_nao_zero": true,
+        "ponteiro_em_rdata_data": true
+      },
+      "confere": true
+    },
+    {
+      "address": "0x82109DF0",
+      "kind": "function",
+      "in_text": true,
+      "word": "0x3D60820C",
+      "instr": "op15",
+      "prev_instr": "b",
+      "prev_is_boundary": true,
+      "in_pdata": false,
+      "in_ghidra_functions": false,
+      "data_pointers": 9,
+      "b_refs": 0,
+      "bl_refs": 0,
+      "checks": {
+        "in_text": true,
+        "codigo_nao_zero": true,
+        "ponteiro_em_rdata_data": true
+      },
+      "confere": true
+    },
+    {
+      "address": "0x8210E538",
+      "kind": "function",
+      "in_text": true,
+      "word": "0x3D60820C",
+      "instr": "op15",
+      "prev_instr": "b",
+      "prev_is_boundary": true,
+      "in_pdata": false,
+      "in_ghidra_functions": false,
+      "data_pointers": 9,
+      "b_refs": 0,
+      "bl_refs": 0,
+      "checks": {
+        "in_text": true,
+        "codigo_nao_zero": true,
+        "ponteiro_em_rdata_data": true
+      },
+      "confere": true
+    },
+    {
+      "address": "0x82115BC0",
+      "kind": "function",
+      "in_text": true,
+      "word": "0x3D608261",
+      "instr": "op15",
+      "prev_instr": "b",
+      "prev_is_boundary": true,
+      "in_pdata": false,
+      "in_ghidra_functions": false,
+      "data_pointers": 1,
+      "b_refs": 0,
+      "bl_refs": 0,
+      "checks": {
+        "in_text": true,
+        "codigo_nao_zero": true,
+        "ponteiro_em_rdata_data": true
+      },
+      "confere": true
+    },
+    {
+      "address": "0x82137588",
+      "kind": "function",
+      "in_text": true,
+      "word": "0x3D608261",
+      "instr": "op15",
+      "prev_instr": "b",
+      "prev_is_boundary": true,
+      "in_pdata": false,
+      "in_ghidra_functions": false,
+      "data_pointers": 1,
+      "b_refs": 0,
+      "bl_refs": 0,
+      "checks": {
+        "in_text": true,
+        "codigo_nao_zero": true,
+        "ponteiro_em_rdata_data": true
+      },
+      "confere": true
+    },
+    {
+      "address": "0x82140030",
+      "kind": "function",
+      "in_text": true,
+      "word": "0x3D608261",
+      "instr": "op15",
+      "prev_instr": "b",
+      "prev_is_boundary": true,
+      "in_pdata": false,
+      "in_ghidra_functions": false,
+      "data_pointers": 1,
+      "b_refs": 0,
+      "bl_refs": 0,
+      "checks": {
+        "in_text": true,
+        "codigo_nao_zero": true,
+        "ponteiro_em_rdata_data": true
+      },
+      "confere": true
+    },
+    {
+      "address": "0x82185530",
+      "kind": "function",
+      "in_text": true,
+      "word": "0x3D608261",
+      "instr": "op15",
+      "prev_instr": "b",
+      "prev_is_boundary": true,
+      "in_pdata": false,
+      "in_ghidra_functions": false,
+      "data_pointers": 1,
+      "b_refs": 0,
+      "bl_refs": 0,
+      "checks": {
+        "in_text": true,
+        "codigo_nao_zero": true,
+        "ponteiro_em_rdata_data": true
+      },
+      "confere": true
+    },
+    {
+      "address": "0x82204080",
+      "kind": "function",
+      "in_text": true,
+      "word": "0x4802CE49",
+      "instr": "bl",
+      "prev_instr": "bl",
+      "prev_is_boundary": false,
+      "in_pdata": false,
+      "in_ghidra_functions": false,
+      "data_pointers": 1,
+      "b_refs": 0,
+      "bl_refs": 0,
+      "checks": {
+        "in_text": true,
+        "codigo_nao_zero": true,
+        "ponteiro_em_rdata_data": true
+      },
+      "confere": true
+    },
+    {
+      "address": "0x82348C40",
+      "kind": "function",
+      "in_text": true,
+      "word": "0x81630000",
+      "instr": "op32",
+      "prev_instr": "bctr",
+      "prev_is_boundary": true,
+      "in_pdata": false,
+      "in_ghidra_functions": false,
+      "data_pointers": 9,
+      "b_refs": 0,
+      "bl_refs": 0,
+      "checks": {
+        "in_text": true,
+        "codigo_nao_zero": true,
+        "ponteiro_em_rdata_data": true
+      },
+      "confere": true
+    },
+    {
+      "address": "0x82348EA8",
+      "kind": "function",
+      "in_text": true,
+      "word": "0x81630000",
+      "instr": "op32",
+      "prev_instr": "bctr",
+      "prev_is_boundary": true,
+      "in_pdata": false,
+      "in_ghidra_functions": false,
+      "data_pointers": 3,
+      "b_refs": 0,
+      "bl_refs": 0,
+      "checks": {
+        "in_text": true,
+        "codigo_nao_zero": true,
+        "ponteiro_em_rdata_data": true
+      },
+      "confere": true
+    },
+    {
+      "address": "0x82348ED0",
+      "kind": "function",
+      "in_text": true,
+      "word": "0x81630000",
+      "instr": "op32",
+      "prev_instr": "bctr",
+      "prev_is_boundary": true,
+      "in_pdata": false,
+      "in_ghidra_functions": false,
+      "data_pointers": 3,
+      "b_refs": 0,
+      "bl_refs": 0,
+      "checks": {
+        "in_text": true,
+        "codigo_nao_zero": true,
+        "ponteiro_em_rdata_data": true
+      },
+      "confere": true
+    },
+    {
+      "address": "0x82348EF8",
+      "kind": "function",
+      "in_text": true,
+      "word": "0x81630000",
+      "instr": "op32",
+      "prev_instr": "bctr",
+      "prev_is_boundary": true,
+      "in_pdata": false,
+      "in_ghidra_functions": false,
+      "data_pointers": 3,
+      "b_refs": 0,
+      "bl_refs": 0,
+      "checks": {
+        "in_text": true,
+        "codigo_nao_zero": true,
+        "ponteiro_em_rdata_data": true
+      },
+      "confere": true
+    },
+    {
+      "address": "0x82348F20",
+      "kind": "function",
+      "in_text": true,
+      "word": "0x81630000",
+      "instr": "op32",
+      "prev_instr": "bctr",
+      "prev_is_boundary": true,
+      "in_pdata": false,
+      "in_ghidra_functions": false,
+      "data_pointers": 3,
+      "b_refs": 0,
+      "bl_refs": 0,
+      "checks": {
+        "in_text": true,
+        "codigo_nao_zero": true,
+        "ponteiro_em_rdata_data": true
+      },
+      "confere": true
+    },
+    {
+      "address": "0x82349350",
+      "kind": "function",
+      "in_text": true,
+      "word": "0x81630000",
+      "instr": "op32",
+      "prev_instr": "bctr",
+      "prev_is_boundary": true,
+      "in_pdata": false,
+      "in_ghidra_functions": false,
+      "data_pointers": 2,
+      "b_refs": 0,
+      "bl_refs": 0,
+      "checks": {
+        "in_text": true,
+        "codigo_nao_zero": true,
+        "ponteiro_em_rdata_data": true
+      },
+      "confere": true
+    },
+    {
+      "address": "0x8239F008",
+      "kind": "function",
+      "in_text": true,
+      "word": "0x80C40004",
+      "instr": "op32",
+      "prev_instr": "b",
+      "prev_is_boundary": true,
+      "in_pdata": false,
+      "in_ghidra_functions": false,
+      "data_pointers": 3,
+      "b_refs": 0,
+      "bl_refs": 0,
+      "checks": {
+        "in_text": true,
+        "codigo_nao_zero": true,
+        "ponteiro_em_rdata_data": true
+      },
+      "confere": true
+    },
+    {
+      "address": "0x8249AB80",
+      "kind": "function",
+      "in_text": true,
+      "word": "0x81630010",
+      "instr": "op32",
+      "prev_instr": "bctr",
+      "prev_is_boundary": true,
+      "in_pdata": false,
+      "in_ghidra_functions": false,
+      "data_pointers": 1,
+      "b_refs": 0,
+      "bl_refs": 0,
+      "checks": {
+        "in_text": true,
+        "codigo_nao_zero": true,
+        "ponteiro_em_rdata_data": true
+      },
+      "confere": true
+    },
+    {
+      "address": "0x824E3C58",
+      "kind": "function",
+      "in_text": true,
+      "word": "0x7C6B1B78",
+      "instr": "op31",
+      "prev_instr": "b",
+      "prev_is_boundary": true,
+      "in_pdata": false,
+      "in_ghidra_functions": false,
+      "data_pointers": 13,
+      "b_refs": 0,
+      "bl_refs": 0,
+      "checks": {
+        "in_text": true,
+        "codigo_nao_zero": true,
+        "ponteiro_em_rdata_data": true
+      },
+      "confere": true
+    },
+    {
+      "address": "0x824F6EB8",
+      "kind": "function",
+      "in_text": true,
+      "word": "0x3863FFF8",
+      "instr": "op14",
+      "prev_instr": "b",
+      "prev_is_boundary": true,
+      "in_pdata": false,
+      "in_ghidra_functions": false,
+      "data_pointers": 1,
+      "b_refs": 0,
+      "bl_refs": 0,
+      "checks": {
+        "in_text": true,
+        "codigo_nao_zero": true,
+        "ponteiro_em_rdata_data": true
+      },
+      "confere": true
+    },
+    {
+      "address": "0x824FA6B0",
+      "kind": "function",
+      "in_text": true,
+      "word": "0xA1630024",
+      "instr": "op40",
+      "prev_instr": "b",
+      "prev_is_boundary": true,
+      "in_pdata": false,
+      "in_ghidra_functions": false,
+      "data_pointers": 1,
+      "b_refs": 0,
+      "bl_refs": 0,
+      "checks": {
+        "in_text": true,
+        "codigo_nao_zero": true,
+        "ponteiro_em_rdata_data": true
+      },
+      "confere": true
+    },
+    {
+      "address": "0x824FB4A8",
+      "kind": "function",
+      "in_text": true,
+      "word": "0x3863FFE0",
+      "instr": "op14",
+      "prev_instr": "b",
+      "prev_is_boundary": true,
+      "in_pdata": false,
+      "in_ghidra_functions": false,
+      "data_pointers": 3,
+      "b_refs": 0,
+      "bl_refs": 0,
+      "checks": {
+        "in_text": true,
+        "codigo_nao_zero": true,
+        "ponteiro_em_rdata_data": true
+      },
+      "confere": true
+    },
+    {
+      "address": "0x824FE4D8",
+      "kind": "function",
+      "in_text": true,
+      "word": "0x3863FFFC",
+      "instr": "op14",
+      "prev_instr": "b",
+      "prev_is_boundary": true,
+      "in_pdata": false,
+      "in_ghidra_functions": false,
+      "data_pointers": 1,
+      "b_refs": 0,
+      "bl_refs": 0,
+      "checks": {
+        "in_text": true,
+        "codigo_nao_zero": true,
+        "ponteiro_em_rdata_data": true
+      },
+      "confere": true
+    },
+    {
+      "address": "0x824FE4E8",
+      "kind": "function",
+      "in_text": true,
+      "word": "0x3863FFFC",
+      "instr": "op14",
+      "prev_instr": "b",
+      "prev_is_boundary": true,
+      "in_pdata": false,
+      "in_ghidra_functions": false,
+      "data_pointers": 5,
+      "b_refs": 0,
+      "bl_refs": 0,
+      "checks": {
+        "in_text": true,
+        "codigo_nao_zero": true,
+        "ponteiro_em_rdata_data": true
+      },
+      "confere": true
+    },
+    {
+      "address": "0x824FE4F0",
+      "kind": "function",
+      "in_text": true,
+      "word": "0x3863FFFC",
+      "instr": "op14",
+      "prev_instr": "b",
+      "prev_is_boundary": true,
+      "in_pdata": false,
+      "in_ghidra_functions": false,
+      "data_pointers": 5,
+      "b_refs": 0,
+      "bl_refs": 0,
+      "checks": {
+        "in_text": true,
+        "codigo_nao_zero": true,
+        "ponteiro_em_rdata_data": true
+      },
+      "confere": true
+    },
+    {
+      "address": "0x824FE4F8",
+      "kind": "function",
+      "in_text": true,
+      "word": "0x3863FFFC",
+      "instr": "op14",
+      "prev_instr": "b",
+      "prev_is_boundary": true,
+      "in_pdata": false,
+      "in_ghidra_functions": false,
+      "data_pointers": 5,
+      "b_refs": 0,
+      "bl_refs": 0,
+      "checks": {
+        "in_text": true,
+        "codigo_nao_zero": true,
+        "ponteiro_em_rdata_data": true
+      },
+      "confere": true
+    },
+    {
+      "address": "0x824FE500",
+      "kind": "function",
+      "in_text": true,
+      "word": "0x3863FFFC",
+      "instr": "op14",
+      "prev_instr": "b",
+      "prev_is_boundary": true,
+      "in_pdata": false,
+      "in_ghidra_functions": false,
+      "data_pointers": 3,
+      "b_refs": 0,
+      "bl_refs": 0,
+      "checks": {
+        "in_text": true,
+        "codigo_nao_zero": true,
+        "ponteiro_em_rdata_data": true
+      },
+      "confere": true
+    },
+    {
+      "address": "0x82502710",
+      "kind": "function",
+      "in_text": true,
+      "word": "0x3863FFFC",
+      "instr": "op14",
+      "prev_instr": "b",
+      "prev_is_boundary": true,
+      "in_pdata": false,
+      "in_ghidra_functions": false,
+      "data_pointers": 2,
+      "b_refs": 0,
+      "bl_refs": 0,
+      "checks": {
+        "in_text": true,
+        "codigo_nao_zero": true,
+        "ponteiro_em_rdata_data": true
+      },
+      "confere": true
+    },
+    {
+      "address": "0x82502718",
+      "kind": "function",
+      "in_text": true,
+      "word": "0x3863FFFC",
+      "instr": "op14",
+      "prev_instr": "b",
+      "prev_is_boundary": true,
+      "in_pdata": false,
+      "in_ghidra_functions": false,
+      "data_pointers": 2,
+      "b_refs": 0,
+      "bl_refs": 0,
+      "checks": {
+        "in_text": true,
+        "codigo_nao_zero": true,
+        "ponteiro_em_rdata_data": true
+      },
+      "confere": true
+    },
+    {
+      "address": "0x82502720",
+      "kind": "function",
+      "in_text": true,
+      "word": "0x3863FFFC",
+      "instr": "op14",
+      "prev_instr": "b",
+      "prev_is_boundary": true,
+      "in_pdata": false,
+      "in_ghidra_functions": false,
+      "data_pointers": 5,
+      "b_refs": 0,
+      "bl_refs": 0,
+      "checks": {
+        "in_text": true,
+        "codigo_nao_zero": true,
+        "ponteiro_em_rdata_data": true
+      },
+      "confere": true
+    },
+    {
+      "address": "0x82502728",
+      "kind": "function",
+      "in_text": true,
+      "word": "0x3863FFFC",
+      "instr": "op14",
+      "prev_instr": "b",
+      "prev_is_boundary": true,
+      "in_pdata": false,
+      "in_ghidra_functions": false,
+      "data_pointers": 5,
+      "b_refs": 0,
+      "bl_refs": 0,
+      "checks": {
+        "in_text": true,
+        "codigo_nao_zero": true,
+        "ponteiro_em_rdata_data": true
+      },
+      "confere": true
+    },
+    {
+      "address": "0x82502730",
+      "kind": "function",
+      "in_text": true,
+      "word": "0x3863FFFC",
+      "instr": "op14",
+      "prev_instr": "b",
+      "prev_is_boundary": true,
+      "in_pdata": false,
+      "in_ghidra_functions": false,
+      "data_pointers": 5,
+      "b_refs": 0,
+      "bl_refs": 0,
+      "checks": {
+        "in_text": true,
+        "codigo_nao_zero": true,
+        "ponteiro_em_rdata_data": true
+      },
+      "confere": true
+    },
+    {
+      "address": "0x82504E98",
+      "kind": "function",
+      "in_text": true,
+      "word": "0x3863FFFC",
+      "instr": "op14",
+      "prev_instr": "b",
+      "prev_is_boundary": true,
+      "in_pdata": false,
+      "in_ghidra_functions": false,
+      "data_pointers": 5,
+      "b_refs": 0,
+      "bl_refs": 0,
+      "checks": {
+        "in_text": true,
+        "codigo_nao_zero": true,
+        "ponteiro_em_rdata_data": true
+      },
+      "confere": true
+    },
+    {
+      "address": "0x82504EA0",
+      "kind": "function",
+      "in_text": true,
+      "word": "0x3863FFFC",
+      "instr": "op14",
+      "prev_instr": "b",
+      "prev_is_boundary": true,
+      "in_pdata": false,
+      "in_ghidra_functions": false,
+      "data_pointers": 2,
+      "b_refs": 0,
+      "bl_refs": 0,
+      "checks": {
+        "in_text": true,
+        "codigo_nao_zero": true,
+        "ponteiro_em_rdata_data": true
+      },
+      "confere": true
+    },
+    {
+      "address": "0x82504EA8",
+      "kind": "function",
+      "in_text": true,
+      "word": "0x3863FFFC",
+      "instr": "op14",
+      "prev_instr": "b",
+      "prev_is_boundary": true,
+      "in_pdata": false,
+      "in_ghidra_functions": false,
+      "data_pointers": 5,
+      "b_refs": 0,
+      "bl_refs": 0,
+      "checks": {
+        "in_text": true,
+        "codigo_nao_zero": true,
+        "ponteiro_em_rdata_data": true
+      },
+      "confere": true
+    },
+    {
+      "address": "0x82504EB0",
+      "kind": "function",
+      "in_text": true,
+      "word": "0x3863FFFC",
+      "instr": "op14",
+      "prev_instr": "b",
+      "prev_is_boundary": true,
+      "in_pdata": false,
+      "in_ghidra_functions": false,
+      "data_pointers": 5,
+      "b_refs": 0,
+      "bl_refs": 0,
+      "checks": {
+        "in_text": true,
+        "codigo_nao_zero": true,
+        "ponteiro_em_rdata_data": true
+      },
+      "confere": true
+    },
+    {
+      "address": "0x82504EB8",
+      "kind": "function",
+      "in_text": true,
+      "word": "0x3863FFFC",
+      "instr": "op14",
+      "prev_instr": "b",
+      "prev_is_boundary": true,
+      "in_pdata": false,
+      "in_ghidra_functions": false,
+      "data_pointers": 5,
+      "b_refs": 0,
+      "bl_refs": 0,
+      "checks": {
+        "in_text": true,
+        "codigo_nao_zero": true,
+        "ponteiro_em_rdata_data": true
+      },
+      "confere": true
+    },
+    {
+      "address": "0x82515700",
+      "kind": "function",
+      "in_text": true,
+      "word": "0x3863FFF0",
+      "instr": "op14",
+      "prev_instr": "b",
+      "prev_is_boundary": true,
+      "in_pdata": false,
+      "in_ghidra_functions": false,
+      "data_pointers": 1,
+      "b_refs": 0,
+      "bl_refs": 0,
+      "checks": {
+        "in_text": true,
+        "codigo_nao_zero": true,
+        "ponteiro_em_rdata_data": true
+      },
+      "confere": true
+    },
+    {
+      "address": "0x82515F10",
+      "kind": "function",
+      "in_text": true,
+      "word": "0x81640008",
+      "instr": "op32",
+      "prev_instr": "b",
+      "prev_is_boundary": true,
+      "in_pdata": false,
+      "in_ghidra_functions": false,
+      "data_pointers": 1,
+      "b_refs": 0,
+      "bl_refs": 0,
+      "checks": {
+        "in_text": true,
+        "codigo_nao_zero": true,
+        "ponteiro_em_rdata_data": true
+      },
+      "confere": true
+    },
+    {
+      "address": "0x825270F0",
+      "kind": "function",
+      "in_text": true,
+      "word": "0x3863FFE0",
+      "instr": "op14",
+      "prev_instr": "bctr",
+      "prev_is_boundary": true,
+      "in_pdata": false,
+      "in_ghidra_functions": false,
+      "data_pointers": 2,
+      "b_refs": 0,
+      "bl_refs": 0,
+      "checks": {
+        "in_text": true,
+        "codigo_nao_zero": true,
+        "ponteiro_em_rdata_data": true
+      },
+      "confere": true
+    },
+    {
+      "address": "0x8254A6F0",
+      "kind": "function",
+      "in_text": true,
+      "word": "0x8063014C",
+      "instr": "op32",
+      "prev_instr": "bctr",
+      "prev_is_boundary": true,
+      "in_pdata": false,
+      "in_ghidra_functions": false,
+      "data_pointers": 2,
+      "b_refs": 0,
+      "bl_refs": 0,
+      "checks": {
+        "in_text": true,
+        "codigo_nao_zero": true,
+        "ponteiro_em_rdata_data": true
+      },
+      "confere": true
+    },
+    {
+      "address": "0x82280AF8",
+      "kind": "function",
+      "in_text": true,
+      "word": "0x54CB2036",
+      "instr": "op21",
+      "prev_instr": "b",
+      "prev_is_boundary": true,
+      "in_pdata": false,
+      "in_ghidra_functions": false,
+      "data_pointers": 0,
+      "b_refs": 0,
+      "bl_refs": 0,
+      "checks": {
+        "in_text": true,
+        "codigo_nao_zero": true,
+        "b_0x82280AC4_em_0x82280AF4": true,
+        "blr_em_0x82280B98": true,
+        "sem_ponteiro_em_dados": true
+      },
+      "confere": true
+    }
+  ]
+}

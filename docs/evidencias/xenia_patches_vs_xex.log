@@ -1,0 +1,40 @@
+{
+  "patch_hash": "CFE7D4B66FAC7096",
+  "candidatos": {
+    "xxh64(imagem)": "75C04869FBDDC0BC",
+    "xxh64(arquivo)": "E48DC646F3D2E818",
+    "xxh64(cabecalho 0..offset_pe)": "607FE8612E24ECBE"
+  },
+  "algum_bate": false
+}
+- '60 FPS': sites=42 caverna=21 caverna_vazia=True ganchos=2 ganchos_realocam_original=True
+    gancho 0x82276E34 -> 0x825F4000 original=0x39200002 realocado=True
+    gancho 0x822F9F10 -> 0x825F4028 original=0x94C30004 realocado=True
+- 'HD Shadows': sites=8 caverna=0 caverna_vazia=None ganchos=0 ganchos_realocam_original=None
+- 'Nests And Stairs LOD Hack': sites=20 caverna=16 caverna_vazia=True ganchos=2 ganchos_realocam_original=True
+    gancho 0x82263004 -> 0x825F4054 original=0x81784670 realocado=True
+    gancho 0x82262088 -> 0x825F4074 original=0x38210070 realocado=True
+- 'Draw Distance Hack': sites=22 caverna=19 caverna_vazia=True ganchos=1 ganchos_realocam_original=False
+    gancho 0x82240DF8 -> 0x825F4100 original=0x5463103A realocado=False
+- 'Access Breegull Bash': sites=1 caverna=0 caverna_vazia=None ganchos=0 ganchos_realocam_original=None
+- 'Banjo Kazooie Fire Breath': sites=1 caverna=0 caverna_vazia=None ganchos=0 ganchos_realocam_original=None
+- 'Solo Kazooie Fire Breath': sites=1 caverna=0 caverna_vazia=None ganchos=0 ganchos_realocam_original=None
+- 'Infinite Blue Eggs': sites=1 caverna=0 caverna_vazia=None ganchos=0 ganchos_realocam_original=None
+- 'Infinite Fire Eggs': sites=1 caverna=0 caverna_vazia=None ganchos=0 ganchos_realocam_original=None
+- 'Infinite Ice Eggs': sites=1 caverna=0 caverna_vazia=None ganchos=0 ganchos_realocam_original=None
+- 'Infinite Grenade Eggs': sites=1 caverna=0 caverna_vazia=None ganchos=0 ganchos_realocam_original=None
+- 'Infinite Clockwork Eggs': sites=1 caverna=0 caverna_vazia=None ganchos=0 ganchos_realocam_original=None
+- 'Infinite Red Feathers': sites=1 caverna=0 caverna_vazia=None ganchos=0 ganchos_realocam_original=None
+- 'Infinite Gold Feathers': sites=1 caverna=0 caverna_vazia=None ganchos=0 ganchos_realocam_original=None
+- 'Infinite Glowbos': sites=1 caverna=0 caverna_vazia=None ganchos=0 ganchos_realocam_original=None
+- 'Replace Blue Eggs With Gold Eggs': sites=1 caverna=0 caverna_vazia=None ganchos=0 ganchos_realocam_original=None
+- 'Access Mine Eggs': sites=2 caverna=0 caverna_vazia=None ganchos=0 ganchos_realocam_original=None
+- 'Uncapped Blue Egg Shots': sites=1 caverna=0 caverna_vazia=None ganchos=0 ganchos_realocam_original=None
+- 'Uncapped Fire Egg Shots': sites=1 caverna=0 caverna_vazia=None ganchos=0 ganchos_realocam_original=None
+- 'Uncapped Ice Egg Shots': sites=1 caverna=0 caverna_vazia=None ganchos=0 ganchos_realocam_original=None
+- 'Uncapped Grenade Egg Shots': sites=1 caverna=0 caverna_vazia=None ganchos=0 ganchos_realocam_original=None
+- 'Pointless Uncapped Clockwork Egg Shots': sites=1 caverna=0 caverna_vazia=None ganchos=0 ganchos_realocam_original=None
+- 'Uncapped Mine Egg Shots': sites=1 caverna=0 caverna_vazia=None ganchos=0 ganchos_realocam_original=None
+- 'Uncapped Gold Egg Shots': sites=1 caverna=0 caverna_vazia=None ganchos=0 ganchos_realocam_original=None
+- 'Infinite Ice Keys': sites=1 caverna=0 caverna_vazia=None ganchos=0 ganchos_realocam_original=None
+- 'Classic Jump Sounds': sites=2 caverna=0 caverna_vazia=None ganchos=0 ganchos_realocam_original=None

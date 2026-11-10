@@ -1,0 +1,52 @@
+# Checagem de dependencias - 2026-11-09T22:45:19.5201446-03:00
+
+> git --version
+caminho: C:\Program Files\Git\cmd\git.exe
+git version 2.56.0.windows.4
+
+> cmake --version
+caminho: C:\Program Files\CMake\bin\cmake.exe
+cmake version 4.4.0-rc3
+
+
+> ninja --version
+caminho: C:\msys64\clang64\bin\ninja.exe
+1.13.2
+
+> clang --version
+caminho: C:\msys64\clang64\bin\clang.exe
+clang version 22.1.8 (https://github.com/msys2/MINGW-packages 6e4e79c2f86eeb534e324e583f2057dc9fd5ecab)
+Target: x86_64-w64-windows-gnu
+
+> python --version
+caminho: C:\Users\<usuario>\AppData\Local\Programs\Python\Python314\python.exe
+Python 3.14.6
+
+> java -version
+caminho: C:\Program Files\Eclipse Adoptium\jdk-21.0.12.101-hotspot\bin\java.exe
+openjdk version "21.0.12.1" 2026-08-18 LTS
+OpenJDK Runtime Environment Temurin-21.0.12.1+1 (build 21.0.12.1+1-LTS)
+
+> Visual Studio / MSVC (vswhere)
+Ferramentas de Build do Visual Studio 2026 | 18.11.12315.225 | C:\Program Files (x86)\Microsoft Visual Studio\18\BuildTools
+  MSVC: 14.51.36231
+Visual Studio Community 2026 | 18.11.12315.225 | C:\Program Files\Microsoft Visual Studio\18\Community
+  MSVC: 14.51.36231
+Ferramentas de Build do Visual Studio 2022 | 17.14.37806.7 | C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools
+  MSVC: 14.44.35207
+
+> Windows SDK (Include)
+10.0.22621.0, 10.0.26100.0
+
+> Vulkan runtime (System32\vulkan-1.dll)
+presente: True
+
+> GPU / monitor atual
+NVIDIA GeForce RTX 5080 | driver 32.0.16.1742 | 3840x2160 @ 60 Hz
+Intel(R) UHD Graphics 630 | driver 31.0.101.2140 | 2560x1080 @ 59 Hz
+
+> Xenia (emulador; necessario so para rodar o original)
+W:\Emulador\Xbox360\XeniaManager.exe
+
+> Ghidra configurado
+C:\AI\ReverseEngineering\ghidra: True

@@ -25,3 +25,11 @@ Origem: `W:\Decomp\Banjo 3\Banjo Tooie BR\` (36 arquivos fornecidos legalmente p
 - Port base: [iron-jay/banjo_tooie_xbla_recomp](https://github.com/iron-jay/banjo_tooie_xbla_recomp)
 - Runtime/SDK: [ReXGlue](https://github.com/rexglue/rexglue-sdk) (fork `iron-jay/rexglue-sdk`), derivado do [Xenia](https://xenia.jp)
 - Referências de recompilação: [hedge-dev/XenonRecomp](https://github.com/hedge-dev/XenonRecomp), [MC_LA_Recompiled](https://github.com/robertoaraujo77/MC_LA_Recompiled) (padrão de port PT-BR)
+
+## Usados só como referência/verificação na auditoria (nada copiado para o produto)
+
+| Item | Origem | Uso |
+|---|---|---|
+| `overrides.toml` / `banjotooie_manifest.toml` / `launcher.py` da base | clone de referência `%TEMP%\opencode\bt-xbla-base` (commit `72c2397`) | comparação endereço a endereço com o XEX do usuário (`docs/evidencias/overrides_vs_xex.json`) |
+| Patches da comunidade do Xenia "58410955 - Banjo-Tooie" (autores: illusion, retroben, wedarobi) | `W:\Emulador\Xbox360\Emulators\Xenia Canary\patches\58410955 - Banjo-Tooie.patch.toml` (instalação do usuário, só lida) | referência de endereços para 60 FPS / draw distance / LOD (`docs/evidencias/xenia_patches_vs_xex.json`); **não** aplicados |
+| Xenia Canary (`canary_experimental@7ef873b0d`) | cópia do exe do usuário em `app/_audit/out/xenia_smoke/` (ignorada pelo Git) | smoke test do jogo original, em modo portátil isolado |

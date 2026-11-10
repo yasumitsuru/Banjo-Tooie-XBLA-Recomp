@@ -1,6 +1,8 @@
 # MECHANICS.md — Valores reais do executável original (default.xex)
 
-**MISSÃO 01 — decompilação do programa original.** Todos os valores, fórmulas e regras
+**Análise estática do programa original, feita nas rodadas de revisão da MISSÃO 00** (não é
+uma missão separada; o commit `d938a31` foi rotulado "MISSAO 01" por engano). Revisão 2:
+§6 (cadência) e §10 corrigidos; ver `docs/AUDITORIA-MISSAO-00.md` §0. Todos os valores, fórmulas e regras
 desta página foram lidos do `default.xex` original (sha256 `3efca627…`), via Craft Anything
 (Ghidra 12.1.3, linguagem `PowerPC:BE:64:A2ALT-32addr`), e conferidos contra o dump headless
 do Ghidra com a extensão XEXLoaderWV. Nada foi inventado; onde a análise ficou parcial,
@@ -205,19 +207,33 @@ negativo) e chama `KeDelayExecutionThread` (`0x825F38E4`); repete enquanto retor
 - Incrementa contador de quadros em `contexto + 0x40B0`.
 - Converte formatos de superfície: `0x32` → `3`, `7` → `0x1B` (ids internos do jogo).
 
-### Cadência de quadros — `FUN_002f9cb8` (`0x822F9CB8`, ev_2d9ddba0e) — **achado principal**
+### Agendador de troca de quadros (vsync) — `FUN_002f9cb8` (`0x822F9CB8`, ev_2d9ddba0e)
 
-- Lê o **alvo de FPS** em `contexto + 0xB4`; **se for 0, usa `0x3C` = 60** →
-  **o jogo é 60 FPS por padrão**.
-- `ticks_por_quadro = KeQueryPerformanceFrequency() / fps`.
-- Mede com o **registrador Timebase (TBLr)** do PowerPC e calcula a ocupação:
+> **Correção (rev. 2):** a rev. 1 leu o `0x3C` daqui como "o jogo é 60 FPS por padrão". A
+> releitura mostra que é o agendador de apresentação do runtime D3D. O `0x3C` = 60 é a **taxa de
+> atualização da tela (Hz)**, usada quando o campo `contexto + 0xB4` é 0. Não é a meta de FPS do jogo.
+
+- `ticks_por_vblank = KeQueryPerformanceFrequency() / refresh_hz` (padrão 60 Hz).
+- Mede com o **registrador Timebase (TBLr)** do PowerPC quanto do intervalo atual já passou:
 
 ```
-ocupação = min(100, ((TBLr − último_tick) × 100) / ticks_por_quadro + 1)
+percentual = min(100, ((TBLr − último_vblank) × 100) / ticks_por_vblank + 1)
 ```
 
-- Mantém contexto **por núcleo** (tabelas `0x820005CC` / `0x820005D0`, spinlocks
-  `KfAcquireSpinLock`/`KfReleaseSpinLock`).
+- Próximo vblank de apresentação = último + **intervalo** (bits 8–11 do parâmetro de
+  apresentação). Se já passou e o percentual excede o limiar (byte baixo do parâmetro), apresenta
+  imediatamente. Senão, enfileira num anel de 16 entradas (`contexto + 0x40BC/0x40C0`).
+- Chama o callback de swap em `contexto + 0x409C` quando existe; contexto **por núcleo**
+  (tabelas `0x820005CC` / `0x820005D0`).
+
+### Intervalo de apresentação do jogo (FPS real) — `0x82276E34` (ev_e8df486c…)
+
+- Código original: `lis r11,0x826A; li r8,0; addi r11,r11,-0x4E40; **li r9,2**; lwz r10,0(r11);
+  sth r9,-4(r11)` → grava **2** no halfword global `0x8269B1BC`.
+- Intervalo 2 numa tela de 60 Hz = **30 FPS** (inferido). O patch "60 FPS" da comunidade do Xenia
+  troca exatamente esta instrução por um desvio que escolhe 1 (60 FPS) ou 2 conforme o byte
+  `0x8266EF30`. Também troca `lwz r11,0x351C(r31)` em `0x822F9F18` e 17 constantes de tempo
+  (ver `docs/evidencias/xenia_patches_vs_xex.json`). Não foi medido em execução.
 
 ### Inatividade (protetor de tela) — `FUN_005b36a0` (`0x825B36A0`, ev_92d9a18b5)
 
@@ -290,22 +306,27 @@ Lista completa: `_audit/out/ghidra_xex_out/functions.txt` (122 imports, 16.996 f
 
 ## 10. O que isto muda para o port (resumo para quem não programa)
 
-1. **60 FPS já é o padrão do jogo original** (`0x822F9CB8` usa `0x3C` = 60 quando o
-   alvo é 0) — o port só precisa manter a cadência, não inventar uma.
+1. **O jogo original roda a 30 FPS** (intervalo de apresentação 2 em `0x82276E34`; o `0x3C` de
+   `0x822F9CB8` é a taxa da tela, 60 Hz). Para 60 FPS, o port precisa mudar o intervalo e as
+   constantes de tempo; os pontos exatos estão no patch "60 FPS" da comunidade, cujos ganchos
+   conferem com este XEX.
 2. **4K**: a resolução vem de `VdSetDisplayMode`/`VdGetCurrentDisplayInformation`
    (`0x823021A8`); o port troca estes por chamadas nativas equivalentes.
-3. **PT-BR**: o XEX tem 6 idiomas de sistema (EN/DE/FR/ES/IT/JA) e nenhum PT-BR; o
-   texto do jogo vive em `db360.cmp`/`banjo2_360.tbl/.ctl` — a tradução é trabalho
-   sobre os dados, e o seletor de idioma (`ExGetXConfigSetting(3,9)` em `0x825B1FA8`)
-   é o ponto de entrada para ligar um novo idioma.
+3. **PT-BR**: o XEX tem 6 idiomas no diálogo de erro (EN/DE/FR/ES/IT/JA) e nenhum PT-BR. Já o
+   texto do jogo vive nos dados (`db360.cmp`/`banjo2_360.tbl/.ctl`), e **os dados fornecidos já
+   estão em PT-BR**: a abertura mostra "PRESSIONE START PARA JOGAR" no smoke test real (rev. 2,
+   `docs/evidencias/smoke_xenia_original.md`). A cobertura total não foi verificada. O seletor de
+   idioma (`ExGetXConfigSetting(3,9)` em `0x825B1FA8`) decide qual tabela o jogo usa.
 4. **Áudio**: motor a **48 kHz**, parâmetros com clamp de 12 bits (4095) — reproduzir
    exatamente evita estouros/sons errados no port.
 5. **Ajustes de vídeo** existem de verdade no XEX: `GrayAmount`, `BlurAmount`,
    `Brightness` (tipo 4, padrão `0xA8`), com gravação em `objeto+0xA8` e flag de
    alterado em `+0xC |= 2`.
 6. O **`setjmp`** que a base do port sobrescreve (`0x8259FD90`) existe neste XEX
-   (usa `RtlCaptureContext`/`RtlUnwind`) — o layout de código do port bate com este
-   executável.
+   (usa `RtlCaptureContext`/`RtlUnwind`). Na rev. 2, **todos os 49 endereços** do
+   `overrides.toml` da base foram conferidos contra as previsões da própria base: 49/49
+   (`docs/evidencias/overrides_vs_xex.json`). A imagem do XEX também confere com os 113 hashes
+   SHA-1 do seu cabeçalho (`docs/evidencias/xex_integridade.json`).
 
 ## Anexo: evidências da sessão Craft Anything
 

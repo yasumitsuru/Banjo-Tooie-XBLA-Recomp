@@ -170,6 +170,10 @@ Total: 36 arquivos, ~105 MB. Sha256 de cada arquivo: `app/_audit/out/inventory.j
 - Clone de referência da base: `C:\Users\<usuario>\AppData\Local\Temp\opencode\bt-xbla-base`
 - Registro Craft Anything: findings fnd_1..fnd_6; unknowns unk_27e605ec…, unk_c318987d…, unk_ddf84578…, unk_f626b246…
 
+## 8.1 Resultado da checagem automática (rebuild_check)
+
+A checagem do Craft Anything desta rodada reportou "build: failed — No Unity project found in app/ yet". Isso é **esperado e correto para esta missão**: a MISSÃO 00 proíbe implementar e construir; não há (e não deve haver) build nesta rodada. O check está configurado para o fluxo padrão de "construir um jogo", que começa na próxima missão — quando o executável recompilado existir, será ele o alvo da checagem. Registrado aqui por transparência, sem declarar nada como PASS.
+
 ## 9. Próximos passos recomendados
 
 1. **Missão 01:** M1+M2 — trazer a base e gerar/ comparar o mapa de funções (resolve o bloqueio nº 1).

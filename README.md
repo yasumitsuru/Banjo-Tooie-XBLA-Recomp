@@ -17,6 +17,9 @@ feitos:** 4K (será pelo sistema gráfico do ReXGlue, por decisão da pessoa) e 
 
 ## Como compilar e rodar
 
+Para o checker do Craft Anything, `npm run build` executa o build C++/CMake real
+sem dependências npm; veja [a integração do build nativo](docs/BUILD-NATIVE-CRAFT.md).
+
 ```
 git submodule update --init --recursive        (runtime ReXGlue fixado em 035aa25)
 tools\build_port.cmd                           (VS 2022 Build Tools + Clang 19; ~5 min)

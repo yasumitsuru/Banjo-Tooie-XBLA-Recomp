@@ -47,4 +47,12 @@ set_source_files_properties(
 if(WIN32)
     # MISSAO 01: MiniDumpWriteDump (relatorio de falhas em port_diagnostics.cpp).
     target_link_libraries(banjotooie PRIVATE dbghelp)
+
+    # Craft discovers packaged programs in app/Build. This entry point runs the
+    # real native game, forwards checker arguments, and returns its exit code.
+    add_executable(banjotooie_craft_launcher WIN32 ../tools/native_launcher.cpp)
+    target_link_libraries(banjotooie_craft_launcher PRIVATE shell32)
+    set_target_properties(banjotooie_craft_launcher PROPERTIES
+        OUTPUT_NAME banjotooie
+        RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/../Build")
 endif()

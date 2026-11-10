@@ -1,0 +1,9 @@
+{
+  "name": "banjotooie-native-build",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Build adapter for the existing Windows C++/CMake ReXGlue port; no JavaScript runtime or npm dependencies are used by the game.",
+  "scripts": {
+    "build": "tools\\build_native.cmd"
+  }
+}

@@ -13,6 +13,9 @@ Obj/
 Logs/
 UserSettings/
 
+# Capturas de tela do jogo (conteúdo proprietário; ficam só no disco, fora do Git)
+docs/evidencias/**/*.png
+
 # Editor / OS
 .vs/
 .vscode/

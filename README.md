@@ -15,8 +15,10 @@ Ela também confirma a versão completa, a tradução aplicada, o original em 72
 pessoal (`docs/DECISOES.md`). **Missão 02 (tradução):** a tradução PT-BR foi conferida sem
 alterá-la: estrutura, acentos, fontes e leitura pelo jogo, mais 8 telas reais (abertura, menus,
 seleção de jogo, introdução) com regressão automática (`docs/MISSAO-02-TRADUCAO.md`); nenhuma
-correção foi necessária. **Ainda não feitos:** 4K (será pelo sistema gráfico do ReXGlue, por
-decisão da pessoa) e 60 FPS.
+correção foi necessária. **Camada de PC (branch `port-pc-4k60`):** 4K e 60 FPS entregues e
+medidos no jogo real (3840×2160, 60,0 quadros/s), menu de configurações de PC na pausa, controle,
+saves com backup e auto-teste `--self-test`. **Estado atual, provas e próximos passos:
+[`docs/PLANO.md`](docs/PLANO.md)** (verificação geral de 2026-11-11).
 
 ## Como compilar e rodar
 
@@ -37,6 +39,8 @@ Opções do port: `--preflight_only`, `--boot_report <json>`, `--screenshot <png
 
 ## Documentos
 
+- **Plano do projeto (vivo):** `docs/PLANO.md`: o que está pronto com prova, matriz de requisitos
+  e a ordem dos próximos passos
 - **Missão 02 (tradução PT-BR):** `docs/MISSAO-02-TRADUCAO.md`: arquivos traduzidos, como o jogo os
   lê, verificações, telas no jogo, teste negativo, matriz e pendências (`docs/evidencias/m02/`)
 - **Missão 01 (port nativo):** `docs/MISSAO-01-PORT-NATIVO.md`: arquitetura, toolchain, mudanças,

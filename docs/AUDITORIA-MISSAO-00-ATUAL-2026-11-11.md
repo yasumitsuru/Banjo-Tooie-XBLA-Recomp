@@ -138,6 +138,10 @@ escolheu 1080p numa primeira execução porque `EnumDisplaySettingsW` reportou a
 
 ## Ordem de implementação recomendada (próximas missões)
 
+> **Atualização (2026-11-11, verificação geral):** esta lista foi substituída por `docs/PLANO.md`.
+> Os itens 1 (reforma do menu de pausa, commit `3aa27aa`) e 6 (regressão completa) foram feitos e
+> provados; a lista nova acrescenta a correção da sobreposição da entrada de PC com o HUD.
+
 1. **Fechar a reforma em andamento do menu de pausa** (já escrita na árvore de trabalho):
    `tools\build_port.cmd codegen` + rebuild + rodar o auto-teste; o gancho `PcHook_PauseMenuBuilt`
    precisa do codegen para ser ligado, e o passo `pcmenu` do auto-teste foi feito para a versão

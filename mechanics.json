@@ -1,5 +1,6 @@
 {
   "version": 1,
+  "note": "Valores reais lidos do default.xex (sha256 3efca627…, imagem plana xex_image.bin) em modo Deep (Ghidra PowerPC:BE:64:A2ALT-32addr). Rodada 2026-11-11: os itens marcados (rev4) foram acrescentados/ajustados e o bloco 'pc' adicionado; a versão do arquivo continua 1 (é a que o Craft Anything lê nesta linha de base); MECHANICS.md §12.",
   "values": [
     {"name": "bloco do X360_strings para XLanguage 1 (ingles; aqui PT-BR)", "group": "idioma", "value": 0, "source": "funcoes 0x8227D2D0 + 0x8227D9F0 (main)"},
     {"name": "bloco do X360_strings para XLanguage 2 (japones)", "group": "idioma", "value": 5, "source": "funcoes 0x8227D2D0 + 0x8227D9F0"},
@@ -17,9 +18,47 @@
     {"name": "X360_strings: blocos lidos por execucao", "group": "formato", "value": 1, "source": "funcao 0x822E9C90"},
     {"name": "valor de 'nenhum bloco carregado' em 0x8264B59C", "group": "formato", "value": 6, "source": "funcao 0x822E9C90"},
     {"name": "tabela de recursos do db360 = buffer + 8", "group": "formato", "value": 8, "unit": "bytes", "source": "funcao 0x82220790"},
-    {"name": "intervalo de apresentacao do jogo original", "group": "video", "value": 2, "unit": "quadros de 60 Hz (30 FPS)", "source": "codigo em 0x82276E34"},
+    {"name": "intervalo de apresentacao do jogo original", "group": "video", "value": 2, "unit": "quadros de 60 Hz (30 FPS)", "source": "codigo em 0x82276E34 ('li r9,2'; 0x7d6b0034 e o cntlzw de 0x8227D0C0 estao no arquivo)"},
     {"name": "resolucao original", "group": "video", "value": "1280x720", "source": "captura do port (MECHANICS.md §10) e funcao 0x823021A8"},
     {"name": "taxa do audio", "group": "audio", "value": 48, "unit": "amostras por ms (48 kHz)", "source": "constante 0x82000F1C, funcao 0x8250D050"},
-    {"name": "espera entre tentativas do erro fatal", "group": "sistema", "value": 250, "unit": "ms", "source": "funcao 0x8227D128 (0xFA)"}
-  ]
+    {"name": "espera entre tentativas do erro fatal", "group": "sistema", "value": 250, "unit": "ms", "source": "funcao 0x8227D128 (0xFA)"},
+    {"name": "global do estado das texturas (lista solta=1, pacote cmp carregado=2, falha=3)", "group": "formato", "value": "0x826AEE20 (rev4: era 0x8269EE20; a instrucao 'addis r10,r0,0x826A; stw r11,0xEE20(r10)' em 0x8227D0FC/0x8227D10C e o 'stw r11,0xEE20(r21)' de 0x8227D688 dao 0x826Aee20; 2/3 = cntlzw(ret&0xFF)>>5+2)", "source": "funcao 0x8227D0C0, instrucoes em 0x8227D0FC-0x8227D10C e 0x8227D688"},
+    {"name": "acumulo do cronometro da caixa de texto e ps_add f13,f13,f29 (nao fadds)", "group": "video", "value": "0x8225D8A8 = 0xEDADE82A (ps_add); cronometro em caixa+0x22C, intervalo por letra em caixa+0x230", "source": "instrucao em 0x8225D8A8, funcao 0x8225D580"},
+    {"name": "formula do alcance de desenho do ator", "group": "video", "value": "(base & 0x3FFFFFFF) << 2", "source": "funcao 0x82240DE8; gancho em 0x82240DF8 (slwi r3,r3,2 = 0x5463103A)"},
+    {"name": "formula do percentual de vblank do agendador", "group": "video", "value": "min(100, ((TBL - ctx+0x40A8) * 100) / (freq/refresh) + 1); refresh padrao 0x3C=60 quando ctx+0xB4=0", "source": "funcao 0x822F9CB8"}
+  ],
+  "pc": {
+    "created": "2026-11-11",
+    "why": "Valores que o build (camada de PC) usa, agora vindos desta tabela em vez de literais espalhados. A origem e o default.xex (PowerPC BE), conferidos endereco por endereco.",
+    "frame": {
+      "hook_frame_step": "0x82276E34",
+      "original_step": 2,
+      "note_frame_step": "original: addis r11,r0,0x826A; addi r11,r11,-0x4E40; li r9,2; lwz r10,0(r11); sth r9,-4(r11) -> halfword 0x8269B1BC = 2 (30 FPS a 60 Hz)",
+      "hook_present_interval": "0x822F9F18",
+      "note_present_interval": "original: lwz r11,0x351C(r31)",
+      "cutscene_state": "0x8266EF30",
+      "note_cutscene_state": "byte: 0 = jogo livre; leitor FUN_00224208 (0x82224208) => DAT_8266ef30 != 0",
+      "map_id": "0x82673720",
+      "note_map_id": "u16 com o mapa atual (usado pelo perfil de distancia de desenho)"
+    },
+    "k60": [
+      {"hook": "0x822C8930", "register": "f0", "orig": 0.05, "orig_addr": "0x82000B48", "v60": 0.2, "v60_addr": "0x8200073C", "note": "lfs f0,0xB48(r11) em 0x822C8930"},
+      {"hook": "0x821A22E4", "register": "f5", "orig": 3.0, "orig_addr": "0x82000800", "v60": 9.0, "v60_addr": "0x82001EDC", "note": "FUN_001a2288 (0x821A2288); limite da funcao = 90.0 (0x820007C0)"},
+      {"hook": "0x821A22E8", "register": "f3", "orig": -0.01, "orig_addr": "0x82000924", "v60": -0.03, "v60_addr": "0x82004238", "note": ""},
+      {"hook": "0x821A22EC", "register": "f2", "orig": -1.0, "orig_addr": "0x82000748", "v60": -3.0, "v60_addr": "0x82000B20", "note": ""},
+      {"hook": "0x821A2324", "register": "f5", "orig": 3.0, "orig_addr": "0x82000800", "v60": 9.0, "v60_addr": "0x82001EDC", "note": ""},
+      {"hook": "0x821A2328", "register": "f3", "orig": 0.01, "orig_addr": "0x82000778", "v60": 0.03, "v60_addr": "0x82000B30", "note": ""},
+      {"hook": "0x821A232C", "register": "f2", "orig": 1.0, "orig_addr": "0x82000738", "v60": 3.0, "v60_addr": "0x82000800", "note": ""},
+      {"hook": "0x821A2358", "register": "f0", "orig": 90.0, "orig_addr": "0x820007C0", "v60": 100.0, "v60_addr": "0x82000774", "note": "limite de clamp: min(x*0.98, 90.0)"},
+      {"hook": "0x8213E2EC", "register": "f5", "orig": 3.0, "orig_addr": "0x82000800", "v60": 11.0, "v60_addr": "0x82002060", "note": "FUN_0013e290 (0x8213E290); limite da funcao = 200.0 (0x820008F4)"},
+      {"hook": "0x8213E2F0", "register": "f3", "orig": -0.01, "orig_addr": "0x82000924", "v60": -0.03, "v60_addr": "0x82004238", "note": ""},
+      {"hook": "0x8213E2F4", "register": "f2", "orig": -1.0, "orig_addr": "0x82000748", "v60": -3.90625, "v60_addr": "0x820028F0", "note": ""},
+      {"hook": "0x8213E32C", "register": "f5", "orig": 3.0, "orig_addr": "0x82000800", "v60": 11.0, "v60_addr": "0x82002060", "note": ""},
+      {"hook": "0x8213E330", "register": "f3", "orig": 0.01, "orig_addr": "0x82000778", "v60": 0.03, "v60_addr": "0x82000B30", "note": ""},
+      {"hook": "0x8213E334", "register": "f2", "orig": 1.0, "orig_addr": "0x82000738", "v60": 3.75, "v60_addr": "0x820013F4", "note": ""},
+      {"hook": "0x8213E340", "register": "f0", "orig": -0.01, "orig_addr": "0x82000924", "v60": -0.03, "v60_addr": "0x82004238", "note": ""},
+      {"hook": "0x8213E360", "register": "f0", "orig": 200.0, "orig_addr": "0x820008F4", "v60": 220.0, "v60_addr": "0x82000B0C", "note": "limite de clamp: min(x*0.98, 200.0)"},
+      {"hook": "0x821129B8", "register": "f0", "orig": 0.028, "orig_addr": "0x82000974", "v60": 0.014285714, "v60_addr": "0x82001EF8", "note": "FUN_00112980: fator por quadro = 0.028 * (1.0/dt do quadro); a 60 FPS dobra a metade (1/70)"}
+    ]
+  }
 }

@@ -4,11 +4,13 @@
 uma missão separada; o commit `d938a31` foi rotulado "MISSAO 01" por engano). Revisão 2:
 §6 (cadência) e §10 corrigidos; ver `docs/AUDITORIA-MISSAO-00.md` §0. Revisão 3: §10 item 2
 (4K) atualizado com o que o código do runtime da base mostra. Missão 02 rodada 2: §11 (textos
-traduzidos e regra real de idioma) e §10 item 3 corrigido. Todos os valores, fórmulas e regras
-desta página foram lidos do `default.xex` original (sha256 `3efca627…`), via Craft Anything
-(Ghidra 12.1.3, linguagem `PowerPC:BE:64:A2ALT-32addr`), e conferidos contra o dump headless
-do Ghidra com a extensão XEXLoaderWV. Nada foi inventado; onde a análise ficou parcial,
-está marcado.
+traduzidos e regra real de idioma) e §10 item 3 corrigido. **Revisão 4 (2026-11-11)**: o
+executável foi reaberto nesta sessão no Craft Anything em modo Deep e cada função/constante da
+página foi conferida de novo (pseudocódigo Ghidra + bytes); 4 correções e a tabela completa de
+constantes do "60 FPS" — ver **§12**. Todos os valores, fórmulas e regras desta página foram
+lidos do `default.xex` original (sha256 `3efca627…`), via Craft Anything (Ghidra 12.1.3,
+linguagem `PowerPC:BE:64:A2ALT-32addr`), e conferidos contra o dump headless do Ghidra com a
+extensão XEXLoaderWV. Nada foi inventado; onde a análise ficou parcial, está marcado.
 
 > Endereços: todos são endereços **reais do XEX** (base de imagem `0x82000000`).
 > O Ghidra do Craft Anything carrega a imagem desempacotada em `0x0`; vale a regra
@@ -79,8 +81,15 @@ Cadeia verificada (pseudocódigo Ghidra):
    lê uma lista (`"%s %d"`, `0x8200588C`) de texturas soltas em `RAWFiles\` e monta a tabela delas
    (registros de 0x48 bytes em `0x826A4F34`).
 2. Quando a lista não existe (caso da pasta fornecida), `0x8227D0C0` carrega o pacote
-   `db360.textures.cmp` (`0x82003520`) por `0x822D3DA0` e grava em `0x8269EE20` o valor **2**
-   (pacote carregado) ou **3** (falha).
+   `db360.textures.cmp` (`0x82003520`) por `0x822D3DA0` e grava na global de estado das
+   texturas **`0x826AEE20`** o valor **2** (pacote carregado) ou **3** (falha):
+   `cntlzw(resultado & 0xFF) >> 5 + 2` (pseudocódigo ev_034efdbf5; instruções
+   `addis r10,r0,0x826A; …; stw r11,0xEE20(r10)` em `0x8227D0FC`–`0x8227D10C` e o
+   `stw r11,0xEE20(r21)` de `0x8227D688`, que a grava como **1** na inicialização —
+   lista/moldura de desenvolvimento).
+   > **Correção (rev. 4):** as revisões anteriores diziam `0x8269EE20`. A aritmética das
+   > instruções (`0x826A0000 + 0xEE20`) dá `0x826AEE20`; o rótulo `_DAT_8269ee20` do Ghidra
+   > deste endereço é enganoso. Os dois pontos de escrita conferidos por bytes.
 3. Conclusão: `db360_TexFileList.txt` é um caminho alternativo de texturas soltas (provável recurso
    de desenvolvimento); o jogo publicado usa o pacote, que está presente.
 
@@ -207,7 +216,8 @@ negativo) e chama `KeDelayExecutionThread` (`0x825F38E4`); repete enquanto retor
 ### Ajuste do modo de vídeo — `FUN_003021a8` (`0x823021A8`, ev_5652ba0fc)
 
 - Se `param_3 != 0`, monta as flags para **`VdSetDisplayMode`** (`0x825F2F94`):
-  - base `0x40000000`; bits 30–31 = `(info[0x11] & 3)` (fonte do framebuffer);
+  - base `0x40000000`; `(info[0x11] & 3) << 0x1C` (ou seja, **bits 28–29** — rev. 4: as
+    revs anteriores diziam "bits 30–31"; é `<<0x1C` no pseudocódigo ev_30f5711b8);
   - formato de superfície `(info[0x10] & 0x3F) == 7` ou `== 0x36` → bit `0x08000000`;
   - **detecção de SD**: largura `0x2D0` (720) com altura `0x1E0` (480, NTSC) **ou**
     `0x240` (576, PAL) → flag `2`.
@@ -282,9 +292,12 @@ percentual = min(100, ((TBLr − último_vblank) × 100) / ticks_por_vblank + 1)
 
 ## 8. Constantes reais em `.rdata` (seleção)
 
-| Endereço | Valor |
+> **Rev. 4:** o `.rdata` guarda pares de **f32 big-endian (4 bytes)** lado a lado; as revs
+> anteriores as liam como doubles. Os valores abaixo são o f32 em cada endereço.
+
+| Endereço | Valor (f32 BE) |
 |---|---|
-| `0x82000730` | `0.999999…` (≈ 1 − 1/65536) |
+| `0x82000730` | `0.99999994` (bytes `3F 7F FF EF`; rev. 4: não é "1 − 1/65536") |
 | `0x82000734` | `0.0` |
 | `0x82000738` | `1.0` |
 | `0x82000750` | `0.1` |
@@ -294,6 +307,9 @@ percentual = min(100, ((TBLr − último_vblank) × 100) / ticks_por_vblank + 1)
 | `0x82000B48` | `0.05` |
 | `0x82000F1C` | `48.0` (amostras por ms ⇒ 48 kHz) |
 | `0x82001B94` | `6.283185…` (2π) |
+
+Tabela completa das 17 constantes que o "60 FPS" troca (com endereço de origem, endereço de
+destino e endereço do gancho): **§12.2**.
 
 ---
 
@@ -444,7 +460,9 @@ nesta sessão o Ghidra do Craft não montou função nesse endereço.
   rótulos de idioma do verificador contra o código.
 - `tools/m02/teste_negativo.py`: casos `runtime_idioma_alemao` (`user_language = 3`) e
   `runtime_idioma_invalido` (`0`), que a L1 tem de acusar.
-- `mechanics.json`: os mesmos valores, com a função de origem.
+- `mechanics.json`: os mesmos valores, com a função de origem (o arquivo continua na **versão 1**,
+  que é a que o Craft Anything lê nesta linha de base, rodada 2026-11-11; acrescenta o bloco `pc`
+  com as constantes K-60 e os valores que o build consome — §12.5).
 
 ## Anexo: evidências da sessão Craft Anything
 
@@ -462,3 +480,121 @@ ev_d867a0f0c/ev_26f24e2fb · `main` ev_7c92dad0f · idioma interno ev_be5e5991a 
 ev_4f3732029/ev_075026589/ev_1f1606fbe/ev_c2a6942b8 · caixa de texto ev_5815fc0a1 · ajuste alemão
 ev_ae96e2bca · `db360` ev_61961b02c · strings ev_27f1dcf10 · `GAME:\` ev_e228f6454 · compilador de
 shader (falso positivo de `0xC0D`) ev_670ff372f.
+
+---
+
+## 12. Reabertura Deep de 2026-11-11 — o que foi relido e o que mudou (rev. 4)
+
+Nesta rodada o `default.xex` da pessoa foi **reaberto nesta sessão** do Craft Anything e cada
+função, constante e gancho citados nesta página foi conferido de novo, desta vez com pseudocódigo
+do Ghidra e com os bytes de cada instrução de gancho. O passo a passo do que mudou no build está
+no §12.4.
+
+### 12.1 Como a sessão foi aberta
+
+| Item | Valor |
+|---|---|
+| Arquivo aberto | `app/_audit/out/xex_image.bin` (imagem plana do default.xex, sha256 `2e70c5e9…`) |
+| `core_target_open` | `format=raw-binary`, `architecture=x86_64` (obrigatório na API), `language_id=PowerPC:BE:64:A2ALT-32addr`, `entry_point=0x5B3AF8` |
+| Alvo | `t_2e70c5e978fa` |
+| Espaço do Ghidra | imagem em `0x0` → **endereço real = endereço Ghidra + 0x82000000** (pede-se as funções pelo endereço rebaseado, ex. `0x27D9F0` = main `0x8227D9F0`) |
+| Espaço do motor embutido | uma seção única a partir do entry → **endereço embutido = entry (0x5B3AF8) + offset no arquivo** (é o espaço usado por `native_strings_find`/`native_data_show`/`native_bytes_show`) |
+
+Detalhe observado: a análise do Ghidra nesta sessão não forma função "on demand" em alguns
+endereços (`0x8226B4B0`, `0x8226B4C0`, `0x82268E08/0x82268E10`, `0x8226B528`, `0x825B81F0`,
+`0x8223F6F0`, `0x82220790`), embora os bytes ali sejam PowerPC válidos (conferidos byte a
+byte: `0x8226B4B0` = `li r4,3; li r3,0xC0D; b 0x822698A4`; `0x8226B4C0` = `mr r4,r3; li r5,3;
+li r3,0xC0D; b 0x82269DF8`). As conclusões dessas funções continuam as das rodadas anteriores
+(que tinham a varredura de instruções como fonte).
+
+### 12.2 Correções desta rodada
+
+1. **Global das texturas = `0x826AEE20`**, não `0x8269EE20` (ver §2, revisado; a instrução
+   `stw r11,0xEE20(r10)` com `r10=0x826A0000` dá `0x826AEE20`; dois pontos de escrita, um
+   gravando o valor inicial **1**). Os valores **2** (pacote `db360.textures.cmp` carregado) e
+   **3** (falha) continuam certos: `cntlzw(ret & 0xFF) >> 5 + 2`.
+2. **`0x8225D8A8` é `ps_add f13,f13,f29`** (`0xEDADE82A`), não `fadds` — o cronômetro da caixa
+   de texto (`caixa+0x22C`) é um **par** de floats (paired-single); o gancho de velocidade dos
+   diálogos multiplica o delta f29 e segue válido.
+3. **Flags do `VdSetDisplayMode`**: `(info[0x11] & 3) << 0x1C` → bits **28–29** (as revs
+   anteriores diziam 30–31), além da base `0x40000000` (§6, revisado).
+4. **`.rdata` são f32 (4 bytes), não doubles** — corrigido §8, inclusive `0x82000730` =
+   `0.99999994` (bytes `3F 7F FF EF`).
+
+### 12.3 As 17 constantes que o "60 FPS" troca (tabela completa, verificada byte a byte)
+
+Cada linha: endereço do **gancho** no XEX (= endereço no `pc_hooks.toml`), registrador do
+gancho, constante **original** (f32 BE do `.rdata`, com endereço) e a constante de **60 FPS**
+usada no port. Todas as 17 foram lidas do `.rdata` (f32 BE) e o `lfs` de cada uma foi conferido
+na instrução exata do gancho. Evidências desta rodada: ev_6f49033b9/ev_eed7fccda/ev_aaf3aa2ab/
+ev_17d3ad3e1 (funções) e as leituras de bytes de cada endereço.
+
+| Gancho | reg | Original (f32) | → 60 FPS (f32) | Função dona |
+|---|---|---|---|---|
+| `0x822C8930` | f0 | **0.05** (`0x82000B48`) | 0.2 (`0x8200073C`) | região próxima a FUN_002c8560 (0x822C8560) |
+| `0x821A22E4` | f5 | **3.0** (`0x82000800`) | 9.0 (`0x82001EDC`) | FUN_001a2288 (0x821A2288; câmera/mira; clamp 90.0) |
+| `0x821A22E8` | f3 | **-0.01** (`0x82000924`) | -0.03 (`0x82004238`) | FUN_001a2288 |
+| `0x821A22EC` | f2 | **-1.0** (`0x82000748`) | -3.0 (`0x82000B20`) | FUN_001a2288 |
+| `0x821A2324` | f5 | **3.0** | 9.0 | FUN_001a2288 |
+| `0x821A2328` | f3 | **0.01** (`0x82000778`) | 0.03 (`0x82000B30`) | FUN_001a2288 |
+| `0x821A232C` | f2 | **1.0** (`0x82000738`) | 3.0 | FUN_001a2288 |
+| `0x821A2358` | f0 | **90.0** (`0x820007C0`) | 100.0 (`0x82000774`) | FUN_001a2288 (clamp `min(x·0.98, 90)`) |
+| `0x8213E2EC` | f5 | **3.0** | 11.0 (`0x82002060`) | FUN_0013e290 (0x8213E290; gêmea da anterior; clamp 200.0) |
+| `0x8213E2F0` | f3 | **-0.01** | -0.03 | FUN_0013e290 |
+| `0x8213E2F4` | f2 | **-1.0** | -3.90625 (`0x820028F0`) | FUN_0013e290 |
+| `0x8213E32C` | f5 | **3.0** | 11.0 | FUN_0013e290 |
+| `0x8213E330` | f3 | **0.01** | 0.03 | FUN_0013e290 |
+| `0x8213E334` | f2 | **1.0** | 3.75 (`0x820013F4`) | FUN_0013e290 |
+| `0x8213E340` | f0 | **-0.01** | -0.03 | FUN_0013e290 |
+| `0x8213E360` | f0 | **200.0** (`0x820008F4`) | 220.0 (`0x82000B0C`) | FUN_0013e290 (clamp `min(x·0.98, 200)`) |
+| `0x821129B8` | f0 | **0.028** (`0x82000974`) | 0.0142857 = 1/70 (`0x82001EF8`) | FUN_00112980 (fator por quadro = 0.028 × (1/dt)) |
+
+### 12.4 Funções relidas nesta rodada (pseudocódigo Ghidra, com evidência)
+
+| Função | Endereço | O que o pseudocódigo desta rodada confirma | Evidência |
+|---|---|---|---|
+| singleton de ajustes | `0x82565300` | campos +0x04..0x28 do `0x826B65AC` exatamente como no §4 (padrão `0xA8`, tipo 4, callback 0x82565720, guarda em 0x826B65DC) | ev_1c8ebd6fa0 |
+| callback de ajuste | `0x82565720` | `objeto+0xA8 = valor`; `objeto+0xC \|= 2`; nulo/tipo≠4 → `0x80070057` | ev_94e32e7dd |
+| aplicador | `0x82566240` | tabela de 8 sub-operações; id inválido → `0x80300001` | ev_a01dfc9d6 |
+| despacho | `0x82565C00` | retransmite ao callback/sub-tabela; argumentos vazios → `0x80070057` | ev_510316554 |
+| getter | `0x82565D68` | tipo divergente → `0x80300008`; tabela de leitura `uVar1-1 < 8` | ev_64c75d527 |
+| singleton do configurador | `0x825769C8` | guarda `0x826B78B0`; singleton `0x826B789C` | ev_8e1bef0fc |
+| resolvedor de objeto | `0x82562068` | hash em `0x826B61D8`, retorno = `item+0x20`, erro `0x8030000A` | ev_d369dbd85 |
+| diálogo de erro fatal | `0x8227D128` | tabela 6 idiomas (§3 exata), `while (result==5)` com espera `0xFA`, tag `0x82003534`, halt | ev_fcfe01e1d6 |
+| idioma (console) | `0x825B1FA8` | `ExGetXConfigSetting(3,9)`; 0 ou >0xC → região (0x101→2, 0x01xx→7, senão 1) | ev_60c4b6824 |
+| código interno | `0x8227D2D0` | 2→1, 3→3, 4→2, 5→5, `LZCOUNT(id−6)>>3&4` (6→4, resto→0) | ev_8833112d4d |
+| main | `0x8227D9F0` | cadeia §2 completa; interno 1→bloco 5 (+`0x8226B4D0`), 2→1, 3→2, 4→4, 5→3, resto→0 | ev_62ecdf16c |
+| GetString | `0x822E9C28` | `id < count(0x826A60F0) → tabela(0x826A60E8)+4·id`, senão 0 | ev_79cdb272e |
+| ação CLASSIFICAÇÕES | `0x822DEC40` | `tela+0x220` 1→0; sem perfil (`0x8269EF20`) → tela `0x822DE7E8`; entrada = `tela+0x154/page·0x2C/cursor·0x88`, alvo em `+0x28` | ev_4df5cfde3 |
+| despacho do botão A | `0x822E2860` | ação da entrada chamada por `(+0x7C)(tela)`; regras de cursor das páginas | ev_f3b70f75e |
+| leitores do X360_strings | `0x822E9AE0/0x822E9B40` | u16 = `b1<<8\|b0`, u32 = concatenado byte a byte (little-endian) | ev_af205c64f/ev_9f8aeba21 |
+| lista de texturas soltas | `0x822D3980` | `"%s%s"`(0x82003E00)+pasta+`RAWFiles\db360_TexFileList.txt`(0x82005898); formato `"%s %d"`(0x8200588C); registros de 0x48 em `0x826A4F34`; 1=ok/0=falha | ev_213c4bab7 |
+| texturas (decisão) | `0x8227D0C0` | `0x826AEE20` = `cntlzw(ret&0xFF)>>5+2`; §2 revisado | ev_034efdbf5 |
+| modo de vídeo | `0x823021A8` | flags exatas (§6 revisado); display atual → `global+0xA8/0xAC/0xB0` | ev_30f5711b8 |
+| apresentação | `0x822FA358` | contador de quadros `+0x40B0`; `VdSwap`; formatos `0x32→3`, `7→0x1B` | ev_3f8cd843f |
+| agendador vsync | `0x822F9CB8` | fórmula §6 exata, refresh padrão `0x3C`, anel de 16 em `+0x40BC/0x40C0`, callback `+0x409C`, tabelas por núcleo `0x820005CC/0x820005D0` | ev_ddd22d4b7 |
+| alcance de desenho | `0x82240DE8` | `(FUN_0023fb98() & 0x3FFFFFFF) << 2`; gancho em `0x82240DF8` = `slwi r3,r3,2` (`0x5463103A`) | ev_9a276abed |
+| filtros de áudio | `0x8250C6D8` | razão × 2π + equação quadrática exatas (§5) | ev_2d71aeb2b |
+| parâmetros de voz | `0x8250D050` | `×48.0`, clamp `0xFFF`, 4 campos; demais fórmulas intactas | ev_86e6f708f |
+| inatividade | `0x825B36A0` | `XamReset/XamEnableInactivityProcessing`; erro próprio `0x65B` fora da faixa `0x00070000` | ev_488868736 |
+| estado de cena | `0x82224208` | `return DAT_8266ef30 != 0` (byte lido pela camada de PC) | ev_f01d91d9d |
+| passo de quadro | `0x82276E34` | `addis r11,0,0x826A; addi r11,-0x4E40; li r9,2; lwz r10,0(r11); sth r9,-4(r11)` → halfword `0x8269B1BC` = **2** (bytes conferidos) | ev_604a2dd92 + bytes |
+| intervalo de apresentação | `0x822F9F18` | `lwz r11,0x351C(r31)` (bytes conferidos) | bytes |
+| menu de pausa | `0x822DF11C/0x822DF120` | chamada compartilhada + `lwz r11,0x154(r30)` (gancho do port) | bytes |
+
+### 12.5 O build agora usa estes valores
+
+- `app/mechanics.json` (na versão 1, a lida pelo Craft Anything) ganhou o bloco `pc` com os
+  valores do quadro (passo de quadro 2, endereços de gancho, estado de cena `0x8266EF30`, mapa
+  `0x82673720`) e as **17 constantes K-60** (original → 60 FPS, com endereços do `.rdata`).
+- `tools/gen_mechanics_header.py` lê o `mechanics.json`, **confere os endereços com o
+  `pc_hooks.toml`** (para o build se parar a tabela de ganchos divergir do decompilado, em vez
+  de ligar algo pela metade) e gera `banjotooie-recomp/src/pc/mechanics_values.h`
+  (não versionado, regerado a cada build).
+- `src/pc/pc_hooks.cpp` passou a ler o passo de quadro original, o estado de cena, o id do mapa
+  e as 17 constantes de 60 FPS **desse cabeçalho** em vez de literais espalhados; comportamento
+  idêntico (mesmos valores), origem agora rastreável.
+- `tools/build_native.cmd` (entry do `npm run build`) e a fase `game` de `tools/build_port.cmd`
+  rodam o gerador antes de compilar; falha do gerador = falha do build.
+- Correções da rodada também registradas em `mechanics.json` (global `0x826AEE20`, `ps_add` da
+  caixa de diálogo, fórmula do alcance e do vblank).

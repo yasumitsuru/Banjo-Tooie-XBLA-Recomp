@@ -27,6 +27,7 @@
 #include <mutex>
 #include <sstream>
 #include <thread>
+#include <utility>
 #include <vector>
 
 #include "pc_menu.h"
@@ -462,6 +463,17 @@ uint16_t ReadU16(uint32_t addr) {
   const uint8_t* p = mem->virtual_membase() + addr;
   return uint16_t((uint16_t(p[0]) << 8) | p[1]);
 }
+
+uint32_t ReadU32(uint32_t addr) {
+  auto* mem = rex::system::kernel_state()->memory();
+  const uint8_t* p = mem->virtual_membase() + addr;
+  return (uint32_t(p[0]) << 24) | (uint32_t(p[1]) << 16) | (uint32_t(p[2]) << 8) | p[3];
+}
+
+// Objeto da tela atual dos menus (endereço fixo; o cursor fica em tela+7, as páginas em
+// tela+0x154 e a página atual em tela+0x2C — mesma geometria lida na sonda --probe-menucursor
+// e pelo gancho da entrada de PC em pc_hooks.cpp).
+constexpr uint32_t kScreenObjAddr = 0x82648110;
 
 // Navegação guiada pelo estado do próprio jogo (em vez de contar quadros): espera a tela de
 // título (mapa 0x14F), entra em JOGAR -> JOGO 1 e pula as cenas com B até o jogo livre em
@@ -1550,7 +1562,7 @@ void Start(const Options& opts, rex::ui::WindowedAppContext* ui,
 
     if (!opts.probe_menu.empty()) {
       // Sonda da entrada "CONFIGURAÇÕES DE PC": registra os textos que cada menu pede
-      // (id, chamador), abre o menu de pausa, desce até a 4ª entrada e confirma.
+      // (id, chamador), abre o menu de pausa, desce até a 7ª entrada (a acrescentada) e confirma.
       pc::state::string_log_enabled.store(true);
       input::SetActive(true);
       const uint8_t* p = rex::system::kernel_state()->memory()->virtual_membase();
@@ -1617,6 +1629,9 @@ void Start(const Options& opts, rex::ui::WindowedAppContext* ui,
         input::Get().thumb_ly = 0;
         WaitFrames(25);
       };
+      nav_down(45);
+      nav_down(45);
+      nav_down(45);
       nav_down(45);
       nav_down(45);
       nav_down(45);
@@ -2883,8 +2898,9 @@ void Start(const Options& opts, rex::ui::WindowedAppContext* ui,
         detail += buf;
         push({"tracker", ok, detail});
       }
-      // Entrada "CONFIGURAÇÕES DE PC" no menu de pausa do jogo (4ª entrada, no lugar de
-      // "CLASSIFICAÇÕES"): o jogo pede o rótulo novo e, confirmada, a entrada abre o menu de PC.
+      // Entrada "CONFIGURAÇÕES DE PC" no menu de pausa do jogo (7ª entrada, acrescentada no
+      // fim do menu, id 0x0F00): o jogo pede o rótulo novo e, confirmada, a entrada abre o
+      // menu de PC.
       {
         if (ReadU8(0x8266EF55) != 1) {
           for (int tries = 0; tries < 4 && ReadU8(0x8266EF55) != 1; ++tries) {
@@ -2901,10 +2917,33 @@ void Start(const Options& opts, rex::ui::WindowedAppContext* ui,
           input::Get().thumb_ly = 0;
           WaitFrames(25);
         };
-        // volta ao topo (CONTINUAR JOGO) e desce três entradas
+        // volta ao topo (CONTINUAR JOGO) e desce até a entrada acrescentada (7ª, no fim): o
+        // cursor real do jogo (tela+7) confirma a posição antes do A, para não confirmar
+        // CLASSIFICAÇÕES nem SAIR DO JOGO.
+        auto cursor_and_count = [&]() {
+          const uint32_t pages = ReadU32(kScreenObjAddr + 0x154);
+          const uint32_t page = ReadU32(kScreenObjAddr + 0x2C);
+          uint32_t count = 0;
+          if (pages >= 0x40000000u && pages < 0xA0000000u && page < 16) {
+            count = ReadU32(pages + page * 0x2C + 4);
+            if (count > 12) count = 0;
+          }
+          return std::make_pair(uint32_t(ReadU8(kScreenObjAddr + 7)), count);
+        };
         for (int i = 0; i < 6; ++i) nav(input::kDpadUp, -32767, 30);
         const uint32_t labels0 = pc::state::pc_entry_label_requests.load();
-        for (int i = 0; i < 3; ++i) nav(input::kDpadDown, 32767, 45);
+        for (int i = 0; i < 6; ++i) nav(input::kDpadDown, 32767, 45);
+        {
+          uint32_t last_cursor = 0xFF;
+          int stalls = 0;
+          for (int extra = 0; extra < 8; ++extra) {
+            const auto cc = cursor_and_count();
+            if (cc.second > 1 && cc.first + 1 == cc.second) break;  // já está na última entrada
+            if (cc.first == last_cursor && ++stalls >= 2) break;    // não anda mais
+            last_cursor = cc.first;
+            nav(input::kDpadDown, 32767, 30);
+          }
+        }
         WaitFrames(20);
         const uint32_t labels = pc::state::pc_entry_label_requests.load();
         const uint32_t act0 = pc::state::pc_entry_activations.load();

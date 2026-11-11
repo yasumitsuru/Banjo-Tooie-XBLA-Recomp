@@ -73,6 +73,10 @@ if /i "%STAGE%"=="codegen" goto :done
 
 :game
 echo === [3/3] jogo: banjotooie.exe ===
+rem Valores reais decompilados do default.xex (MECHANICS.md §12) viram o cabecalho
+rem mechanics_values.h usado pela camada de PC; o build para se divergir de pc_hooks.toml.
+python -I "%APP%\tools\gen_mechanics_header.py"
+if errorlevel 1 exit /b %ERRORLEVEL%
 pushd "%APP%\banjotooie-recomp"
 "%CMAKE%" --preset win-amd64-release %COMMON% -DREXSDK_DIR=../rexglue-sdk > "%LOGS%\3_game_configure.log" 2>&1
 set "RC=%ERRORLEVEL%"

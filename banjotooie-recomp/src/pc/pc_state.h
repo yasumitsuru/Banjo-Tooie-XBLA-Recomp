@@ -15,9 +15,13 @@ inline std::atomic<uint32_t> cutscene_state{0};              // byte 0x8266EF30 
 inline std::atomic<uint64_t> dialog_type_calls{0};           // quadros em que uma caixa de texto digitou
 inline std::atomic<uint32_t> dialog_box{0};                  // última caixa de texto (ponteiro convidado)
 
-// Entrada "CONFIGURAÇÕES DE PC" dentro dos menus do jogo (substitui "CLASSIFICAÇÕES").
+// Entrada "CONFIGURAÇÕES DE PC" (7ª entrada, acrescentada no fim do menu de pausa; id de
+// texto novo kPcMenuEntryStringId, devolvido pelo gancho GetString em pc_hooks.cpp).
+inline constexpr uint32_t kPcMenuEntryStringId = 0x0F00;  // fora dos 1521 textos do jogo
 inline std::atomic<uint32_t> pc_entry_label_requests{0};     // vezes que o jogo pediu o rótulo
 inline std::atomic<uint32_t> pc_entry_activations{0};        // vezes que a entrada foi escolhida
+inline std::atomic<uint32_t> pause_entry_added{0};           // vezes que a 7ª entrada foi acrescentada
+inline std::atomic<uint32_t> pause_entry_count{0};           // entradas da página 0 depois disso
 inline std::atomic<bool> menu_open_request{false};           // abrir o menu de PC (consumido pela UI)
 inline std::atomic<bool> menu_close_request{false};          // fechar (auto-teste)
 
@@ -28,7 +32,8 @@ inline std::atomic<uint64_t> string_log_key[kStringLogSize];   // (lr << 32) | i
 inline std::atomic<uint32_t> string_log_count[kStringLogSize];
 inline std::atomic<bool> string_log_enabled{false};
 inline void NoteStringRequest(uint32_t id, uint32_t lr) {
-  if (id == 1) pc_entry_label_requests.fetch_add(1, std::memory_order_relaxed);
+  if (id == kPcMenuEntryStringId)
+    pc_entry_label_requests.fetch_add(1, std::memory_order_relaxed);
   if (!string_log_enabled.load(std::memory_order_relaxed)) return;
   const uint64_t key = (uint64_t(lr) << 32) | id;
   uint32_t h = uint32_t((key * 0x9E3779B97F4A7C15ull) >> 55) % kStringLogSize;

@@ -158,9 +158,19 @@ address = 0x822A9F84
 name = "PcHook_SkipRangeCheckB"
 jump_address_on_true = 0x822A9F88
 
+# ---------------------------------------------------------------- Entrada de PC no menu de pausa
+# Banjo 3: "CONFIGURAÇÕES DE PC" é ACRESCENTADA no fim do menu de pausa (7ª entrada), sem
+# renomear CLASSIFICAÇÕES nem mexer no menu de título. 0x822DEE60 monta os menus; a chamada em
+# 0x822DF11C registra a última entrada (SAIR DO JOGO na pausa). Antes de 0x822DF120
+# ("lwz r11,340(r30)"): r30 = tela, r31 = página 0, nenhum registrador volátil vivo.
+[[midasm_hook]]
+address = 0x822DF120
+name = "PcHook_PauseMenuBuilt"
+registers = ["r30", "r31"]
+
 # ---------------------------------------------------------------- Textos (entrada de PC nos menus)
-# 0x822E9C28 = GetString(id) (tabela de ponteiros de X360_strings.dat em 0x826A60E8). Para o
-# id 1 ("CLASSIFICAÇÕES", placares que exigem Xbox Live) devolve "CONFIGURAÇÕES DE PC".
+# 0x822E9C28 = GetString(id) (tabela de ponteiros de X360_strings.dat em 0x826A60E8). Só para o
+# id novo 0x0F00 (fora dos 1521 textos) devolve "CONFIGURAÇÕES DE PC"; os textos do jogo não mudam.
 # Registra (id, chamador) para a sonda --probe-menu.
 [[midasm_hook]]
 address = 0x822E9C28
@@ -168,10 +178,10 @@ name = "PcHook_GetString"
 registers = ["r3", "lr"]
 return_on_true = true
 
-# 0x822DEC40 = ação da entrada id 1 (registrada por 0x822E1380 no menu de título, 0x822DF094,
-# e no de pausa, 0x822DF040). O original confere o perfil Xbox Live (byte 0x8269EF20) e, sem
-# ele, abre a tela "ESTE RECURSO EXIGE UM PERFIL ... XBOX LIVE" (0x822DE7E8). Com a entrada de
-# PC ligada, a ação abre o menu Configurações de PC e o menu do jogo continua onde estava.
+# 0x822DEC40 = ação de CLASSIFICAÇÕES (página-alvo 3) e também da entrada nova (página-alvo -1).
+# O original confere o perfil Xbox Live (byte 0x8269EF20) e, sem ele, abre a tela "ESTE RECURSO
+# EXIGE UM PERFIL ... XBOX LIVE" (0x822DE7E8). O gancho só age na entrada nova (abre o menu
+# Configurações de PC; o menu do jogo continua onde estava); CLASSIFICAÇÕES segue o original.
 [[midasm_hook]]
 address = 0x822DEC40
 name = "PcHook_LeaderboardsSelect"

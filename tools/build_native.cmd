@@ -21,6 +21,12 @@ if not exist "%APP%\banjotooie-recomp\generated\rexglue.cmake" (
   exit /b 11
 )
 
+rem Valores reais do jogo (decompilados do default.xex, MECHANICS.md §12) viram
+rem banjotooie-recomp\src\pc\mechanics_values.h e sao conferidos contra pc_hooks.toml.
+rem Se a tabela de ganchos divergir dos valores decompilados, o build para aqui.
+python -I "%APP%\tools\gen_mechanics_header.py"
+if errorlevel 1 exit /b %ERRORLEVEL%
+
 call "%VSROOT%\VC\Auxiliary\Build\vcvars64.bat" >nul
 if errorlevel 1 exit /b %ERRORLEVEL%
 set "PATH=%LLVM%;C:\Program Files\CMake\bin;%PATH%"

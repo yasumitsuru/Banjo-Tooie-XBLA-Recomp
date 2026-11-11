@@ -6,6 +6,9 @@ dist/
 __pycache__/
 *.pyc
 
+# Camada de PC: cabecalho gerado de mechanics.json a cada build (MECHANICS.md §12)
+banjotooie-recomp/src/pc/mechanics_values.h
+
 # Unity (não é o stack do projeto, por precaução)
 Library/
 Temp/

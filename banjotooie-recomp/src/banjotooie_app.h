@@ -6,11 +6,16 @@
 // deixava todos os ganchos comentados. Este projeto usa os ganchos apenas para diagnostico e
 // testes automatizados (preflight dos arquivos, relatorio de boot, falhas, quadros, captura de
 // tela, teste de fumaca). Nenhum deles muda o comportamento do jogo. Ver banjotooie_app.cpp.
+//
+// Camada de PC (src/pc/, trazida do projeto W:\Decomp\Banjo da mesma pessoa, mesmo default.xex):
+// 60 FPS, 4K, distancia de desenho, menu CONFIGURACOES DE PC, controle (zona morta/vibracao),
+// saves com backup, auto-teste e sondas. Com tudo em "Original" o jogo roda como no Xbox 360.
 
 #pragma once
 
 #include <atomic>
 #include <chrono>
+#include <filesystem>
 #include <memory>
 #include <string>
 #include <thread>
@@ -35,6 +40,7 @@ class BanjotooieApp : public rex::ReXApp {
   void OnPreSetup(rex::RuntimeConfig& config) override;
   void OnCreateDialogs(rex::ui::ImGuiDrawer* drawer) override;
   void OnPostLoadXexImage() override;
+  void OnPreLaunchModule() override;
   void OnPostLaunchModule(rex::system::XThread* thread) override;
   void OnGuestThreadExit(rex::system::XThread* thread) override;
   void OnShutdown() override;
@@ -76,4 +82,13 @@ class BanjotooieApp : public rex::ReXApp {
   std::atomic<bool> screenshot_done_{false};
   std::atomic<bool> exit_requested_{false};
   std::chrono::steady_clock::time_point launch_time_{};
+
+  // Camada de PC
+  void ConfigurePcLayer(rex::PathConfig& paths);
+  void StartFocusWatcher();
+  std::filesystem::path runtime_config_;
+  std::filesystem::path user_data_root_;
+  int shader_pack_copied_ = 0;
+  std::atomic<bool> focus_running_{false};
+  std::thread focus_thread_;
 };

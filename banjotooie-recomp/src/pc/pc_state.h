@@ -1,0 +1,65 @@
+// Estado de execução observado pelos ganchos (para o contador de FPS, estatísticas e o auto-teste).
+#pragma once
+
+#include <atomic>
+#include <cstdint>
+
+namespace pc::state {
+inline std::atomic<uint32_t> frame_step{2};                  // último passo de quadros aplicado
+inline std::atomic<uint32_t> last_draw_range_original{0};    // último alcance original visto
+inline std::atomic<uint32_t> max_draw_range_original{0};     // maior alcance original já pedido
+inline std::atomic<uint64_t> guest_swaps{0};                 // quadros apresentados pelo jogo
+inline std::atomic<uint64_t> frame_step_calls{0};            // vezes que o jogo fixou o passo
+inline std::atomic<uint64_t> draw_range_calls{0};            // consultas de alcance de desenho
+inline std::atomic<uint32_t> cutscene_state{0};              // byte 0x8266EF30 (0 = jogo livre)
+inline std::atomic<uint64_t> dialog_type_calls{0};           // quadros em que uma caixa de texto digitou
+inline std::atomic<uint32_t> dialog_box{0};                  // última caixa de texto (ponteiro convidado)
+
+// Entrada "CONFIGURAÇÕES DE PC" dentro dos menus do jogo (substitui "CLASSIFICAÇÕES").
+inline std::atomic<uint32_t> pc_entry_label_requests{0};     // vezes que o jogo pediu o rótulo
+inline std::atomic<uint32_t> pc_entry_activations{0};        // vezes que a entrada foi escolhida
+inline std::atomic<bool> menu_open_request{false};           // abrir o menu de PC (consumido pela UI)
+inline std::atomic<bool> menu_close_request{false};          // fechar (auto-teste)
+
+// Registro de pedidos de texto (id, chamador) para a sonda --probe-menu: tabela aberta de
+// pares distintos; contador por par. Só diagnóstico.
+constexpr int kStringLogSize = 512;
+inline std::atomic<uint64_t> string_log_key[kStringLogSize];   // (lr << 32) | id, 0 = vazio
+inline std::atomic<uint32_t> string_log_count[kStringLogSize];
+inline std::atomic<bool> string_log_enabled{false};
+inline void NoteStringRequest(uint32_t id, uint32_t lr) {
+  if (id == 1) pc_entry_label_requests.fetch_add(1, std::memory_order_relaxed);
+  if (!string_log_enabled.load(std::memory_order_relaxed)) return;
+  const uint64_t key = (uint64_t(lr) << 32) | id;
+  uint32_t h = uint32_t((key * 0x9E3779B97F4A7C15ull) >> 55) % kStringLogSize;
+  for (int i = 0; i < kStringLogSize; ++i, h = (h + 1) % kStringLogSize) {
+    uint64_t cur = string_log_key[h].load(std::memory_order_relaxed);
+    if (cur == 0) {
+      if (string_log_key[h].compare_exchange_strong(cur, key)) {
+        string_log_count[h].fetch_add(1, std::memory_order_relaxed);
+        return;
+      }
+    }
+    if (cur == key) {
+      string_log_count[h].fetch_add(1, std::memory_order_relaxed);
+      return;
+    }
+  }
+}
+
+// Viagem entre mapas (sonda --probe-dd-worlds): pedido do host consumido pelo gancho de
+// quadro na THREAD DO JOGO, que chama a rotina de viagem do próprio jogo (0x82248810
+// com r3 = mapa, r4 = entrada). Evita tocar a memória do jogo diretamente.
+inline std::atomic<uint32_t> warp_requested{0};  // (mapa << 8) | entrada quando != 0
+inline std::atomic<uint32_t> warp_invoked{0};    // último pedido executado (mesma codificação)
+inline std::atomic<uint32_t> warp_result{0};     // 1 = função chamada, 0 = não achou
+inline std::atomic<uint32_t> warp_was_blocked{0};  // 1 = jogo ainda estava em viagem (0x826CC2B8)
+
+// Contagem do PRÓPRIO jogo (sonda --probe-save-sim): chama 0x8223E300(tipo, mundo), a
+// MESMA função que a tela "Totais" do menu de pausa usa, na thread do jogo no início do
+// quadro. Devolve em r3 a soma dos itens do tipo naquele mundo (ninhos de notas valem 5,
+// claves 20). O rastreador precisa bater com esses números.
+inline std::atomic<uint32_t> count_requested{0};  // (tipo << 16) | id do mundo, quando != 0
+inline std::atomic<uint64_t> count_result{~0ull};  // valor em r3; ~0ull = não executou
+inline std::atomic<uint32_t> count_invoked{0};     // último pedido executado (mesma codificação)
+}  // namespace pc::state

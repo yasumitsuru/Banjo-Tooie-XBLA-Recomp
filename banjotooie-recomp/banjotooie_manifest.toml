@@ -7,10 +7,12 @@
 
 [project]
 name = "banjotooie"
-sdk_version = "0.8.1.5"
+sdk_version = "0.8.1.13"
 game_root = "../../Banjo Tooie BR"
 
 [entrypoint]
 file_path = "../../Banjo Tooie BR/default.xex"
 out_directory_path = "generated/default"
-includes = ["overrides.toml"]
+# pc_hooks.toml: ganchos da camada de PC (60 FPS, distancia de desenho, textos/entrada de PC no
+# menu de pausa), do projeto W:\Decomp\Banjo da mesma pessoa (mesmo default.xex, sha256 3efca627...).
+includes = ["overrides.toml", "pc_hooks.toml"]

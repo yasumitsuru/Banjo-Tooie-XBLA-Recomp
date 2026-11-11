@@ -1,0 +1,79 @@
+// Opções de linha de comando para verificação automática:
+//   --screenshot <arquivo.png>  inicia normalmente, espera ~120 quadros do jogo, salva a imagem e sai
+//   --self-test <arquivo.json>  roda o jogo e grava, a partir do estado real do jogo, quais etapas funcionam
+#pragma once
+
+#include <filesystem>
+#include <functional>
+#include <string>
+
+namespace rex::ui {
+class Presenter;
+class WindowedAppContext;
+}  // namespace rex::ui
+
+namespace rex::system {
+class IInputSystem;
+}  // namespace rex::system
+
+namespace pc::automation {
+
+struct Options {
+  std::filesystem::path screenshot;
+  std::filesystem::path self_test;
+  std::filesystem::path probe_position;
+  std::filesystem::path probe_game;
+  std::filesystem::path probe_pause;
+  std::filesystem::path probe_focus;
+  std::filesystem::path probe_save;
+  std::filesystem::path probe_totals;
+  std::filesystem::path probe_quit;
+  std::filesystem::path probe_items;
+  std::filesystem::path probe_scan;
+  std::filesystem::path probe_dialog;
+  std::filesystem::path probe_scenes;  // linha do tempo das cenas sem entrada (ritmo a 30 x 60)
+  std::filesystem::path probe_drawdistance;  // mesma cena nos 3 perfis de distância de desenho
+  std::filesystem::path probe_menu;  // estado vivo do menu de pausa/totais (itens, tabelas, cursor)
+  std::filesystem::path probe_titlepc;  // entrada "CONFIGURAÇÕES DE PC" no menu de TÍTULO
+  std::filesystem::path probe_menucursor;  // memória do menu de título antes/depois de baixo/cima
+  std::filesystem::path probe_gamepad;  // XInput real + navegação sintética do menu de PC
+  std::filesystem::path probe_dd_maps;  // mapas visitados (título/intro/jogo) e alcances originais
+  std::filesystem::path probe_dd_worlds;  // viagem por todos os mundos + perfis de distância
+  std::filesystem::path probe_testpad;  // gamepad virtual SDL: caminho real de um controle físico
+  std::filesystem::path probe_save_sim;  // "save avançado" simulado: bandeiras + tela Totais + rastreador
+  // Save avançado DE VERDADE (use com --user_data_root=<pasta de teste>):
+  //   --make-advanced-save  jogo novo, liga todos os colecionáveis e grava por "SALVAR E SAIR"
+  //   --probe-advanced-save carrega esse save do disco pelo menu (JOGO 1) e confere tudo
+  std::filesystem::path make_advanced_save;
+  std::filesystem::path probe_advanced_save;
+  std::filesystem::path user_data_root;  // preenchido pelo app (pasta dos saves e backups)
+  int dialog_speed = -1;  // --dialog-speed N (0..3) força a velocidade só nesta execução
+  int frames = 120;
+  int measure_secs = 5;
+  bool active() const {
+    return !screenshot.empty() || !self_test.empty() || !probe_position.empty() ||
+           !probe_game.empty() || !probe_pause.empty() || !probe_focus.empty() ||
+           !probe_save.empty() || !probe_totals.empty() || !probe_quit.empty() ||
+           !probe_items.empty() || !probe_scan.empty() || !probe_dialog.empty() ||
+           !probe_scenes.empty() || !probe_drawdistance.empty() || !probe_menu.empty() ||
+           !probe_titlepc.empty() || !probe_menucursor.empty() || !probe_gamepad.empty() || !probe_dd_maps.empty() ||
+           !probe_dd_worlds.empty() || !probe_testpad.empty() || !probe_save_sim.empty() ||
+           !make_advanced_save.empty() || !probe_advanced_save.empty();
+  }
+};
+
+// Lê as opções da linha de comando do processo (GetCommandLineW).
+Options ParseCommandLine();
+
+// true enquanto o auto-teste/captura automática está no controle (o vigia de foco
+// não deve pausar o jogo nesse caso).
+bool IsRunning();
+
+// Inicia a thread de verificação. 'presenter' fornece a imagem do jogo; a captura é feita
+// na thread da interface via 'ui'. 'input_system' é o sistema de entrada do runtime
+// (estado dos gamepads reais + vibração).
+void Start(const Options& opts, rex::ui::WindowedAppContext* ui,
+           std::function<rex::ui::Presenter*()> presenter,
+           rex::system::IInputSystem* input_system = nullptr);
+
+}  // namespace pc::automation

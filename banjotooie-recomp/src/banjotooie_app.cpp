@@ -28,6 +28,18 @@
 #include "port_diagnostics.h"
 #include "port_test_input.h"
 
+// Camada de PC (ver banjotooie_app.h)
+#include "pc/pc_automation.h"
+#include "pc/pc_crash.h"
+#include "pc/pc_menu.h"
+#include "pc/pc_saves.h"
+#include "pc/pc_settings.h"
+#include "pc/pc_shaders.h"
+#include "pc/pc_state.h"
+#include "pc/scripted_input.h"
+#include <rex/runtime.h>
+#include <rex/system/kernel_state.h>
+
 #include <rex/cvar.h>
 #include <rex/filesystem.h>
 #include <rex/graphics/graphics_system.h>
@@ -41,8 +53,10 @@
 
 #include <fmt/format.h>
 
+#include <cmath>
 #include <cstdio>
 #include <cstdlib>
+#include <cstring>
 #include <filesystem>
 #include <fstream>
 
@@ -50,6 +64,7 @@
 #define NOMINMAX
 #endif
 #include <windows.h>
+#include <timeapi.h>
 
 REXCVAR_DEFINE_BOOL(preflight_only, false, "Port",
                     "Confere a pasta do jogo, grava o relatorio de boot e sai");
@@ -142,9 +157,10 @@ void BanjotooieApp::OnConfigurePaths(rex::PathConfig& paths) {
                                   : fs::path(report_cvar));
   port::InstallCrashHandler(rep.path().parent_path() / "crashdumps");
 
+  // --self-test e as sondas da camada de PC tambem sao automaticas (janela atras, sem caixas).
   automated_ = REXCVAR_GET(preflight_only) || !REXCVAR_GET(screenshot).empty() ||
                REXCVAR_GET(smoke_seconds) > 0.0 || REXCVAR_GET(port_test_crash) ||
-               !REXCVAR_GET(port_test_input).empty();
+               !REXCVAR_GET(port_test_input).empty() || pc::automation::ParseCommandLine().active();
   const bool silent = REXCVAR_GET(port_silent) || automated_;
 
   rep.SetInfo("command_line", Utf8CommandLine());
@@ -179,6 +195,89 @@ void BanjotooieApp::OnConfigurePaths(rex::PathConfig& paths) {
     rep.SetExit(port::kExitOk, "preflight_only");
     std::fflush(stderr);
     std::exit(port::kExitOk);
+  }
+  ConfigurePcLayer(paths);
+  rep.SetInfo("pc_settings", pc::Path().string());
+  rep.SetInfo("pc_video", fmt::format("{} escala {}x fps60={} distancia={}",
+                                      rex::cvar::GetFlagByName("resolution"),
+                                      rex::cvar::GetFlagByName("draw_resolution_scale_x"),
+                                      pc::Get().fps60, pc::DrawDistanceName(pc::Get().draw_distance)));
+}
+
+// Camada de PC (do projeto W:\Decomp\Banjo): Configuracoes de PC num arquivo proprio, separado
+// dos saves; resolucao de saida e escala interna (4K = 3x sobre os 1280x720 do jogo); janela em
+// pixels fisicos apesar da escala do Windows; opcoes do runtime (controle, volume).
+void BanjotooieApp::ConfigurePcLayer(rex::PathConfig& paths) {
+  // O VBlank do runtime e as esperas da GPU usam Sleep(1 ms): com a resolucao padrao do Windows
+  // (15,6 ms) cada quadro arredonda para ~31 ms. 1 ms permite os 60 FPS reais.
+  timeBeginPeriod(1);
+  const fs::path base = paths.user_data_root.empty()
+                            ? rex::filesystem::GetExecutableFolder() / "userdata"
+                            : paths.user_data_root;
+  user_data_root_ = base;
+  pc::SetPath(base / "pc_settings.toml");
+  const bool had_settings = pc::Load();
+  if (!had_settings || pc::Get().resolution_auto) {
+    // Resolucao fisica do monitor principal (GetSystemMetrics e reduzida pela escala do Windows
+    // num processo sem reconhecimento de DPI e escolheria 1080p num monitor 4K).
+    int w = GetSystemMetrics(SM_CXSCREEN);
+    int h = GetSystemMetrics(SM_CYSCREEN);
+    DEVMODEW mode{};
+    mode.dmSize = sizeof(mode);
+    if (EnumDisplaySettingsW(nullptr, ENUM_CURRENT_SETTINGS, &mode) && mode.dmPelsWidth > 0) {
+      w = int(mode.dmPelsWidth);
+      h = int(mode.dmPelsHeight);
+    }
+    pc::Get().resolution = (w >= 3840 && h >= 2160)   ? pc::Resolution::R2160p
+                           : (w >= 2560 && h >= 1440) ? pc::Resolution::R1440p
+                                                      : pc::Resolution::R1080p;
+    pc::Save();
+  }
+  {
+    // Janela em pixels fisicos: o runtime dimensiona em unidades logicas (DPI); a 150% a janela
+    // ficaria 1,5x maior que a tela e o presenter recortaria a imagem.
+    const auto r = pc::Get().resolution;
+    int pw = r == pc::Resolution::R1080p ? 1920 : r == pc::Resolution::R1440p ? 2560 : 3840;
+    int ph = r == pc::Resolution::R1080p ? 1080 : r == pc::Resolution::R1440p ? 1440 : 2160;
+    RECT work{};
+    if (SystemParametersInfoW(SPI_GETWORKAREA, 0, &work, 0)) {
+      const int maxw = (work.right - work.left) - 16;
+      const int maxh = (work.bottom - work.top) - 40;
+      if (pw > maxw) {  // mantem 16:9 ao limitar a area de trabalho
+        pw = maxw;
+        ph = pw * 9 / 16;
+      }
+      if (ph > maxh) {
+        ph = maxh;
+        pw = ph * 16 / 9;
+      }
+    }
+    UINT dpi = 96;
+    HKEY key = nullptr;  // o processo nao e DPI-aware: GetDpiForSystem diria 96
+    if (RegOpenKeyExW(HKEY_CURRENT_USER, L"Control Panel\\Desktop\\WindowMetrics", 0, KEY_READ,
+                      &key) == ERROR_SUCCESS) {
+      DWORD value = 0, size = sizeof(value), type = 0;
+      if (RegQueryValueExW(key, L"AppliedDPI", nullptr, &type, reinterpret_cast<LPBYTE>(&value),
+                           &size) == ERROR_SUCCESS &&
+          type == REG_DWORD && value >= 96) {
+        dpi = value;
+      }
+      RegCloseKey(key);
+    }
+    rex::cvar::SetFlagByName("window_width", std::to_string(pw * 96 / int(dpi)));
+    rex::cvar::SetFlagByName("window_height", std::to_string(ph * 96 / int(dpi)));
+  }
+  pc::ApplyRuntimeOptions();
+  runtime_config_ = paths.config_path;
+  {
+    // Saida e escala interna sempre pelas Configuracoes de PC (1080p = 1x, 1440p = 2x, 4K = 3x):
+    // a imagem do jogo tem 1280x720 e a janela precisa ser um multiplo inteiro dela.
+    const auto r = pc::Get().resolution;
+    const char* preset = r == pc::Resolution::R1080p ? "1080p" : r == pc::Resolution::R1440p ? "1440p" : "4k";
+    const char* scale = r == pc::Resolution::R2160p ? "3" : r == pc::Resolution::R1440p ? "2" : "1";
+    rex::cvar::SetFlagByName("resolution", preset);
+    rex::cvar::SetFlagByName("draw_resolution_scale_x", scale);
+    rex::cvar::SetFlagByName("draw_resolution_scale_y", scale);
   }
 }
 
@@ -240,7 +339,10 @@ void BanjotooieApp::OnPreSetup(rex::RuntimeConfig& config) {
 }
 
 void BanjotooieApp::OnCreateDialogs(rex::ui::ImGuiDrawer* drawer) {
-  (void)drawer;
+  // Menu CONFIGURACOES DE PC (aberto pela entrada nos menus do jogo ou por F1).
+  pc::menu::Create(drawer, window(), runtime_config_);
+  if (!automated_) pc::menu::ApplyDisplayMode(window());  // testes ficam sempre em janela
+  if (wcsstr(GetCommandLineW(), L"--open-pc-menu")) pc::menu::Open();
   if ((REXCVAR_GET(background_window) || automated_) && window()) {
     HWND hwnd = static_cast<rex::ui::Win32Window*>(window())->hwnd();
     // Fica atras das outras janelas e devolve o foco a quem o tinha (testes sem atrapalhar).
@@ -255,6 +357,12 @@ void BanjotooieApp::OnCreateDialogs(rex::ui::ImGuiDrawer* drawer) {
 void BanjotooieApp::OnPostLoadXexImage() {
   port::BootReport::Get().Stage("xex_loaded", "game:\\default.xex");
   REXLOG_INFO("[port] XEX carregado");
+}
+
+void BanjotooieApp::OnPreLaunchModule() {
+  // Pacote de shaders do port (se houver): completa o cache antes de o runtime carrega-lo.
+  shader_pack_copied_ =
+      pc::shaders::InstallPack(rex::filesystem::GetExecutableFolder(), runtime()->cache_root());
 }
 
 void BanjotooieApp::OnPostLaunchModule(rex::system::XThread* thread) {
@@ -274,6 +382,106 @@ void BanjotooieApp::OnPostLaunchModule(rex::system::XThread* thread) {
       RaiseException(kTestCrashCode, EXCEPTION_NONCONTINUABLE, 0, nullptr);
     }).detach();
   }
+
+  // ---- Camada de PC
+  // --prepare-shaders: os pipelines guardados ja foram criados; grava o relatorio e sai.
+  if (const auto report = pc::shaders::RequestedReport(); !report.empty())
+    pc::shaders::FinishPreparation(report, runtime()->cache_root(), shader_pack_copied_);
+  // Relatorio de falhas com o endereco do jogo (encadeia o tratador da Missao 01).
+  pc::crash::Install(runtime()->function_dispatcher(), user_data_root_ / "crashes");
+  pc::input::Install(runtime()->input_system());
+  // Gamepads reais (SDL/XInput) para o menu de PC, com zona morta e vibracao dos drivers.
+  if (auto* in = dynamic_cast<rex::input::InputSystem*>(runtime()->input_system())) {
+    pc::menu::SetInputSystem(in);
+    // Com o menu de PC aberto, o jogo recebe o controle parado (A/B/Start nao vazam).
+    in->SetBlockedCallback([] { return pc::menu::BlocksGameInput(); });
+  }
+  // Teclado e mouse sao a entrada padrao do PC; o controle real continua somado pelo runtime.
+  // (Com --port_test_input o roteiro de teste continua sendo a unica entrada.)
+  if (REXCVAR_GET(port_test_input).empty()) {
+    rex::cvar::SetFlagByName("mnk_mode", "true");
+    static const char* const kDefaults[][2] = {
+        {"keybind_start", "Return"},  {"keybind_a", "Space"},       {"keybind_b", "Backspace"},
+        {"keybind_x", "R"},           {"keybind_y", "E"},           {"keybind_lstick_up", "W"},
+        {"keybind_lstick_down", "S"}, {"keybind_lstick_left", "A"}, {"keybind_lstick_right", "D"}};
+    for (const auto& kv : kDefaults)
+      if (!rex::cvar::HasNonDefaultValue(kv[0])) rex::cvar::SetFlagByName(kv[0], kv[1]);
+  }
+  REXLOG_INFO("PC video: resolution={} scale={}x{} window={}x{} fps60={}",
+              rex::cvar::GetFlagByName("resolution"),
+              rex::cvar::GetFlagByName("draw_resolution_scale_x"),
+              rex::cvar::GetFlagByName("draw_resolution_scale_y"),
+              rex::cvar::GetFlagByName("window_width"), rex::cvar::GetFlagByName("window_height"),
+              pc::Get().fps60);
+  pc::input::SetMouseLook(pc::Get().mouse_look);
+  if (pc::Get().mouse_look) pc::input::SetCaptureEnabled(true);
+  pc::saves::Initialize(user_data_root_);
+  StartFocusWatcher();
+  auto opts = pc::automation::ParseCommandLine();
+  if (opts.active()) {
+    opts.user_data_root = user_data_root_;
+    pc::automation::Start(opts, &app_context(), [this]() -> rex::ui::Presenter* {
+      auto* gs = static_cast<rex::graphics::GraphicsSystem*>(runtime()->graphics_system());
+      return gs ? gs->presenter() : nullptr;
+    }, runtime()->input_system());
+  }
+}
+
+namespace {
+float ReadBeFloat(const uint8_t* base, uint32_t addr) {
+  const uint8_t* p = base + addr;
+  const uint32_t v = (uint32_t(p[0]) << 24) | (uint32_t(p[1]) << 16) | (uint32_t(p[2]) << 8) | p[3];
+  float f;
+  std::memcpy(&f, &v, sizeof(f));
+  return f;
+}
+// Posicao do jogador (0x8266BB74..7C, floats BE) valida = ha um jogo em andamento.
+bool PlayerInGame() {
+  auto* ks = rex::system::kernel_state();
+  if (!ks || !ks->memory()) return false;
+  const uint8_t* base = ks->memory()->virtual_membase();
+  if (!base) return false;
+  const float x = ReadBeFloat(base, 0x8266BB74);
+  const float y = ReadBeFloat(base, 0x8266BB78);
+  const float z = ReadBeFloat(base, 0x8266BB7C);
+  if (!std::isfinite(x) || !std::isfinite(y) || !std::isfinite(z)) return false;
+  if (std::fabs(x) < 0.01f && std::fabs(y) < 0.01f && std::fabs(z) < 0.01f) return false;
+  return std::fabs(x) < 100000.0f && std::fabs(y) < 100000.0f && std::fabs(z) < 100000.0f;
+}
+// 0x8266EF55 == 1: menu de pausa aberto.
+bool PauseOpen() {
+  auto* ks = rex::system::kernel_state();
+  if (!ks || !ks->memory()) return false;
+  const uint8_t* base = ks->memory()->virtual_membase();
+  return base && base[0x8266EF55] == 1;
+}
+}  // namespace
+
+// Pausa (Start) ao perder o foco e libera/recaptura o mouse. Nao age em testes automaticos.
+void BanjotooieApp::StartFocusWatcher() {
+  if (focus_thread_.joinable() || !window() || automated_) return;
+  HWND hwnd = static_cast<rex::ui::Win32Window*>(window())->hwnd();
+  focus_running_.store(true);
+  focus_thread_ = std::thread([this, hwnd]() {
+    bool was_focused = true;
+    while (focus_running_.load()) {
+      std::this_thread::sleep_for(std::chrono::milliseconds(250));
+      if (!hwnd) continue;
+      const bool focused = GetForegroundWindow() == hwnd;
+      if (pc::automation::IsRunning() || pc::state::guest_swaps.load() < 60) {
+        was_focused = focused;
+        continue;
+      }
+      if (was_focused && !focused) {
+        if (pc::Get().mouse_look) pc::input::SetCaptureEnabled(false);
+        if (pc::Get().pause_on_focus_loss && PlayerInGame() && !PauseOpen())
+          pc::input::RequestTap(pc::input::kStart);
+      } else if (!was_focused && focused) {
+        if (pc::Get().mouse_look) pc::input::SetCaptureEnabled(true);
+      }
+      was_focused = focused;
+    }
+  });
 }
 
 void BanjotooieApp::OnGuestThreadExit(rex::system::XThread* thread) {
@@ -284,6 +492,10 @@ void BanjotooieApp::OnGuestThreadExit(rex::system::XThread* thread) {
 
 void BanjotooieApp::OnShutdown() {
   StopMonitor();
+  focus_running_.store(false);
+  if (focus_thread_.joinable()) focus_thread_.join();
+  pc::saves::Shutdown();
+  pc::menu::Destroy();
   auto& rep = port::BootReport::Get();
   if (!REXCVAR_GET(port_test_input).empty()) {
     rep.Stage("test_input", port::TestInputSummary());

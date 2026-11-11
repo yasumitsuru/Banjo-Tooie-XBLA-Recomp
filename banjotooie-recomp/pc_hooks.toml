@@ -1,0 +1,179 @@
+# Ganchos do port PT-BR. A versão do usuário tem o mesmo layout da retail (endereços = patch Xenia 58410955).
+# Cada gancho chama uma função C++ do PC (src/pc/pc_hooks.cpp) que consulta as
+# Configurações de PC. Com tudo em "Original", o jogo se comporta como no Xbox 360.
+# Origem de cada endereço: MECHANICS.md (seção "Tempo de quadro" e "Distância de desenho").
+
+# ---------------------------------------------------------------- 60 FPS
+# 0x82276E28 (time_setFrameStep): "li r9,2" -> passo de quadros = 2 VBlanks (30 FPS).
+[[midasm_hook]]
+address = 0x82276E34
+name = "PcHook_FrameStep"
+registers = ["r9"]
+after_instruction = true
+
+# 0x82221648 = quadro principal do jogo; depois de "subi r31,r11,0x1398" (0x8222165C) nenhum
+# registrador volátil está vivo. A sonda --probe-dd-worlds chama a rotina de viagem do jogo
+# (0x82248810) daqui, antes das atualizações dos objetos, como faria um objeto do jogo.
+[[midasm_hook]]
+address = 0x8222165C
+name = "PcHook_FrameStart"
+after_instruction = true
+
+# 0x822F9DA0..: monta o pacote de troca de tela; "lwz r11,0x351c(r31)" = intervalo de apresentação.
+[[midasm_hook]]
+address = 0x822F9F18
+name = "PcHook_PresentInterval"
+registers = ["r11"]
+after_instruction = true
+
+# Constantes por quadro (câmera/movimento) que o patch de 60 FPS troca.
+[[midasm_hook]]
+address = 0x822C8930
+name = "PcHook_K_822C8930"
+registers = ["f0"]
+after_instruction = true
+
+[[midasm_hook]]
+address = 0x821A22E4
+name = "PcHook_K_821A22E4"
+registers = ["f5"]
+after_instruction = true
+
+[[midasm_hook]]
+address = 0x821A22E8
+name = "PcHook_K_821A22E8"
+registers = ["f3"]
+after_instruction = true
+
+[[midasm_hook]]
+address = 0x821A22EC
+name = "PcHook_K_821A22EC"
+registers = ["f2"]
+after_instruction = true
+
+[[midasm_hook]]
+address = 0x821A2324
+name = "PcHook_K_821A2324"
+registers = ["f5"]
+after_instruction = true
+
+[[midasm_hook]]
+address = 0x821A2328
+name = "PcHook_K_821A2328"
+registers = ["f3"]
+after_instruction = true
+
+[[midasm_hook]]
+address = 0x821A232C
+name = "PcHook_K_821A232C"
+registers = ["f2"]
+after_instruction = true
+
+[[midasm_hook]]
+address = 0x821A2358
+name = "PcHook_K_821A2358"
+registers = ["f0"]
+after_instruction = true
+
+[[midasm_hook]]
+address = 0x8213E2EC
+name = "PcHook_K_8213E2EC"
+registers = ["f5"]
+after_instruction = true
+
+[[midasm_hook]]
+address = 0x8213E2F0
+name = "PcHook_K_8213E2F0"
+registers = ["f3"]
+after_instruction = true
+
+[[midasm_hook]]
+address = 0x8213E2F4
+name = "PcHook_K_8213E2F4"
+registers = ["f2"]
+after_instruction = true
+
+[[midasm_hook]]
+address = 0x8213E32C
+name = "PcHook_K_8213E32C"
+registers = ["f5"]
+after_instruction = true
+
+[[midasm_hook]]
+address = 0x8213E330
+name = "PcHook_K_8213E330"
+registers = ["f3"]
+after_instruction = true
+
+[[midasm_hook]]
+address = 0x8213E334
+name = "PcHook_K_8213E334"
+registers = ["f2"]
+after_instruction = true
+
+[[midasm_hook]]
+address = 0x8213E340
+name = "PcHook_K_8213E340"
+registers = ["f0"]
+after_instruction = true
+
+[[midasm_hook]]
+address = 0x8213E360
+name = "PcHook_K_8213E360"
+registers = ["f0"]
+after_instruction = true
+
+[[midasm_hook]]
+address = 0x821129B8
+name = "PcHook_K_821129B8"
+registers = ["f0"]
+after_instruction = true
+
+# ---------------------------------------------------------------- Velocidade dos diálogos
+# 0x8225D580 (caixa de texto), estado 2 = "digitando": "fadds f13,f13,f29" soma o tempo do
+# quadro (f29) ao cronômetro da caixa (+0x22C); cada vez que ele passa do intervalo por letra
+# (+0x230) uma letra a mais aparece (+0x1F6). O gancho multiplica a parcela do quadro.
+[[midasm_hook]]
+address = 0x8225D8A8
+name = "PcHook_DialogSpeed"
+registers = ["f13", "f29", "r31"]
+after_instruction = true
+
+# ---------------------------------------------------------------- Distância de desenho
+# 0x82240DE8: retorna (base & 0x3fffffff) << 2 = alcance de surgimento/desenho do ator.
+[[midasm_hook]]
+address = 0x82240DF8
+name = "PcHook_DrawDistance"
+registers = ["r3"]
+after_instruction = true
+
+# Testes de alcance que o perfil Longe/Total ignora (o patch "Draw Distance Hack" os remove).
+[[midasm_hook]]
+address = 0x8223F714
+name = "PcHook_SkipRangeCheckA"
+jump_address_on_true = 0x8223F718
+
+[[midasm_hook]]
+address = 0x822A9F84
+name = "PcHook_SkipRangeCheckB"
+jump_address_on_true = 0x822A9F88
+
+# ---------------------------------------------------------------- Textos (entrada de PC nos menus)
+# 0x822E9C28 = GetString(id) (tabela de ponteiros de X360_strings.dat em 0x826A60E8). Para o
+# id 1 ("CLASSIFICAÇÕES", placares que exigem Xbox Live) devolve "CONFIGURAÇÕES DE PC".
+# Registra (id, chamador) para a sonda --probe-menu.
+[[midasm_hook]]
+address = 0x822E9C28
+name = "PcHook_GetString"
+registers = ["r3", "lr"]
+return_on_true = true
+
+# 0x822DEC40 = ação da entrada id 1 (registrada por 0x822E1380 no menu de título, 0x822DF094,
+# e no de pausa, 0x822DF040). O original confere o perfil Xbox Live (byte 0x8269EF20) e, sem
+# ele, abre a tela "ESTE RECURSO EXIGE UM PERFIL ... XBOX LIVE" (0x822DE7E8). Com a entrada de
+# PC ligada, a ação abre o menu Configurações de PC e o menu do jogo continua onde estava.
+[[midasm_hook]]
+address = 0x822DEC40
+name = "PcHook_LeaderboardsSelect"
+registers = ["r3"]
+return_on_true = true

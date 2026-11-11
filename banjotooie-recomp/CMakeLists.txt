@@ -19,6 +19,17 @@ set(BANJOTOOIE_SOURCES
     src/banjotooie_app.cpp
     src/port_diagnostics.cpp
     src/port_test_input.cpp
+    # Camada de PC (do projeto W:\Decomp\Banjo da mesma pessoa): Configuracoes de PC, ganchos
+    # de pc_hooks.toml (60 FPS, distancia de desenho, entrada no menu de pausa), automacao.
+    src/pc/pc_settings.cpp
+    src/pc/pc_hooks.cpp
+    src/pc/pc_automation.cpp
+    src/pc/pc_menu.cpp
+    src/pc/pc_saves.cpp
+    src/pc/pc_progress.cpp
+    src/pc/scripted_input.cpp
+    src/pc/pc_crash.cpp
+    src/pc/pc_shaders.cpp
 )
 
 if(WIN32)
@@ -42,6 +53,7 @@ set_source_files_properties(
     "${REXSDK_DIR}/src/ui/rex_app.cpp"
     "${REXSDK_DIR}/src/ui/windowed_app_main_win.cpp"
     src/banjotooie_app.cpp
+    src/pc/pc_menu.cpp
     PROPERTIES INCLUDE_DIRECTORIES
         "${REXSDK_DIR}/thirdparty/imgui;${REXSDK_DIR}/src;${CMAKE_BINARY_DIR}/rexglue-sdk/include"
 )
@@ -49,6 +61,8 @@ set_source_files_properties(
 if(WIN32)
     # MISSAO 01: MiniDumpWriteDump (relatorio de falhas em port_diagnostics.cpp).
     target_link_libraries(banjotooie PRIVATE dbghelp)
+    # Camada de PC: CommandLineToArgvW; timeBeginPeriod; placa/driver no relatorio de shaders.
+    target_link_libraries(banjotooie PRIVATE shell32 winmm dxgi)
 
     # Craft discovers packaged programs in app/Build. This entry point runs the
     # real native game, forwards checker arguments, and returns its exit code.

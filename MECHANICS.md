@@ -598,3 +598,39 @@ ev_17d3ad3e1 (funções) e as leituras de bytes de cada endereço.
   rodam o gerador antes de compilar; falha do gerador = falha do build.
 - Correções da rodada também registradas em `mechanics.json` (global `0x826AEE20`, `ps_add` da
   caixa de diálogo, fórmula do alcance e do vblank).
+
+## 13. Layout do menu de pausa — por que a 7ª entrada cai no contador de Jiggies (rodada 9, 2026-11-11)
+
+Leitura feita só para responder à pergunta aberta `unk_a83c5caa77d6efe2`; **nada foi mudado no
+jogo nem na camada de PC**. A correção continua sendo o item 1 do `docs/PLANO.md`.
+
+- **Quem guarda a posição:** a altura de cada entrada é gravada **na própria entrada, quando ela é
+  criada**. `0x822E1230` (acrescenta entrada; vetor de 136 bytes) chama `0x822E5740` (único
+  chamador), que faz `entrada+0 = y_cursor` (`0x826A5ABC`), `entrada+4 = x` (`0x826A5AA8`),
+  `entrada+0x14 = escala` (`0x826A5AB0`), `entrada+0x18 = 0x826A5A84` e depois
+  **`y_cursor += passo`** (`0x826A5AA0`). Pseudocódigo: ev_7e25b741911f; disassembly do código
+  gerado arquivado em `_audit/out/m00-r9/sub_822DEE58.asm.txt`.
+- **Quem escolhe os números:** o montador de páginas `0x822DEE60` (ev_f19a81f57602) grava esses
+  globais antes da página 0, conforme a tela (`tela+0x198` ≠ 0 = pausa; `tela+0x36`):
+
+| Global | Título | Pausa (`tela+0x36`=0, com VER TOTAIS) | Pausa (`tela+0x36`≠0) | Constante de origem (`.rdata`, ev_3877c7ccdc33) |
+|---|---|---|---|---|
+| y inicial `0x826A5ABC` | 66 | **62** | 73 | `0x82005AAC` / `0x82005AB8` / `0x82005ABC` |
+| passo `0x826A5AA0` | 26 | **21** | 21 | `0x82005AB4` / `0x82005AC8` |
+| x `0x826A5AA8` | 25 | **58** | 90 | `0x82005AB0` / `0x82005AC4` / `0x82005AC0` |
+| escala `0x826A5AB0` | 0,65 | **0,5** | 0,5 | `0x82005AD4` / `0x82005ACC` |
+| `0x826A5A84` (se `[0x82697E68]`≠0) | 0,6 | 0,45 | 0,45 | `0x82005AD8` / `0x82005AD0` |
+
+- **Conta:** na pausa normal as 6 entradas originais ficam em y = 62, 83, 104, 125, 146, 167; a
+  entrada acrescentada pelo gancho (`0x822DF120`, depois de SAIR DO JOGO) recebe **y = 62 + 6×21 =
+  188**, uma linha abaixo do fim original do menu.
+- **Na tela (captura do auto-teste, `checks/round-0/self-test.png`, reduzida em
+  `_audit/out/m00-r9/selftest_preview.png`):** as 7 linhas ficam em ≈190…587 px de 720
+  (≈3,15 px por unidade, derivado) e o contador de Jiggies do HUD da pausa está em ≈585 px, isto
+  é, exatamente na 7ª linha. A posição do contador **não foi lida no código** (medida na captura).
+- **Consequência para a correção (item 1 do Plano, ainda não feita):** basta reescrever
+  `entrada+0` das entradas da página 0 dentro do gancho que já existe (`PcHook_PauseMenuBuilt`),
+  sem novo gancho e sem mexer no HUD. Opções medidas: (A) passo 21→17 só quando a entrada de PC
+  existe → y = 62…164, as 7 cabem no mesmo bloco das 6 originais (recomendada: o topo do menu fica
+  igual ao original); (B) y inicial 62→41 → y = 41…167 (todas sobem uma linha). Precisa provar por
+  captura que o desenho relê `entrada+0` a cada quadro (não verificado).

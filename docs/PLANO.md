@@ -1,6 +1,7 @@
 # Plano do projeto — Banjo-Tooie XBLA PT-BR Recompiled
 
-**Atualizado em 2026-11-11 (verificação geral, "rodada 8").** Este é o plano vivo do projeto: o que
+**Atualizado em 2026-11-11 (verificação geral, "rodada 8"; revalidação automática "rodada 9" no fim
+deste arquivo).** Este é o plano vivo do projeto: o que
 já está pronto (com a prova), o que falta e em que ordem. Ele substitui a lista "Ordem de
 implementação recomendada" da auditoria `docs/AUDITORIA-MISSAO-00-ATUAL-2026-11-11.md`, que fica
 como registro daquela data. Nenhuma missão nova foi iniciada nesta verificação.
@@ -68,7 +69,7 @@ isolados dentro de `app/`; os saves reais da pessoa não foram tocados.
 |---|---|---|---|
 | — | Fechar a reforma do menu de pausa (codegen + rebuild + auto-teste) | era o item 1 da auditoria de 2026-11-11 | **FEITO** (`3aa27aa`, auto-teste 10/10, gancho conferido no original) |
 | — | Regressão completa depois da camada de PC | era o item 6 da auditoria | **FEITO** (smoke 8/8, PT-BR PASS, negativo 22/22) |
-| 1 | **Corrigir a sobreposição** da entrada "CONFIGURAÇÕES DE PC" com o contador de Jiggies na pausa | aparece toda vez que o jogador pausa; mudança pequena e localizada na camada de PC (espaçamento das entradas ou posição), fácil de provar com captura | PENDENTE |
+| 1 | **Corrigir a sobreposição** da entrada "CONFIGURAÇÕES DE PC" com o contador de Jiggies na pausa | aparece toda vez que o jogador pausa; mudança pequena e localizada na camada de PC, fácil de provar com captura. **Causa já lida no original (rodada 9, `MECHANICS.md` §13):** cada entrada guarda sua altura ao ser criada (y inicial 62, passo 21 na pausa), então a 7ª cai em y = 188, onde fica o contador. Correção recomendada: no gancho que já existe, passo 21→17 só com a entrada de PC (as 7 cabem no espaço das 6 originais) | PENDENTE (causa conhecida; correção não feita) |
 | 2 | **Carregar save automaticamente** (`--make-advanced-save` + `--probe-advanced-save` em perfil de teste) | fecha o requisito "saves" (hoje só a gravação tem prova); protege os saves da pessoa antes de qualquer outra mudança no jogo | PENDENTE |
 | 3 | **Draw distance**: capturas dos 3 perfis (`--probe-drawdistance`, `--probe-dd-worlds`) e custo em FPS a 4K | já implementado, falta a prova visual e o efeito nos 60 FPS | PENDENTE |
 | 4 | **PT-BR no HUD e nos diálogos das fases** (continuação da Missão 02) | cobertura de texto ainda parcial; usa a mesma regressão já ajustada | PENDENTE |
@@ -95,8 +96,20 @@ isolados dentro de `app/`; os saves reais da pessoa não foram tocados.
 - `docs/evidencias/m00-atual-20261110/` contém conteúdo do jogo: não commitar nem apagar sem a
   pessoa pedir.
 
+## Rodada 9 (2026-11-11, revalidação automática do Craft com o texto da Missão 00)
+
+Sem funcionalidades novas e sem mudança no jogo ou na camada de PC; só documentação.
+
+| Item | Resultado |
+|---|---|
+| Ponto de retorno | `refs/checkpoints/missao-00-rodada9-20261111` → `7afbc09` (árvore limpa antes da rodada) |
+| `rebuild_check` (build real + imagem + auto-teste no jogo real) | **PASS 5/5**: build; imagem 3840×2160; auto-teste 10/10 (andou 719,8 u, pulo 112,3 u, 60,0 quadros/s, frametime 16,65 ± 0,87 ms, máx. 19,2 ms, 0 repetidos, menu de PC aberto pela pausa); 24 valores com fonte; créditos |
+| Arquivos do jogo depois da execução | **PASS 36/36** iguais à linha de base (`_audit/out/m00-r9/integridade_pos_check.json`) |
+| Pergunta aberta da sobreposição | **respondida** pela leitura do original (`MECHANICS.md` §13: `0x822E5740`, `0x822DEE60`, constantes em `0x82005AA0…`); a correção segue PENDENTE no item 1 |
+| Não feito nesta rodada | smoke da M01 e regressão PT-BR da M02 (nada no código mudou desde a rodada 8, onde passaram) |
+
 ## Memória do projeto (Understory)
 
-Registro local em `.understory/queue/pending/m00-rodada8-verificacao-2026-11-11.json`
-(estado **SYNC_PENDING**; o servidor Understory não está disponível nesta sessão, então nada foi
-publicado).
+Registros locais em `.understory/queue/pending/m00-rodada8-verificacao-2026-11-11.json` e
+`m00-rodada9-revalidacao-2026-11-11.json` (estado **SYNC_PENDING**; o servidor Understory não está
+disponível nesta sessão, então nada foi publicado).

@@ -81,7 +81,11 @@ Add-Step "1_inspecao_estatica_antes" $st1 (Checks-Summary $rep1)
 
 # 2. abertura com rastro de E/S e dumps da memoria do jogo
 $d2 = Join-Path $OutDir "2_rastro"
+# --log_max_file_size_mb: com a camada de PC (60 FPS/4K) o rastro passa dos 5 MB padrao em ~25 s e
+# o runtime gira o arquivo (log.1.txt fica com o inicio, onde o jogo le os arquivos traduzidos);
+# um log so, grande, mantem as leituras em log.txt para o inspetor (MISSAO 00 rodada 8, 2026-11-11).
 $r = Run-Port $d2 @("--log_noisy", "--log_level", "trace", "--log_file", (Quote "$d2\log.txt"),
+  "--log_max_file_size_mb", "1024",
   "--port_dump_db", (Quote "$d2\db_mem.bin"), "--port_dump_ranges", (Quote "0x40000000:0x200000=$d2\heap_40000000.bin"),
   "--screenshot", (Quote "$d2\titulo.png"), "--screenshot_seconds", "28", "--smoke_timeout_seconds", "90") 150
 $b = Boot $d2
@@ -185,17 +189,43 @@ $shots = @(
 # Uma regiao sem texto nas duas imagens daria IoU 1,0 (0/0): por isso cada lado tem de ter pelo
 # menos $PixelsMinimos pixels da cor do texto; senao a tela conta como FAIL (texto sumiu).
 $PixelsMinimos = 300
+# Tamanho das capturas na comparacao (MISSAO 00 rodada 8, 2026-11-11): as referencias e as regioes
+# acima foram medidas em 1280x720 (a imagem do jogo). A camada de PC escolhe a saida pelo monitor
+# (1080p/1440p/4K, mesma proporcao), entao uma captura maior com a mesma proporcao e reduzida para
+# 1280x720 numa copia em 5_normalizadas (a original fica como esta) antes de comparar. Proporcao
+# diferente nao e reduzida, e a comparacao continua julgando a captura como ela e.
+$RefW = 1280; $RefH = 720
+Add-Type -AssemblyName System.Drawing
+$normDir = Join-Path $OutDir "5_normalizadas"
+function Normalize-Shot([string]$path) {
+  $img = [Drawing.Image]::FromFile($path)
+  try {
+    if ($img.Width -eq $RefW -and $img.Height -eq $RefH) { return $path }
+    if ([math]::Abs($img.Width * $RefH - $img.Height * $RefW) -gt $img.Height) { return $path }
+    New-Item -ItemType Directory -Force $normDir | Out-Null
+    $out = Join-Path $normDir ((Split-Path (Split-Path $path) -Leaf) + "_" + (Split-Path $path -Leaf))
+    if (Test-Path $out) { return $out }
+    $bmp = New-Object Drawing.Bitmap $RefW, $RefH
+    $g = [Drawing.Graphics]::FromImage($bmp)
+    $g.InterpolationMode = [Drawing.Drawing2D.InterpolationMode]::HighQualityBilinear
+    $g.PixelOffsetMode = [Drawing.Drawing2D.PixelOffsetMode]::HighQuality
+    $g.DrawImage($img, 0, 0, $RefW, $RefH)
+    $bmp.Save($out, [Drawing.Imaging.ImageFormat]::Png)
+    $g.Dispose(); $bmp.Dispose()
+    return $out
+  } finally { $img.Dispose() }
+}
 if ($GravarReferencias -or $GravarReferenciasNovas) { New-Item -ItemType Directory -Force $Referencias | Out-Null }
 $vis = @()
 foreach ($s in $shots) {
   # refn: outra regiao da mesma tela usa a referencia ja gravada (e conferida) daquela tela
   $ref = Join-Path $Referencias ($(if ($s.refn) { $s.refn } else { $s.n }) + ".png")
-  $cands = @($s.f | Where-Object { Test-Path $_ })
+  $cands = @($s.f | Where-Object { Test-Path $_ } | ForEach-Object { Normalize-Shot $_ })
   if (-not $cands.Count) { $vis += [ordered]@{ tela = $s.n; status = "FAIL"; detalhe = "captura ausente" }; continue }
   if (-not $s.refn -and ($GravarReferencias -or ($GravarReferenciasNovas -and -not (Test-Path $ref)))) {
     # referencia = a candidata com mais pixels de texto (a primeira, a do meio da janela, no empate);
     # com fref, so entre as candidatas do meio (texto que rola enquanto e escrito)
-    $refCands = if ($s.fref) { @($s.fref | Where-Object { Test-Path $_ }) } else { $cands }
+    $refCands = if ($s.fref) { @($s.fref | Where-Object { Test-Path $_ } | ForEach-Object { Normalize-Shot $_ }) } else { $cands }
     $best = $null; $bestPx = -1
     foreach ($c in $refCands) {
       $j = (& python -I $Cmp $c $c $s.reg $s.cor) | ConvertFrom-Json

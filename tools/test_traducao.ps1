@@ -104,7 +104,9 @@ if ($ok2) {
 
 # 3. menus XBLA com controle virtual
 $d3 = Join-Path $OutDir "3_menus"
-$s3 = "start@26,down@31,down@32.5,down@34,a@36,down@41,down@42.5,a@44"
+# Menu principal da camada de PC (2026-11-11): CLASSIFICACOES saiu, entao AJUDA E OPCOES e a 3a
+# entrada (2 para baixo); antes eram 3 toques.
+$s3 = "start@26,down@31,down@32.5,a@36,down@41,down@42.5,a@44"
 $r = Run-Port $d3 @("--port_test_input", $s3, "--port_test_shots", (Quote "30=$d3\menu_principal.png;40=$d3\ajuda_e_opcoes.png"),
   "--screenshot", (Quote "$d3\configuracoes.png"), "--screenshot_seconds", "48", "--smoke_timeout_seconds", "100") 160
 $b = Boot $d3
@@ -168,7 +170,9 @@ if ($r.code -eq -999) {
 $shots = @(
   @{ n = "titulo"; f = "$d2\titulo.png"; reg = "420,460,860,492"; cor = "branco"; txt = "PRESSIONE START PARA JOGAR" },
   @{ n = "titulo_copyright"; f = "$d2\titulo.png"; reg = "320,555,900,620"; cor = "branco"; txt = "(C) 2009 MICROSOFT - JOAOHRS2. / TODOS OS DIREITOS RESERVADOS." },
-  @{ n = "menu_principal"; f = "$d3\menu_principal.png"; reg = "165,180,700,560"; cor = "claro"; txt = "JOGAR / CLASSIFICACOES / CONQUISTAS / AJUDA E OPCOES / VOLTAR A BIBLIOTECA DE JOGOS" },
+  # Menu principal pedido pela pessoa (2026-11-11): referencia nova, gravada do proprio port com
+  # -GravarReferenciasNovas (a antiga menu_principal.png, do menu original, fica como registro).
+  @{ n = "menu_principal_recomp"; f = "$d3\menu_principal.png"; reg = "165,180,700,560"; cor = "claro"; txt = "JOGAR / CONQUISTAS / AJUDA E OPCOES / CONFIGURACAO DA RECOMPILACAO / SAIR PARA O DESKTOP" },
   @{ n = "ajuda_e_opcoes"; f = "$d3\ajuda_e_opcoes.png"; reg = "165,180,700,470"; cor = "claro"; txt = "COMO JOGAR / CONTROLES / CONFIGURACOES / CREDITOS" },
   @{ n = "configuracoes"; f = "$d3\configuracoes.png"; reg = "165,180,700,470"; cor = "claro"; txt = "VOLUME DA MUSICA / VOLUME DOS EFEITOS SONOROS / RESTAURAR CONFIGURACOES PADRAO / INVERTER EIXO Y : NAO" },
   @{ n = "selecao_de_jogo"; f = "$d4\selecao_de_jogo.png"; reg = "190,45,1010,125"; cor = "branco"; txt = "PRESSIONE (A) PARA INICIAR O JOGO." },

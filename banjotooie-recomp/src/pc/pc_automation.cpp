@@ -700,6 +700,7 @@ Options ParseCommandLine() {
     else if (a == L"--probe-drawdistance") o.probe_drawdistance = argv[++i];
     else if (a == L"--probe-menu") o.probe_menu = argv[++i];
     else if (a == L"--probe-titlepc") o.probe_titlepc = argv[++i];
+    else if (a == L"--probe-titlemenu") o.probe_titlemenu = argv[++i];
     else if (a == L"--probe-menucursor") o.probe_menucursor = argv[++i];
     else if (a == L"--probe-gamepad") o.probe_gamepad = argv[++i];
     else if (a == L"--probe-dd-maps") o.probe_dd_maps = argv[++i];
@@ -2009,6 +2010,221 @@ void Start(const Options& opts, rex::ui::WindowedAppContext* ui,
         WaitFrames(10);
       }
       Finish(0);
+    }
+
+    // Menu principal (pedido de 2026-11-11), no jogo real e pelo controle virtual:
+    //  1) lê os rótulos da página 0 do menu de título (entrada+0x3B, Latin-1);
+    //     e confere a ordem pedida (JOGAR, CONQUISTAS, AJUDA E OPÇÕES, CONFIGURAÇÃO DA
+    //     RECOMPILAÇÃO, SAIR PARA O DESKTOP) e que CLASSIFICAÇÕES saiu;
+    //  2) entra em AJUDA E OPÇÕES e volta com B (o cursor deve voltar à mesma entrada);
+    //  3) leva o cursor do jogo (tela+7) à penúltima entrada, confere "CONFIGURAÇÃO DA
+    //     RECOMPILAÇÃO", aperta A e confere que o menu de PC (o mesmo do F1) abriu e que o menu
+    //     do jogo ficou onde estava;
+    //  4) leva o cursor à última entrada, confere "SAIR PARA O DESKTOP", grava o JSON e aperta A.
+    //     O programa deve fechar sozinho pelo caminho normal (código 0, motivo no relatório de
+    //     boot); se ainda estiver aberto 20 s depois, o JSON diz isso e a sonda sai com 9.
+    if (!opts.probe_titlemenu.empty()) {
+      input::SetActive(true);
+      std::filesystem::path base = opts.probe_titlemenu;
+      base.replace_extension();
+      auto shot_guest = [&](const char* suffix) {
+        rex::ui::RawImage im = capture();
+        if (!im.width) return;
+        ReduceTo1920(im);
+        std::filesystem::path png = base;
+        png += suffix;
+        WritePng(png, im.width, im.height, im.data.data(), im.stride);
+      };
+      auto json_text = [](const std::string& latin1) {
+        std::string out;
+        for (unsigned char c : latin1) {
+          if (c == '"' || c == '\\') {
+            out += '\\';
+            out += char(c);
+          } else if (c < 0x20) {
+            char b[8];
+            std::snprintf(b, sizeof b, "\\u%04x", c);
+            out += b;
+          } else if (c < 0x80) {
+            out += char(c);
+          } else {  // Latin-1 -> UTF-8
+            out += char(0xC0 | (c >> 6));
+            out += char(0x80 | (c & 0x3F));
+          }
+        }
+        return out;
+      };
+      struct MenuView {
+        bool title = false;
+        uint32_t page = 0, cursor = 0, count = 0;
+        std::vector<std::string> labels;
+      };
+      auto view = [&]() {
+        MenuView v;
+        v.title = ReadU8(kScreenObjAddr + 0x198) == 0;
+        v.page = ReadU32(kScreenObjAddr + 0x2C);
+        v.cursor = ReadU8(kScreenObjAddr + 7);
+        const uint32_t pages = ReadU32(kScreenObjAddr + 0x154);
+        if (pages < 0x40000000u || pages >= 0xA0000000u || v.page >= 16) return v;
+        const uint32_t entries = ReadU32(pages + v.page * 0x2C);
+        const uint32_t count = ReadU32(pages + v.page * 0x2C + 4);
+        if (entries < 0x40000000u || entries >= 0xA0000000u || count > 12) return v;
+        v.count = count;
+        for (uint32_t i = 0; i < count; ++i) {
+          std::string s;
+          for (uint32_t k = 0; k < 0x40; ++k) {
+            const uint8_t c = ReadU8(entries + i * 0x88 + 0x3B + k);
+            if (!c) break;
+            s += char(c);
+          }
+          v.labels.push_back(s);
+        }
+        return v;
+      };
+      auto nav = [&](uint16_t button, int16_t ly) {
+        input::Get().thumb_ly = ly;
+        input::SetButton(button, true);
+        WaitFrames(30);
+        input::SetButton(button, false);
+        input::Get().thumb_ly = 0;
+        WaitFrames(25);
+      };
+      // Um passo de cada vez, conferido no cursor do jogo (tela+7): primeiro só o direcional;
+      // se o cursor não andar, só o analógico (para baixo = -32767, como na sonda
+      // --probe-menucursor). Direcional e analógico juntos em sentidos opostos não andam no
+      // menu de título (1ª execução desta sonda: cursor parado em JOGAR).
+      std::string trace;  // passos: d/u = direcional, D/U = analógico, com o cursor depois
+      auto step = [&](bool down) {
+        const uint32_t before = view().cursor;
+        nav(down ? input::kDpadDown : input::kDpadUp, 0);
+        uint32_t now = view().cursor;
+        trace += (down ? "d" : "u") + std::to_string(before) + ">" + std::to_string(now) + " ";
+        if (now != before) return;
+        input::Get().thumb_ly = down ? -32767 : 32767;
+        WaitFrames(12);
+        input::Get().thumb_ly = 0;
+        WaitFrames(25);
+        now = view().cursor;
+        trace += (down ? "D" : "U") + std::to_string(before) + ">" + std::to_string(now) + " ";
+      };
+      auto move_to = [&](uint32_t target) {
+        for (int i = 0; i < 12; ++i) {
+          const MenuView v = view();
+          if (v.cursor == target) return true;
+          step(v.cursor < target);
+        }
+        return view().cursor == target;
+      };
+      const std::string kRecomp = "CONFIGURA\xC7\xC3O DA RECOMPILA\xC7\xC3O";
+      const std::string kExit = "SAIR PARA O DESKTOP";
+      std::ostringstream o;
+      o << "{\"version\":1";
+      // tela de título: espera o mapa do título e abre o menu com Start
+      while (ReadU16(kMapIdAddr) != 0x14F && steady_clock::now() - t0 < seconds(200))
+        std::this_thread::sleep_for(milliseconds(20));
+      WaitFrames(90);
+      MenuView v0;
+      for (int tries = 0; tries < 6; ++tries) {
+        Tap(input::kStart, 12);
+        WaitFrames(150);
+        v0 = view();
+        if (v0.title && v0.page == 0 && v0.count >= 4) break;
+      }
+      shot_guest("_1_menu.png");
+      o << ",\"title_menu\":" << (v0.title && v0.page == 0 && v0.count >= 4 ? 1 : 0)
+        << ",\"count\":" << v0.count << ",\"labels\":[";
+      for (size_t i = 0; i < v0.labels.size(); ++i)
+        o << (i ? "," : "") << "\"" << json_text(v0.labels[i]) << "\"";
+      o << "],\"recomp_entry_built\":" << pc::state::title_recomp_entry_built.load()
+        << ",\"exit_entry_built\":" << pc::state::title_exit_entry_built.load();
+      const bool has_leaderboards =
+          std::find(v0.labels.begin(), v0.labels.end(), std::string("CLASSIFICA\xC7\xD5" "ES")) !=
+          v0.labels.end();
+      // ordem pedida: a entrada da recompilação logo acima de SAIR PARA O DESKTOP
+      const std::string kHelp = "AJUDA E OP\xC7\xD5" "ES";  // Latin-1, como na entrada
+      const std::vector<std::string> kExpected = {"JOGAR", "CONQUISTAS", kHelp, kRecomp, kExit};
+      const bool order_ok = v0.labels == kExpected;
+      const uint32_t recomp_idx = v0.count >= 2 ? v0.count - 2 : 0;
+      const bool recomp_above_exit = v0.labels.size() >= 2 && v0.labels[recomp_idx] == kRecomp;
+      const bool last_is_exit = !v0.labels.empty() && v0.labels.back() == kExit;
+      o << ",\"classificacoes_ausente\":" << (has_leaderboards ? 0 : 1)
+        << ",\"ordem_pedida\":" << (order_ok ? 1 : 0)
+        << ",\"recompilacao_acima_de_sair\":" << (recomp_above_exit ? 1 : 0)
+        << ",\"ultima_e_sair\":" << (last_is_exit ? 1 : 0);
+      // 2) AJUDA E OPÇÕES entra e volta (com uma entrada a menos, o cursor volta ao lugar?)
+      bool help_ok = false;
+      {
+        const auto it = std::find(v0.labels.begin(), v0.labels.end(), kHelp);
+        if (it != v0.labels.end()) {
+          const uint32_t help_idx = uint32_t(it - v0.labels.begin());
+          if (move_to(0) && move_to(help_idx)) {
+            Tap(input::kA, 12);
+            WaitFrames(90);
+            const uint32_t page_in = view().page;
+            Tap(input::kB, 12);
+            WaitFrames(90);
+            const MenuView vb = view();
+            help_ok = page_in != 0 && vb.title && vb.page == 0 && vb.cursor == help_idx;
+            o << ",\"ajuda_pagina\":" << page_in << ",\"ajuda_volta_cursor\":" << vb.cursor;
+          }
+        }
+        o << ",\"ajuda_entra_e_volta\":" << (help_ok ? 1 : 0);
+      }
+      // 3) CONFIGURAÇÃO DA RECOMPILAÇÃO -> menu de PC
+      const bool at_recomp = recomp_above_exit && move_to(recomp_idx) &&
+                             view().labels.size() > recomp_idx &&
+                             view().labels[view().cursor] == kRecomp;
+      const uint32_t act0 = pc::state::pc_entry_activations.load();
+      bool opened = false;
+      if (at_recomp) {
+        WaitFrames(10);
+        Tap(input::kA, 12);
+        for (int w = 0; w < 90 && !opened; ++w) {
+          WaitFrames(2);
+          opened = pc::menu::IsOpen();
+        }
+      }
+      const uint32_t activated = pc::state::pc_entry_activations.load() - act0;
+      if (opened) {
+        WaitFrames(20);
+        rex::ui::RawImage im = CaptureWindowOnScreen();
+        if (im.width) {
+          ReduceTo1920(im);
+          std::filesystem::path png = base;
+          png += "_2_configuracao.png";
+          WritePng(png, im.width, im.height, im.data.data(), im.stride);
+        }
+        pc::state::menu_close_request.store(true);
+        WaitFrames(40);
+      }
+      const MenuView v1 = view();
+      const bool closed = !pc::menu::IsOpen();
+      const bool stayed = v1.title && v1.page == 0 && v1.cursor == recomp_idx;
+      o << ",\"cursor_na_recompilacao\":" << (at_recomp ? 1 : 0) << ",\"ativada\":" << activated
+        << ",\"menu_pc_aberto\":" << (opened ? 1 : 0) << ",\"menu_pc_fechado\":" << (closed ? 1 : 0)
+        << ",\"menu_do_jogo_no_lugar\":" << (stayed ? 1 : 0);
+      // 4) SAIR PARA O DESKTOP
+      const uint32_t last = v1.count ? v1.count - 1 : 0;
+      const bool at_exit = v1.count >= 4 && move_to(last) && view().labels.size() == v1.count &&
+                           view().labels[view().cursor] == kExit;
+      WaitFrames(10);
+      shot_guest("_3_sair.png");
+      o << ",\"cursor_na_saida\":" << (at_exit ? 1 : 0) << ",\"navegacao\":\"" << trace << "\"";
+      const bool ready = order_ok && recomp_above_exit && last_is_exit && !has_leaderboards &&
+                         help_ok && opened && activated > 0 && closed && stayed && at_exit;
+      o << ",\"pronto_para_sair\":" << (ready ? 1 : 0);
+      std::ofstream(opts.probe_titlemenu) << o.str() << ",\"saida_apertada\":"
+                                          << (at_exit ? 1 : 0) << "}\n";
+      if (!at_exit) Finish(8);
+      const uint32_t exits0 = pc::state::title_exit_activations.load();
+      Tap(input::kA, 12);
+      // o app fecha a janela pela thread da interface; se nada acontecer, registra a falha
+      std::this_thread::sleep_for(seconds(20));
+      std::ofstream(opts.probe_titlemenu)
+          << o.str() << ",\"saida_apertada\":1,\"saida_escolhida\":"
+          << (pc::state::title_exit_activations.load() - exits0)
+          << ",\"programa_ainda_aberto_20s\":1}\n";
+      Finish(9);
     }
 
     // Gamepad: estado do XInput real nos 4 slots + teste sintético que atravessa o MESMO

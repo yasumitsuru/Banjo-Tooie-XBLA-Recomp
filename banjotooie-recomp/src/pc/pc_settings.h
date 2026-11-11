@@ -25,7 +25,7 @@ struct Settings {
   bool show_fps = false;
   bool show_perf_stats = false;
   bool show_collectibles = false;
-  bool pc_menu_entry = true;  // "CLASSIFICAÇÕES" (só Xbox Live) vira "CONFIGURAÇÕES DE PC" nos menus do jogo
+  bool pc_menu_entry = true;  // título: CLASSIFICAÇÕES vira "CONFIGURAÇÃO DA RECOMPILAÇÃO"; pausa: + "CONFIGURAÇÕES DE PC"
   // Diálogos: 0 = Original (1x), 1 = Rápida (2x), 2 = Muito rápida (4x), 3 = Instantânea.
   // Multiplica o tempo que a caixa de texto acumula por letra (gancho 0x8225D8A8).
   int dialog_speed = 0;

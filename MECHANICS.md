@@ -634,3 +634,35 @@ jogo nem na camada de PC**. A correção continua sendo o item 1 do `docs/PLANO.
   existe → y = 62…164, as 7 cabem no mesmo bloco das 6 originais (recomendada: o topo do menu fica
   igual ao original); (B) y inicial 62→41 → y = 41…167 (todas sobem uma linha). Precisa provar por
   captura que o desenho relê `entrada+0` a cada quadro (não verificado).
+
+## 14. Menu principal da camada de PC (pedido da pessoa, 2026-11-11)
+
+Pedido: no menu principal (título, antes de carregar um save) **CLASSIFICAÇÕES sai**,
+**"CONFIGURAÇÃO DA RECOMPILAÇÃO"** (abre o mesmo menu "Configurações de PC" do F1) fica **logo
+acima** de **"SAIR PARA O DESKTOP"**, que é o antigo "VOLTAR À BIBLIOTECA DE JOGOS" e agora fecha
+o programa. O menu de pausa não muda.
+
+Ordem final no jogo real (sonda `--probe-titlemenu`, `_audit/out/m00-r9/titlemenu4.json`):
+JOGAR, CONQUISTAS, AJUDA E OPÇÕES, CONFIGURAÇÃO DA RECOMPILAÇÃO, SAIR PARA O DESKTOP.
+
+| O quê | Endereço | Original (bytes conferidos no `default.xex`) | Gancho do port |
+|---|---|---|---|
+| CLASSIFICAÇÕES do título | `0x822DF090…0x822DF0A4` | `li r6,3; addi r7,..,-0x13C0` (ação `0x822DEC40`); `li r5,13; li r4,1; mr r3,r31; bl 0x822E1380` | `PcHook_TitleSkipLeaderboards` em `0x822DF0A0` pula para `0x822DF0A8` (a entrada não é criada; as seguintes sobem uma linha, porque a altura é dada na criação, §13) |
+| VOLTAR À BIBLIOTECA DE JOGOS | `0x822DF104…0x822DF110` | `li r6,-1; addi r7,..,-0x12C0` (ação `0x822DED40`); `li r4,5` (texto 5); `0x822DF114` (`li r5,0xAD`) é alvo do caminho da pausa | `PcHook_TitleExitEntry` DEPOIS de `0x822DF110` (só o título passa): registra antes a entrada da recompilação (`0x822E1380(página 0, 0x0F01, ícone 0x54, -1, 0x822DEC40)`, voláteis salvos) e troca o texto para o id `0x0F02` |
+| Ação de VOLTAR | `0x822DED40` | `0x822DBC18(tela, 7)` e callback em `tela+0x22C` (`0x822DE9A8` em demonstração, `0x822DE260` no jogo completo); pseudocódigo ev_2fabf7ae9033 | `PcHook_TitleExitSelect` (só com `tela+0x198 = 0`): pede o encerramento normal do programa e não executa o original |
+| Entrada nova escolhida | `0x822DEC40` | ação de CLASSIFICAÇÕES | `PcHook_LeaderboardsSelect` (já existia): página-alvo -1 → abre o menu de PC |
+
+- O despachante do A (`0x822E2860`) já compara a ação da entrada escolhida com `0x822DED40` e,
+  para ela, **não exige perfil** (lido no código gerado) — por isso a saída funciona sem perfil
+  Xbox.
+- Textos novos (Latin-1, como `X360_strings.dat`; `Ç`=0xC7, `Ã`=0xC3, já usados nos menus
+  originais, ex.: id 0x12 "RESTAURAR CONFIGURAÇÕES PADRÃO"): id `0x0F01` "CONFIGURAÇÃO DA
+  RECOMPILAÇÃO" (o jogo quebra em duas linhas, como fazia com "VOLTAR À BIBLIOTECA DE JOGOS") e
+  id `0x0F02` "SAIR PARA O DESKTOP". Os ids 1 e 5 dos textos não mudam (o id `0x112` também tem
+  "VOLTAR À BIBLIOTECA DE JOGOS", em outra tela).
+- `pc_menu_entry = false` (arquivo de opções) devolve CLASSIFICAÇÕES ao título e tira a entrada
+  da recompilação; a saída continua "SAIR PARA O DESKTOP" (no PC não há biblioteca de jogos).
+- Saída: o monitor do app chama o mesmo caminho do botão de fechar (`RequestExitOnUiThread`,
+  código 0, motivo "SAIR PARA O DESKTOP escolhida no menu principal" no relatório de boot). Rede
+  de segurança: se o processo ainda estiver vivo 15 s depois de qualquer pedido de saída, ele é
+  encerrado com o mesmo código (ver PLANO, defeito intermitente de desligamento).

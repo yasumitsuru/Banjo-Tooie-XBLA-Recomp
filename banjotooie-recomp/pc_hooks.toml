@@ -160,7 +160,8 @@ jump_address_on_true = 0x822A9F88
 
 # ---------------------------------------------------------------- Entrada de PC no menu de pausa
 # Banjo 3: "CONFIGURAÇÕES DE PC" é ACRESCENTADA no fim do menu de pausa (7ª entrada), sem
-# renomear CLASSIFICAÇÕES nem mexer no menu de título. 0x822DEE60 monta os menus; a chamada em
+# renomear CLASSIFICAÇÕES da pausa (o menu de título tem ganchos próprios, mais abaixo).
+# 0x822DEE60 monta os menus; a chamada em
 # 0x822DF11C registra a última entrada (SAIR DO JOGO na pausa). Antes de 0x822DF120
 # ("lwz r11,340(r30)"): r30 = tela, r31 = página 0, nenhum registrador volátil vivo.
 [[midasm_hook]]
@@ -176,6 +177,43 @@ registers = ["r30", "r31"]
 address = 0x822E9C28
 name = "PcHook_GetString"
 registers = ["r3", "lr"]
+return_on_true = true
+
+# ---------------------------------------------------------------- Menu principal (título, antes do save)
+# Pedido da pessoa (2026-11-11): no menu principal, CLASSIFICAÇÕES sai; "CONFIGURAÇÃO DA
+# RECOMPILAÇÃO" (abre o mesmo menu do F1) fica logo ACIMA de "SAIR PARA O DESKTOP", que é o
+# antigo "VOLTAR À BIBLIOTECA DE JOGOS" (agora fecha o jogo). O menu de pausa não muda.
+# Ordem final: JOGAR, CONQUISTAS, AJUDA E OPÇÕES, CONFIGURAÇÃO DA RECOMPILAÇÃO, SAIR PARA O DESKTOP.
+# Caminho do título em 0x822DEE60 (tela+0x198 = 0), bytes conferidos no default.xex:
+#   0x822DF090 li r6,3 / 0x822DF094 addi r7,..,-0x13C0 (0x822DEC40) / 0x822DF098 li r5,13 /
+#   0x822DF09C li r4,1 / 0x822DF0A0 mr r3,r31 / 0x822DF0A4 bl 0x822E1380   (CLASSIFICAÇÕES)
+#   0x822DF0A8 lis r11,.. (a próxima entrada recarrega r3..r7: nada depende do retorno)
+# Em 0x822DF0A0 o gancho pula para 0x822DF0A8: CLASSIFICAÇÕES não é registrada. Como cada
+# entrada guarda sua altura ao ser criada (0x822E5740, MECHANICS §13), as seguintes sobem uma
+# linha sem buraco.
+[[midasm_hook]]
+address = 0x822DF0A0
+name = "PcHook_TitleSkipLeaderboards"
+jump_address_on_true = 0x822DF0A8
+
+#   0x822DF108 li r6,-1 / 0x822DF10C addi r7,..,-0x12C0 (0x822DED40) / 0x822DF110 li r4,5
+#   (VOLTAR À BIBLIOTECA DE JOGOS); 0x822DF114 (li r5,0xAD) é alvo do caminho da pausa, então o
+#   gancho fica DEPOIS de 0x822DF110, que só o título executa. r31 = página 0. O gancho
+#   registra antes a entrada da recompilação (0x822E1380, salvando os registradores voláteis
+#   vivos r4/r6/r7) e depois troca o id do texto da saída.
+[[midasm_hook]]
+address = 0x822DF110
+name = "PcHook_TitleExitEntry"
+registers = ["r4", "r31"]
+after_instruction = true
+
+# 0x822DED40 = ação de VOLTAR À BIBLIOTECA DE JOGOS (vai para a tela 7 e grava o callback em
+# tela+0x22C). Com a entrada renomeada, o gancho pede o encerramento normal do programa
+# (mesmo caminho de fechar a janela) e não executa o original.
+[[midasm_hook]]
+address = 0x822DED40
+name = "PcHook_TitleExitSelect"
+registers = ["r3"]
 return_on_true = true
 
 # 0x822DEC40 = ação de CLASSIFICAÇÕES (página-alvo 3) e também da entrada nova (página-alvo -1).

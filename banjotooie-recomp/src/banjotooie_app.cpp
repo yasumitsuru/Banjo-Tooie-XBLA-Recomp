@@ -542,6 +542,15 @@ void BanjotooieApp::MonitorLoop() {
       rep.SetFrames(frames, fps, elapsed);
     }
     if (exit_posted) continue;
+    // Menu principal: SAIR PARA O DESKTOP (gancho em 0x822DED40) fecha o programa pelo mesmo
+    // caminho do botão de fechar a janela (desligamento normal, saves e opções gravados).
+    if (pc::state::exit_to_desktop_request.exchange(false, std::memory_order_acq_rel)) {
+      exit_posted = true;
+      app_context().CallInUIThread([this] {
+        RequestExitOnUiThread(port::kExitOk, "SAIR PARA O DESKTOP escolhida no menu principal");
+      });
+      continue;
+    }
     // MISSAO 02: capturas extras (sem sair), na ordem; uma por vez na thread da interface.
     for (auto& es : extra_shots_) {
       if (!es.taken && !extra_shot_pending_ && frames > 0 && elapsed >= es.at_s) {
@@ -725,4 +734,16 @@ void BanjotooieApp::RequestExitOnUiThread(int code, const std::string& reason) {
   REXLOG_INFO("[port] saindo com codigo {}: {}", code, reason);
   if (window()) window()->RequestClose();  // OnClosing: TerminateTitle + QuitFromUIThread
   PostQuitMessage(code);                   // o loop devolve este codigo (WM_QUIT.wParam)
+  // Rede de seguranca (2026-11-11): o desligamento do runtime as vezes nao termina (regressao
+  // PT-BR da rodada 9: 1 processo parado 150 s depois do estagio "shutdown"; 0 em 4 repeticoes).
+  // Com "SAIR PARA O DESKTOP" o programa tem de fechar de verdade: se ainda estiver vivo 15 s
+  // depois do pedido, encerra com o mesmo codigo. Sem log aqui: o logger pode ja ter sido
+  // destruido; so stderr.
+  std::thread([code] {
+    std::this_thread::sleep_for(std::chrono::seconds(15));
+    std::fprintf(stderr, "[banjotooie] saida demorou mais de 15 s; encerrando com codigo %d\n",
+                 code);
+    std::fflush(stderr);
+    TerminateProcess(GetCurrentProcess(), static_cast<UINT>(code));
+  }).detach();
 }

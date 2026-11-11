@@ -56,6 +56,8 @@ isolados dentro de `app/`; os saves reais da pessoa não foram tocados.
 | 4K (3840×2160) | **IMPLEMENTADO** | auto-teste e captura oficial em 3840×2160 |
 | 60 FPS | **IMPLEMENTADO** | 60,0/60,0 em jogo livre, frametime 16,66 ms. Cenas e abertura seguem a 30 como no original (`scenes60=false`, opção experimental no menu de PC) |
 | Menu START (menu do próprio jogo) | **IMPLEMENTADO**, com **defeito visual** | navegação automática título → JOGAR → JOGO 1 → jogo → pausa; a 7ª entrada "CONFIGURAÇÕES DE PC" se sobrepõe ao contador de Jiggies (item 1 abaixo) |
+| Menu principal da camada de PC (pedido de 2026-11-11) | **IMPLEMENTADO** | JOGAR, CONQUISTAS, AJUDA E OPÇÕES, **CONFIGURAÇÃO DA RECOMPILAÇÃO** (abre o menu do F1), **SAIR PARA O DESKTOP** (fecha o programa); CLASSIFICAÇÕES saiu do título. Sonda `--probe-titlemenu` no jogo real: ordem, entrar/voltar em AJUDA, menu de PC aberto e fechado, saída com código 0 (`MECHANICS.md` §14) |
+| Sistema de log completo | **PENDENTE** (pedido de 2026-11-11) | item 2 abaixo |
 | PT-BR | **PARCIAL** | abertura, menus, seleção, introdução, pausa, submenus, mensagem do sistema e fala do Bottles conferidos (15/15); HUD e diálogos das fases ainda não vistos |
 | Draw distance | **PARCIAL** | 3 perfis (Original/Longe/Total) no código e sondas `--probe-dd*`; comparação visual e custo em FPS não medidos nesta rodada |
 | Gamepad | **PARCIAL** | controle virtual (SDL) conduz o jogo real; controle físico XInput não testado aqui (a pessoa relata que funciona, `DECISOES.md` nº 1) |
@@ -70,13 +72,57 @@ isolados dentro de `app/`; os saves reais da pessoa não foram tocados.
 | — | Fechar a reforma do menu de pausa (codegen + rebuild + auto-teste) | era o item 1 da auditoria de 2026-11-11 | **FEITO** (`3aa27aa`, auto-teste 10/10, gancho conferido no original) |
 | — | Regressão completa depois da camada de PC | era o item 6 da auditoria | **FEITO** (smoke 8/8, PT-BR PASS, negativo 22/22) |
 | 1 | **Corrigir a sobreposição** da entrada "CONFIGURAÇÕES DE PC" com o contador de Jiggies na pausa | aparece toda vez que o jogador pausa; mudança pequena e localizada na camada de PC, fácil de provar com captura. **Causa já lida no original (rodada 9, `MECHANICS.md` §13):** cada entrada guarda sua altura ao ser criada (y inicial 62, passo 21 na pausa), então a 7ª cai em y = 188, onde fica o contador. Correção recomendada: no gancho que já existe, passo 21→17 só com a entrada de PC (as 7 cabem no espaço das 6 originais) | PENDENTE (causa conhecida; correção não feita) |
-| 2 | **Carregar save automaticamente** (`--make-advanced-save` + `--probe-advanced-save` em perfil de teste) | fecha o requisito "saves" (hoje só a gravação tem prova); protege os saves da pessoa antes de qualquer outra mudança no jogo | PENDENTE |
-| 3 | **Draw distance**: capturas dos 3 perfis (`--probe-drawdistance`, `--probe-dd-worlds`) e custo em FPS a 4K | já implementado, falta a prova visual e o efeito nos 60 FPS | PENDENTE |
-| 4 | **PT-BR no HUD e nos diálogos das fases** (continuação da Missão 02) | cobertura de texto ainda parcial; usa a mesma regressão já ajustada | PENDENTE |
-| 5 | **Controle físico (XInput)**: `--probe-gamepad` / `--probe-testpad` com um controle conectado | depende de a pessoa conectar um controle; até lá vale o relato dela | BLOQUEADO (precisa do controle conectado) |
-| 6 | **Auto-detecção de resolução**: numa execução anterior escolheu 1080p porque o Windows reportou a tela Intel (2560×1080) | QoL; não impede 4K (o menu de PC fixa a resolução) | PENDENTE |
-| 7 | **Levar `port-pc-4k60` para `master`** (local) depois dos itens 1–2 | hoje `master` está 12 commits atrás; integrar só com a camada de PC provada e com OK da pessoa | PENDENTE (decisão da pessoa) |
-| 8 | **Conferir a atualidade das bases** (iron-jay, rexglue-sdk, XenonRecomp, MC_LA_Recompiled) | a comparação usa o retrato local de 2026-11-09; consultar remotos só com autorização | PENDENTE |
+| — | **Menu principal**: CLASSIFICAÇÕES sai, CONFIGURAÇÃO DA RECOMPILAÇÃO acima de SAIR PARA O DESKTOP (que fecha o jogo) | pedido da pessoa (2026-11-11) | **FEITO** (sonda `--probe-titlemenu` PASS, regressão PT-BR PASS 15/15, `rebuild_check` 5/5, 36/36) |
+| 2 | **Sistema de log completo** (pedido de 2026-11-11, detalhes na seção "Sistema de log completo" abaixo) | base para depurar e implementar tudo o que vem depois (carga de save, distância de desenho, controle físico) e para achar a causa do defeito intermitente de desligamento (item 2b); vem logo depois do item 1, que é pequeno e já tem a causa lida | PENDENTE |
+| 2b | **Desligamento intermitente do runtime**: numa regressão PT-BR (rodada 9) um processo ficou parado 150 s depois do estágio `shutdown` e outro caiu com 0xC0000005 em `ntdll` (escrita na pilha de outra thread, chamadas em `rexruntime.dll`) depois de `guest_thread_exit`; 0 em 4 repetições e 0 nas sondas | hoje há uma rede de segurança (encerra 15 s depois do pedido de saída, mesmo código); a causa exige símbolos do `rexruntime.dll` (não há PDB) e o log do item 2 | PENDENTE (mitigado, causa desconhecida) |
+| 3 | **Carregar save automaticamente** (`--make-advanced-save` + `--probe-advanced-save` em perfil de teste) | fecha o requisito "saves" (hoje só a gravação tem prova); protege os saves da pessoa antes de qualquer outra mudança no jogo | PENDENTE |
+| 4 | **Draw distance**: capturas dos 3 perfis (`--probe-drawdistance`, `--probe-dd-worlds`) e custo em FPS a 4K | já implementado, falta a prova visual e o efeito nos 60 FPS | PENDENTE |
+| 5 | **PT-BR no HUD e nos diálogos das fases** (continuação da Missão 02) | cobertura de texto ainda parcial; usa a mesma regressão já ajustada | PENDENTE |
+| 6 | **Controle físico (XInput)**: `--probe-gamepad` / `--probe-testpad` com um controle conectado | depende de a pessoa conectar um controle; até lá vale o relato dela | BLOQUEADO (precisa do controle conectado) |
+| 7 | **Auto-detecção de resolução**: numa execução anterior escolheu 1080p porque o Windows reportou a tela Intel (2560×1080) | QoL; não impede 4K (o menu de PC fixa a resolução) | PENDENTE |
+| 8 | **Levar `port-pc-4k60` para `master`** (local) depois dos itens 1–3 | hoje `master` está 12 commits atrás; integrar só com a camada de PC provada e com OK da pessoa | PENDENTE (decisão da pessoa) |
+| 9 | **Conferir a atualidade das bases** (iron-jay, rexglue-sdk, XenonRecomp, MC_LA_Recompiled) | a comparação usa o retrato local de 2026-11-09; consultar remotos só com autorização | PENDENTE |
+
+## Sistema de log completo (item 2, pedido de 2026-11-11; ainda não implementado)
+
+Objetivo da pessoa: um registro "o mais completo possível" do jogo, para depurar problemas e
+apoiar implementações futuras.
+
+**O que já existe hoje (conferido no código):**
+
+- Log do runtime (`rexglue-sdk/src/core/logging.cpp`): `--log_level` (padrão `info`),
+  `--log_file` (vazio = nome sequencial automático), `--log_noisy`, giro a cada
+  `--log_max_file_size_mb` (5 MB) e até `--log_max_files` (20) arquivos.
+- Relatório de boot em JSON (`--boot_report`; padrão `logs\banjotooie_boot.json` ao lado do
+  exe): pré-checagem dos 36 arquivos, estágios com tempo (janela, XEX, primeiro quadro, saída,
+  desligamento), quadros/FPS, código e motivo da saída.
+- Falhas: minidump em `crashdumps\` com código, endereço e módulo (sem símbolos: não há PDB do
+  `rexruntime.dll` nem do exe), e o estágio `crash` no relatório.
+- Mensagens soltas da camada de PC (`REXLOG_INFO` nos ganchos: menus, saves, viagem, saída) e
+  JSON próprios de cada sonda/auto-teste.
+
+**O que falta (proposta, a confirmar com a pessoa antes de implementar):**
+
+1. **Log de sessão sempre ligado**, na pasta de dados do usuário (`logs\sessao-AAAAMMDD-HHMMSS.txt`),
+   com retenção das últimas N sessões e limite de tamanho; não depende de opções de linha de comando.
+2. **Cabeçalho da sessão**: versão do exe (hash), commit Git, Windows, CPU, GPU e driver, monitor e
+   resolução, opções do menu de PC em vigor, pasta do jogo e resultado da pré-checagem.
+3. **Categorias com nível próprio** (ex.: `boot`, `video`, `audio`, `entrada`, `menus`,
+   `saves`, `ganchos`, `estado_do_jogo`, `desempenho`, `desligamento`), configuráveis no menu
+   de PC (Normal / Detalhado / Rastreio) e por linha de comando.
+4. **Eventos do jogo** registrados pelos ganchos que já existem: mudança de mapa (`0x82673720`),
+   estado de cena (`0x8266EF30`), menus abertos/fechados e entrada escolhida, gravação/carga de
+   save e backups, viagem entre mundos, alterações de opções.
+5. **Desempenho**: a cada N segundos, FPS apresentado e da lógica, frametime médio/p95/máximo,
+   quadros repetidos — o mesmo que o auto-teste mede, mas durante o jogo normal.
+6. **Desligamento passo a passo** (cada fase com tempo), para achar a causa do item 2b.
+7. **Falhas com símbolos**: gerar PDB do exe e do `rexruntime.dll` no build e guardar junto, e
+   anexar ao relatório de falha as últimas linhas do log e a pilha resolvida.
+8. **Menu de PC**: nível de log e botão "Abrir pasta de logs"; nada pessoal no log (só caminhos
+   e configurações técnicas).
+9. **Prova automática**: sonda que roda o jogo real e confere que o log da sessão foi criado com
+   cabeçalho, eventos (mapa, menu, saída) e bloco de desempenho; teste negativo (log desligado,
+   pasta sem permissão) e teste de falha que confere a pilha com símbolos.
 
 ## Riscos e cuidados
 
@@ -107,6 +153,21 @@ Sem funcionalidades novas e sem mudança no jogo ou na camada de PC; só documen
 | Arquivos do jogo depois da execução | **PASS 36/36** iguais à linha de base (`_audit/out/m00-r9/integridade_pos_check.json`) |
 | Pergunta aberta da sobreposição | **respondida** pela leitura do original (`MECHANICS.md` §13: `0x822E5740`, `0x822DEE60`, constantes em `0x82005AA0…`); a correção segue PENDENTE no item 1 |
 | Não feito nesta rodada | smoke da M01 e regressão PT-BR da M02 (nada no código mudou desde a rodada 8, onde passaram) |
+
+## Menu principal (pedido de 2026-11-11, depois da rodada 9)
+
+Pedido: tirar CLASSIFICAÇÕES do menu principal, pôr "CONFIGURAÇÃO DA RECOMPILAÇÃO" (abre o
+menu do F1) logo acima de "SAIR PARA O DESKTOP" (antigo "VOLTAR À BIBLIOTECA DE JOGOS", que
+agora fecha o jogo). Detalhes técnicos em `MECHANICS.md` §14. Saídas em `_audit/out/m00-r9/`.
+
+| Verificação | Resultado |
+|---|---|
+| `tools\build_port.cmd codegen` + `npm run build` + `tools\build_port.cmd game` | exit 0 nos três (ganchos conferidos no código gerado) |
+| Sonda `--probe-titlemenu` (jogo real, controle virtual, perfil isolado) | **PASS**: ordem JOGAR / CONQUISTAS / AJUDA E OPÇÕES / CONFIGURAÇÃO DA RECOMPILAÇÃO / SAIR PARA O DESKTOP; CLASSIFICAÇÕES ausente; AJUDA entra e volta ao mesmo lugar; a entrada da recompilação abre o menu de PC e o menu do jogo fica onde estava; SAIR PARA O DESKTOP fecha o programa com código 0 (`titlemenu4.json`, relatório de boot) |
+| Regressão PT-BR (`tools\test_traducao.ps1`) | 1ª execução FAIL por dois desligamentos (item 2b do plano, não ligado aos menus: telas certas); teste ajustado à ordem nova (2 toques até AJUDA) e referência nova `menu_principal_recomp` gravada do port; 2ª execução **PASS** em tudo (29/29, 15/15 telas) |
+| Repetição das etapas 2 e 3 | 4/4 com código 0 |
+| `rebuild_check` | **PASS 5/5** (auto-teste 10/10, imagem 3840×2160) |
+| Arquivos do jogo | **PASS 36/36** (`integridade_final.json`) |
 
 ## Memória do projeto (Understory)
 

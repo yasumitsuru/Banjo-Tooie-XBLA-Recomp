@@ -325,8 +325,9 @@ bool PcHook_SkipRangeCheckB() { return pc::Get().draw_distance == pc::DrawDistan
 
 // ---------------------------------------------------------------- entrada de PC no menu de pausa
 // Banjo 3 (pedido da pessoa): "CONFIGURAÇÕES DE PC" é ACRESCENTADA como 7ª entrada do menu de
-// pausa do jogo, sem renomear nem mexer nas outras (CLASSIFICAÇÕES continua como no original) e
-// sem tocar no menu de título. Lido no default.xex (Ghidra + código gerado):
+// pausa do jogo, sem renomear nem mexer nas outras (CLASSIFICAÇÕES da pausa continua como no
+// original). O menu de título tem seus próprios ganchos (mais abaixo, "menu principal").
+// Lido no default.xex (Ghidra + código gerado):
 //  - 0x822DEE60 monta as páginas do menu; com tela+0x198 != 0 (pausa) a página 0 recebe
 //    CONTINUAR JOGO (0x16), VER TOTAIS (0x17), AJUDA E OPÇÕES (3), CLASSIFICAÇÕES (1),
 //    CONQUISTAS (2) e por último SAIR DO JOGO (0x3D), pela chamada compartilhada em 0x822DF11C.
@@ -383,32 +384,106 @@ void PcHook_PauseMenuBuilt(PPCRegister& r30, PPCRegister& r31) {
 // inclusive "CLASSIFICAÇÕES", vêm da tradução sem mudança.
 // O gancho também registra pares (id, chamador) para a sonda --probe-menu.
 namespace {
-uint32_t PcMenuLabel() {
-  static uint32_t addr = 0;
-  if (addr) return addr;
-  // Latin-1, como o arquivo da tradução: Ç = 0xC7, Õ = 0xD5 (rotina de acentos 0x825F3940)
-  static const uint8_t kText[] = {'C', 'O', 'N', 'F', 'I', 'G', 'U', 'R', 'A', 0xC7,
-                                  0xD5, 'E', 'S', ' ', 'D', 'E', ' ', 'P', 'C', 0};
+// Latin-1, como o arquivo da tradução (rotina de acentos 0x825F3940): Ç = 0xC7, Ã = 0xC3,
+// Õ = 0xD5 (os três já aparecem nos textos dos menus, ex.: "RESTAURAR CONFIGURAÇÕES PADRÃO").
+// O jogo copia o rótulo para a entrada (até 0x40 bytes, 0x822E5740).
+constexpr uint8_t kLabelPc[] = {'C', 'O', 'N', 'F', 'I', 'G', 'U', 'R', 'A', 0xC7,
+                                0xD5, 'E', 'S', ' ', 'D', 'E', ' ', 'P', 'C', 0};
+constexpr uint8_t kLabelRecomp[] = {'C', 'O', 'N', 'F', 'I', 'G', 'U', 'R', 'A', 0xC7,
+                                    0xC3, 'O', ' ', 'D', 'A', ' ', 'R', 'E', 'C', 'O',
+                                    'M', 'P', 'I', 'L', 'A', 0xC7, 0xC3, 'O', 0};
+constexpr uint8_t kLabelExit[] = {'S', 'A', 'I', 'R', ' ', 'P', 'A', 'R', 'A', ' ',
+                                  'O', ' ', 'D', 'E', 'S', 'K', 'T', 'O', 'P', 0};
+static_assert(sizeof(kLabelRecomp) <= 0x40 && sizeof(kLabelExit) <= 0x40);
+
+// Cópia do texto na memória do jogo, feita uma vez por rótulo (thread do jogo).
+uint32_t GuestLabel(uint32_t& slot, const uint8_t* text, size_t size) {
+  if (slot) return slot;
   auto* mem = rex::system::kernel_state()->memory();
   const uint32_t a = mem->SystemHeapAlloc(0x40);
   if (!a) return 0;
-  std::memcpy(GuestBase() + a, kText, sizeof(kText));
-  addr = a;
-  return addr;
+  std::memcpy(GuestBase() + a, text, size);
+  slot = a;
+  return slot;
+}
+
+uint32_t LabelFor(uint32_t id) {
+  static uint32_t slot_pc = 0, slot_recomp = 0, slot_exit = 0;
+  if (id == kStrPcSettings) return GuestLabel(slot_pc, kLabelPc, sizeof(kLabelPc));
+  if (id == pc::state::kTitleRecompEntryStringId)
+    return GuestLabel(slot_recomp, kLabelRecomp, sizeof(kLabelRecomp));
+  if (id == pc::state::kTitleExitEntryStringId)
+    return GuestLabel(slot_exit, kLabelExit, sizeof(kLabelExit));
+  return 0;
 }
 }  // namespace
 
 bool PcHook_GetString(PPCRegister& r3, uint64_t& lr) {
   const uint32_t id = r3.u32;
   pc::state::NoteStringRequest(id, static_cast<uint32_t>(lr));
-  if (id == kStrPcSettings) {
-    const uint32_t label = PcMenuLabel();
-    if (label) {
-      r3.u64 = label;
-      return true;  // devolve o texto novo sem consultar a tabela (o id não existe nela)
-    }
+  if (const uint32_t label = LabelFor(id)) {
+    r3.u64 = label;
+    return true;  // devolve o texto novo sem consultar a tabela (o id não existe nela)
   }
   return false;
+}
+
+// ---------------------------------------------------------------- menu principal (título)
+// Pedido da pessoa (2026-11-11): ordem final JOGAR, CONQUISTAS, AJUDA E OPÇÕES,
+// CONFIGURAÇÃO DA RECOMPILAÇÃO, SAIR PARA O DESKTOP.
+//
+// Em 0x822DF0A0 (caminho do título de 0x822DEE60) a chamada original registraria
+// CLASSIFICAÇÕES (texto 1, ícone 13, página-alvo 3); true pula para 0x822DF0A8 e ela não entra
+// no menu. A altura de cada entrada é dada na criação (0x822E5740), então as seguintes sobem.
+bool PcHook_TitleSkipLeaderboards() { return pc::Get().pc_menu_entry; }
+
+// Depois de 0x822DF110 ("li r4,5", só o caminho do título passa aqui; r31 = página 0):
+//  1) registra "CONFIGURAÇÃO DA RECOMPILAÇÃO" com a ação de CLASSIFICAÇÕES (0x822DEC40) e
+//     página-alvo -1, que PcHook_LeaderboardsSelect transforma em "abrir o menu de PC" (o do
+//     F1); r4/r6/r7 já estão carregados para a saída, por isso os voláteis são salvos e
+//     restaurados em volta da chamada (como em PcHook_PauseMenuBuilt);
+//  2) troca o texto de VOLTAR À BIBLIOTECA DE JOGOS por SAIR PARA O DESKTOP (id novo; o id 5
+//     dos textos não muda, e o jogo também tem o id 0x112 com o mesmo texto em outra tela).
+void PcHook_TitleExitEntry(PPCRegister& r4, PPCRegister& r31) {
+  if (r4.u32 != 5) return;
+  const uint32_t page0 = r31.u32;
+  if (pc::Get().pc_menu_entry && GuestHeapPtr(page0)) {
+    auto* ks = rex::system::kernel_state();
+    auto* dispatcher = ks ? ks->function_dispatcher() : nullptr;
+    auto* ts = rex::runtime::ThreadState::Get();
+    if (dispatcher && ts) {
+      const uint32_t before = ReadU32(page0 + 4);
+      __try {
+        PPCContext* ctx = ts->context();
+        VolatileSnapshot snap{};
+        SaveVolatile(*ctx, snap);
+        uint64_t args[5] = {page0, pc::state::kTitleRecompEntryStringId, kIconSettings, ~0ull,
+                            kLeaderboardsAction};
+        dispatcher->Execute(ts, kAddMenuEntry, args, 5);
+        RestoreVolatile(*ctx, snap);
+        pc::state::title_recomp_entry_built.fetch_add(1, std::memory_order_relaxed);
+        REXLOG_INFO("menu principal: CONFIGURAÇÃO DA RECOMPILAÇÃO acrescentada ({} -> {} entradas)",
+                    before, ReadU32(page0 + 4));
+      } __except (EXCEPTION_EXECUTE_HANDLER) {
+        REXLOG_ERROR("menu principal: falha ao acrescentar CONFIGURAÇÃO DA RECOMPILAÇÃO");
+      }
+    }
+  }
+  r4.u64 = pc::state::kTitleExitEntryStringId;
+  pc::state::title_exit_entry_built.fetch_add(1, std::memory_order_relaxed);
+}
+
+// Ação 0x822DED40 (a entrada de saída do menu principal; 0x822E2860 a chama sem exigir
+// perfil). No PC não existe biblioteca de jogos: pede o encerramento normal do programa
+// (o monitor do app fecha a janela pela thread da interface, como o botão de fechar) e não
+// executa o original. Só no menu principal (tela+0x198 = 0).
+bool PcHook_TitleExitSelect(PPCRegister& r3) {
+  const uint32_t screen = r3.u32;
+  if (!GuestHeapPtr(screen) || ReadU8(screen + 0x198) != 0) return false;
+  pc::state::title_exit_activations.fetch_add(1, std::memory_order_relaxed);
+  pc::state::exit_to_desktop_request.store(true, std::memory_order_release);
+  REXLOG_INFO("menu principal: SAIR PARA O DESKTOP escolhida; encerrando o programa");
+  return true;
 }
 
 // Ação compartilhada (0x822DEC40), antes de o handler criar a pilha: retornar aqui não deixa

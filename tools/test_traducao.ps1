@@ -150,6 +150,13 @@ for ($i = 0; $i -le 20; $i++) {
   $f = [string]::Format($inv, "{0}\dialogo_bottles_{1:00}.png", $d4b, $i)
   $sh4b += [string]::Format($inv, "{0}={1}", $t, $f); $bottles += $f
 }
+# Pausa da camada de PC (2026-11-12): CLASSIFICACOES saiu da pausa e CONFIGURACOES DE PC foi para
+# dentro de AJUDA E OPCOES. Esta etapa confere a TRADUCAO dos textos originais da pausa (inclusive
+# a mensagem do Xbox LIVE, que so abre por CLASSIFICACOES), por isso roda com a camada de menus
+# desligada (pc_menu_entry = false, opcao do proprio port). A pausa nova e provada pelo passo
+# "pcmenu" do auto-teste (--self-test).
+New-Item -ItemType Directory -Force "$d4b\user" | Out-Null
+Set-Content -Path "$d4b\user\pc_settings.toml" -Value "pc_menu_entry = false" -Encoding ascii
 $r = Run-Port $d4b @("--port_test_input", $s4b, "--port_test_shots", (Quote ($sh4b -join ";")),
   "--screenshot", (Quote "$d4b\final.png"), "--screenshot_seconds", "131.5", "--smoke_timeout_seconds", "170") 230
 $b = Boot $d4b

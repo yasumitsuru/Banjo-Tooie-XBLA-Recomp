@@ -15,13 +15,13 @@ inline std::atomic<uint32_t> cutscene_state{0};              // byte 0x8266EF30 
 inline std::atomic<uint64_t> dialog_type_calls{0};           // quadros em que uma caixa de texto digitou
 inline std::atomic<uint32_t> dialog_box{0};                  // última caixa de texto (ponteiro convidado)
 
-// Entrada "CONFIGURAÇÕES DE PC" (7ª entrada, acrescentada no fim do menu de pausa; id de
+// Entrada "CONFIGURAÇÕES DE PC" (no fim de AJUDA E OPÇÕES da pausa; id de
 // texto novo kPcMenuEntryStringId, devolvido pelo gancho GetString em pc_hooks.cpp).
 inline constexpr uint32_t kPcMenuEntryStringId = 0x0F00;  // fora dos 1521 textos do jogo
 inline std::atomic<uint32_t> pc_entry_label_requests{0};     // vezes que o jogo pediu o rótulo
 inline std::atomic<uint32_t> pc_entry_activations{0};        // vezes que a entrada foi escolhida
-inline std::atomic<uint32_t> pause_entry_added{0};           // vezes que a 7ª entrada foi acrescentada
-inline std::atomic<uint32_t> pause_entry_count{0};           // entradas da página 0 depois disso
+inline std::atomic<uint32_t> pause_entry_added{0};           // vezes que CONFIGURAÇÕES DE PC entrou em AJUDA E OPÇÕES (pausa)
+inline std::atomic<uint32_t> pause_entry_count{0};           // entradas da página AJUDA E OPÇÕES depois disso
 inline std::atomic<bool> menu_open_request{false};           // abrir o menu de PC (consumido pela UI)
 inline std::atomic<bool> menu_close_request{false};          // fechar (auto-teste)
 

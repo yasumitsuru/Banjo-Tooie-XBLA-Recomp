@@ -729,3 +729,38 @@ entradas e o cursor em SAIR; A → confirmada, programa fechado com código 0.
   trava a partir de uma base imutável: o valor é `base_guest + Δhost × num / den`, exato (a
   razão 50 MHz/10 MHz reduz a 5/1), contínuo e nunca deixado pela metade quando o desligamento
   mata uma thread (PLANO, item 2b).
+
+## 17. Menu de pausa e ícone do Kazooie (pedido de 2026-11-12)
+
+Pedidos: (1) trocar o sapo pelo Kazooie nas opções de configuração criadas pelo port; (2) tirar
+CLASSIFICAÇÕES da pausa durante o jogo; (3) pôr CONFIGURAÇÕES DE PC dentro de AJUDA E OPÇÕES;
+(4) a opção de sair sempre por último.
+
+Lido no original (bytes do `default.xex` alinhados ao código gerado de `0x822DEE58`, 1621
+instruções, 0 divergências nos `bl`; pseudocódigo de `0x822E1188` ev_900e39c4beeb e `0x822E5740`
+ev_7e25b741911f):
+
+| O quê | Endereço | Original |
+|---|---|---|
+| CLASSIFICAÇÕES da pausa | `0x822DF038…0x822DF050` | `li r6,3; addi r7,..,-0x13C0` (`0x822DEC40`); `li r5,13`; `li r4,1`; `mr r3,r31` (`0x822DF04C`); `bl 0x822E1380` (`0x822DF050`); a seguinte (CONQUISTAS) começa em `0x822DF054` |
+| SAIR DO JOGO da pausa | `0x822DF07C` | `li r4,61`; registrada por último pela chamada compartilhada `0x822DF11C` |
+| página 1 = AJUDA E OPÇÕES | `0x822DF120…0x822DF2CC` | `0x822E1188(tela+0x154+0x2C, 1)` zera a página; COMO JOGAR (6, ícone 15), CONTROLES (7, ícone 111), CONFIGURAÇÕES (8, ícone 84 = sapo, página-alvo 2); título: + CRÉDITOS (9); pausa: + DICAS DE JIGGIES (247) e REINSTALAR EXTRAS (347) quando se aplicam |
+| fim da página 1 | `0x822DF2D0` | `lwz r11,340(r30)`: os dois caminhos se juntam (rótulo `loc_822DF2D0`) antes da página seguinte |
+| ícone da entrada | `0x822E5740` | `entrada+8 = ícone` (byte); o Kazooie é o ícone **13** (o de CLASSIFICAÇÕES, `0x822DF044 li r5,13`) |
+
+O que o build faz (`pc_hooks.toml`, `pc_hooks.cpp`; valores de `mechanics.json` → `pc.menu`):
+- `PcHook_PauseSkipLeaderboards` em `0x822DF04C` pula para `0x822DF054`: CLASSIFICAÇÕES não entra
+  na pausa e as seguintes sobem uma linha. A pausa fica CONTINUAR JOGO, VER TOTAIS, AJUDA E
+  OPÇÕES, CONQUISTAS, **SAIR DO JOGO (última)**. Isso também acaba com a sobreposição da antiga
+  7ª entrada com o contador de Jiggies (§13).
+- `PcHook_HelpPageBuilt` antes de `0x822DF2D0`, só na pausa (`tela+0x198 ≠ 0`), acrescenta
+  "CONFIGURAÇÕES DE PC" (id `0x0F00`, ícone 13, página-alvo -1, ação `0x822DEC40`) **no fim de
+  AJUDA E OPÇÕES**; a antiga entrada no fim da página 0 (gancho em `0x822DF120`) foi retirada.
+- "CONFIGURAÇÃO DA RECOMPILAÇÃO" do menu principal também usa o ícone 13. A entrada
+  CONFIGURAÇÕES do próprio jogo continua com o sapo original.
+- Com `pc_menu_entry = false` tudo volta ao original (a regressão PT-BR usa isso na etapa da
+  pausa para continuar conferindo CLASSIFICAÇÕES e a mensagem do Xbox LIVE).
+
+Prova no jogo real (`--self-test`, passo `pcmenu`, `_audit/out/m00-r12/st2.json` e capturas
+`st.png`/`st2_ajuda.png`): pausa com 5 entradas, CLASSIFICAÇÕES ausente, SAIR DO JOGO por último;
+AJUDA E OPÇÕES com 4 entradas, CONFIGURAÇÕES DE PC por último com ícone 13; A abre o menu de PC.

@@ -216,6 +216,30 @@
       "group": "tempo",
       "value": 100,
       "source": "funcao 0x822F9CB8 min(100, (TBL-ultimo)*100/(freq/Hz)+1)"
+    },
+    {
+      "name": "menu: icone do Kazooie (o de CLASSIFICACOES)",
+      "group": "menu",
+      "value": 13,
+      "source": "0x822DF044 'li r5,13' em 0x822DEE60; icone gravado em entrada+8 por 0x822E5740"
+    },
+    {
+      "name": "menu: pagina de AJUDA E OPCOES",
+      "group": "menu",
+      "value": 1,
+      "source": "0x822DF124 'li r4,1' + 0x822DF128 'addi r31,r11,44' em 0x822DEE60"
+    },
+    {
+      "name": "menu: texto de CONFIGURACOES (pagina AJUDA E OPCOES)",
+      "group": "menu",
+      "value": 8,
+      "source": "0x822DF1E8 'li r4,8' em 0x822DEE60"
+    },
+    {
+      "name": "menu: texto de SAIR DO JOGO (pausa, ultima entrada)",
+      "group": "menu",
+      "value": 61,
+      "source": "0x822DF07C 'li r4,61' em 0x822DEE60"
     }
   ],
   "pc": {
@@ -415,12 +439,17 @@
       "hook_title_skip_leaderboards": "0x822DF0A0",
       "title_skip_to": "0x822DF0A8",
       "hook_title_exit_entry": "0x822DF110",
-      "hook_pause_menu_built": "0x822DF120",
       "hook_get_string": "0x822E9C28",
       "title_start_y": 66,
       "title_step_y": 26,
       "pause_start_y": 62,
-      "pause_step_y": 21
+      "pause_step_y": 21,
+      "hook_pause_skip_leaderboards": "0x822DF04C",
+      "pause_skip_to": "0x822DF054",
+      "hook_help_page_built": "0x822DF2D0",
+      "help_page_index": 1,
+      "kazooie_icon": 13,
+      "entry_icon_off": "0x8"
     }
   }
 }

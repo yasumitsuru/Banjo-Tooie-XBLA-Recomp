@@ -89,7 +89,8 @@ def main():
     menu_hooks = {
         "PcHook_TitleSkipLeaderboards": menu["hook_title_skip_leaderboards"],
         "PcHook_TitleExitEntry": menu["hook_title_exit_entry"],
-        "PcHook_PauseMenuBuilt": menu["hook_pause_menu_built"],
+        "PcHook_PauseSkipLeaderboards": menu["hook_pause_skip_leaderboards"],
+        "PcHook_HelpPageBuilt": menu["hook_help_page_built"],
         "PcHook_GetString": menu["hook_get_string"],
         "PcHook_LeaderboardsSelect": menu["leaderboards_action"],
         "PcHook_TitleExitSelect": menu["exit_action"],
@@ -158,7 +159,12 @@ def main():
     hx("hook_title_skip_leaderboards", "titulo: registro de CLASSIFICACOES")
     hx("title_skip_to", "titulo: proxima entrada (JOGAR/CONQUISTAS...)")
     hx("hook_title_exit_entry", "titulo: depois de 'li r4,5'")
-    hx("hook_pause_menu_built", "pausa: depois de SAIR DO JOGO")
+    hx("hook_pause_skip_leaderboards", "pausa: registro de CLASSIFICACOES")
+    hx("pause_skip_to", "pausa: proxima entrada (CONQUISTAS)")
+    hx("hook_help_page_built", "fim da pagina AJUDA E OPCOES (titulo e pausa)")
+    dec("help_page_index", "pagina AJUDA E OPCOES")
+    dec("kazooie_icon", "icone do Kazooie (o de CLASSIFICACOES)")
+    hx("entry_icon_off", "byte do icone na entrada (0x822E5740)")
     hx("hook_get_string", "GetString(id)")
     dec("title_start_y", "y da 1a entrada no titulo (0x82005AAC)")
     dec("title_step_y", "passo no titulo (0x82005AB4)")

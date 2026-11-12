@@ -3191,10 +3191,13 @@ void Start(const Options& opts, rex::ui::WindowedAppContext* ui,
         detail += buf;
         push({"tracker", ok, detail});
       }
-      // Entrada "CONFIGURAÇÕES DE PC" no menu de pausa do jogo (7ª entrada, acrescentada no
-      // fim do menu, id 0x0F00): o jogo pede o rótulo novo e, confirmada, a entrada abre o
-      // menu de PC.
+      // Menu de pausa (pedido de 2026-11-12, MECHANICS.md §17): sem CLASSIFICAÇÕES, SAIR DO
+      // JOGO por último e "CONFIGURAÇÕES DE PC" (id 0x0F00, ícone do Kazooie = 13) no fim de
+      // AJUDA E OPÇÕES. O passo lê as entradas do próprio jogo (rótulo em entrada+0x3B, ícone em
+      // entrada+8), entra em AJUDA E OPÇÕES, desce até a última entrada conferindo o cursor real
+      // (tela+7) e confirma com A: a entrada tem de abrir o menu de PC.
       {
+        namespace mm = pc::mechanics;
         if (ReadU8(0x8266EF55) != 1) {
           for (int tries = 0; tries < 4 && ReadU8(0x8266EF55) != 1; ++tries) {
             Tap(input::kStart, 12);
@@ -3202,49 +3205,97 @@ void Start(const Options& opts, rex::ui::WindowedAppContext* ui,
           }
         }
         WaitFrames(60);
-        auto nav = [&](uint16_t button, int16_t ly, int hold_frames) {
-          input::Get().thumb_ly = ly;
-          input::SetButton(button, true);
-          WaitFrames(hold_frames);
-          input::SetButton(button, false);
-          input::Get().thumb_ly = 0;
-          WaitFrames(25);
+        struct Entry {
+          std::string label;
+          uint32_t icon;
         };
-        // volta ao topo (CONTINUAR JOGO) e desce até a entrada acrescentada (7ª, no fim): o
-        // cursor real do jogo (tela+7) confirma a posição antes do A, para não confirmar
-        // CLASSIFICAÇÕES nem SAIR DO JOGO.
-        auto cursor_and_count = [&]() {
+        auto page_entries = [&](uint32_t* page_out, uint32_t* cursor_out) {
+          std::vector<Entry> list;
           const uint32_t pages = ReadU32(kScreenObjAddr + 0x154);
           const uint32_t page = ReadU32(kScreenObjAddr + 0x2C);
-          uint32_t count = 0;
-          if (pages >= 0x40000000u && pages < 0xA0000000u && page < 16) {
-            count = ReadU32(pages + page * 0x2C + 4);
-            if (count > 12) count = 0;
+          if (page_out) *page_out = page;
+          if (cursor_out) *cursor_out = ReadU8(kScreenObjAddr + mm::kScreenCursorOff);
+          if (pages < 0x40000000u || pages >= 0xA0000000u || page >= 16) return list;
+          const uint32_t entries = ReadU32(pages + page * 0x2C);
+          const uint32_t count = ReadU32(pages + page * 0x2C + 4);
+          if (entries < 0x40000000u || entries >= 0xA0000000u || count > 12) return list;
+          for (uint32_t i = 0; i < count; ++i) {
+            const uint32_t e = entries + i * mm::kEntrySize;
+            std::string t;
+            for (uint32_t k = 0; k < mm::kEntryLabelMax; ++k) {
+              const uint8_t c = ReadU8(e + mm::kEntryLabelOff + k);
+              if (!c) break;
+              t += char(c);
+            }
+            list.push_back({t, ReadU8(e + mm::kEntryIconOff)});
           }
-          return std::make_pair(uint32_t(ReadU8(kScreenObjAddr + 7)), count);
+          return list;
         };
-        for (int i = 0; i < 6; ++i) nav(input::kDpadUp, -32767, 30);
-        const uint32_t labels0 = pc::state::pc_entry_label_requests.load();
-        for (int i = 0; i < 6; ++i) nav(input::kDpadDown, 32767, 45);
-        {
-          uint32_t last_cursor = 0xFF;
-          int stalls = 0;
-          for (int extra = 0; extra < 8; ++extra) {
-            const auto cc = cursor_and_count();
-            if (cc.second > 1 && cc.first + 1 == cc.second) break;  // já está na última entrada
-            if (cc.first == last_cursor && ++stalls >= 2) break;    // não anda mais
-            last_cursor = cc.first;
-            nav(input::kDpadDown, 32767, 30);
+        auto index_of = [](const std::vector<Entry>& l, const std::string& t) {
+          for (size_t i = 0; i < l.size(); ++i)
+            if (l[i].label == t) return int(i);
+          return -1;
+        };
+        auto step_to = [&](uint32_t target) {
+          for (int i = 0; i < 12; ++i) {
+            uint32_t cur = 0;
+            page_entries(nullptr, &cur);
+            if (cur == target) return true;
+            const bool down = cur < target;
+            input::SetButton(down ? input::kDpadDown : input::kDpadUp, true);
+            WaitFrames(30);
+            input::SetButton(down ? input::kDpadDown : input::kDpadUp, false);
+            WaitFrames(25);
           }
+          uint32_t cur = 0;
+          page_entries(nullptr, &cur);
+          return cur == target;
+        };
+        const std::string kLeader = "CLASSIFICA\xC7\xD5" "ES";
+        const std::string kQuit = "SAIR DO JOGO";
+        const std::string kHelp = "AJUDA E OP\xC7\xD5" "ES";
+        const std::string kPcEntry = "CONFIGURA\xC7\xD5" "ES DE PC";
+        uint32_t page0 = 99;
+        const std::vector<Entry> p0 = page_entries(&page0, nullptr);
+        const bool no_leader = index_of(p0, kLeader) < 0;
+        const bool quit_last = !p0.empty() && p0.back().label == kQuit;
+        const bool pc_not_on_p0 = index_of(p0, kPcEntry) < 0;
+        const int help_idx = index_of(p0, kHelp);
+        bool in_help = false;
+        uint32_t page1 = 99;
+        std::vector<Entry> p1;
+        if (page0 == 0 && help_idx >= 0 && step_to(uint32_t(help_idx))) {
+          Tap(input::kA, 12);
+          for (int w = 0; w < 60 && !in_help; ++w) {
+            WaitFrames(2);
+            p1 = page_entries(&page1, nullptr);
+            in_help = page1 == mm::kHelpPageIndex && !p1.empty();
+          }
+          WaitFrames(150);  // os rótulos da página aparecem letra a letra (~2 s)
+          p1 = page_entries(&page1, nullptr);
         }
+        const bool pc_last = !p1.empty() && p1.back().label == kPcEntry;
+        const bool kazooie = pc_last && p1.back().icon == mm::kKazooieIcon;
+        rex::ui::RawImage help_img = capture();
+        if (help_img.width) {
+          ReduceTo1920(help_img);
+          std::filesystem::path png = opts.self_test;
+          png.replace_extension();
+          png += "_ajuda.png";
+          WritePng(png, help_img.width, help_img.height, help_img.data.data(), help_img.stride);
+        }
+        const uint32_t labels0 = pc::state::pc_entry_label_requests.load();
+        const bool at_pc = pc_last && step_to(uint32_t(p1.size() - 1));
         WaitFrames(20);
         const uint32_t labels = pc::state::pc_entry_label_requests.load();
         const uint32_t act0 = pc::state::pc_entry_activations.load();
-        Tap(input::kA, 12);
         bool opened = false;
-        for (int w = 0; w < 60 && !opened; ++w) {
-          WaitFrames(2);
-          opened = pc::menu::IsOpen();
+        if (at_pc) {
+          Tap(input::kA, 12);
+          for (int w = 0; w < 60 && !opened; ++w) {
+            WaitFrames(2);
+            opened = pc::menu::IsOpen();
+          }
         }
         const uint32_t activated = pc::state::pc_entry_activations.load() - act0;
         WaitFrames(20);  // alguns quadros da interface com o menu já desenhado
@@ -3256,12 +3307,18 @@ void Start(const Options& opts, rex::ui::WindowedAppContext* ui,
           png += "_pcmenu.png";
           WritePng(png, menu_img.width, menu_img.height, menu_img.data.data(), menu_img.stride);
         }
-        const bool ok = labels > 0 && activated > 0 && opened;
-        std::snprintf(buf, sizeof buf,
-                      "rótulo pedido pelo jogo %u vezes (%u na navegação); entrada confirmada %u "
-                      "vez(es); menu de PC aberto=%d",
-                      labels, labels - labels0, activated, opened ? 1 : 0);
-        push({"pcmenu", ok, buf});
+        const bool ok = no_leader && quit_last && pc_not_on_p0 && in_help && pc_last && kazooie &&
+                        activated > 0 && opened;
+        char pbuf[512];
+        std::snprintf(pbuf, sizeof pbuf,
+                      "pausa com %zu entradas (CLASSIFICAÇÕES ausente=%d, SAIR DO JOGO por "
+                      "último=%d); AJUDA E OPÇÕES com %zu entradas, CONFIGURAÇÕES DE PC por "
+                      "último=%d com ícone %u (Kazooie=%u); rótulo pedido %u vez(es) na "
+                      "navegação; entrada confirmada %u vez(es); menu de PC aberto=%d",
+                      p0.size(), no_leader ? 1 : 0, quit_last ? 1 : 0, p1.size(), pc_last ? 1 : 0,
+                      p1.empty() ? 0u : p1.back().icon, mm::kKazooieIcon, labels - labels0,
+                      activated, opened ? 1 : 0);
+        push({"pcmenu", ok, pbuf});
         if (opened) pc::state::menu_close_request.store(true);
         WaitFrames(10);
       }

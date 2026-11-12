@@ -158,15 +158,27 @@ address = 0x822A9F84
 name = "PcHook_SkipRangeCheckB"
 jump_address_on_true = 0x822A9F88
 
-# ---------------------------------------------------------------- Entrada de PC no menu de pausa
-# Banjo 3: "CONFIGURAÇÕES DE PC" é ACRESCENTADA no fim do menu de pausa (7ª entrada), sem
-# renomear CLASSIFICAÇÕES da pausa (o menu de título tem ganchos próprios, mais abaixo).
-# 0x822DEE60 monta os menus; a chamada em
-# 0x822DF11C registra a última entrada (SAIR DO JOGO na pausa). Antes de 0x822DF120
-# ("lwz r11,340(r30)"): r30 = tela, r31 = página 0, nenhum registrador volátil vivo.
+# ---------------------------------------------------------------- Menu de pausa (pedido de 2026-11-12)
+# A pausa fica CONTINUAR JOGO, VER TOTAIS, AJUDA E OPÇÕES, CONQUISTAS, SAIR DO JOGO (sair sempre
+# por último) e "CONFIGURAÇÕES DE PC" passa para DENTRO de AJUDA E OPÇÕES, com o ícone do Kazooie.
+# MECHANICS.md §17. Bytes conferidos no default.xex:
+#   0x822DF03C li r6,3 / 0x822DF040 addi r7,..,-0x13C0 (0x822DEC40) / 0x822DF044 li r5,13 /
+#   0x822DF048 li r4,1 / 0x822DF04C mr r3,r31 / 0x822DF050 bl 0x822E1380   (CLASSIFICAÇÕES da pausa)
+#   0x822DF054 lis r11,.. (CONQUISTAS recarrega r3..r7)
+# true em 0x822DF04C pula para 0x822DF054: CLASSIFICAÇÕES não entra na pausa.
 [[midasm_hook]]
-address = 0x822DF120
-name = "PcHook_PauseMenuBuilt"
+address = 0x822DF04C
+name = "PcHook_PauseSkipLeaderboards"
+jump_address_on_true = 0x822DF054
+
+# Página 1 (AJUDA E OPÇÕES, tela+0x154 + 0x2C): COMO JOGAR (6), CONTROLES (7), CONFIGURAÇÕES (8)
+# e, conforme o caso, CRÉDITOS (9, título) / DICAS DE JIGGIES (247) / REINSTALAR EXTRAS (347).
+# 0x822DF2D0 ("lwz r11,340(r30)") é onde os caminhos do título e da pausa se juntam antes de
+# montar a página seguinte: r30 = tela, r31 = página 1, nenhum registrador volátil vivo.
+# O gancho acrescenta CONFIGURAÇÕES DE PC no fim da página 1, só na pausa (tela+0x198 != 0).
+[[midasm_hook]]
+address = 0x822DF2D0
+name = "PcHook_HelpPageBuilt"
 registers = ["r30", "r31"]
 
 # ---------------------------------------------------------------- Textos (entrada de PC nos menus)

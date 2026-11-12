@@ -55,7 +55,7 @@ isolados dentro de `app/`; os saves reais da pessoa não foram tocados.
 | Port nativo Windows 11 x64 | **IMPLEMENTADO** | exe nativo, sem emulador; build reprodutível (agora também em UTF-8) |
 | 4K (3840×2160) | **IMPLEMENTADO** | auto-teste e captura oficial em 3840×2160 |
 | 60 FPS | **IMPLEMENTADO** | 60,0/60,0 em jogo livre, frametime 16,66 ms. Cenas e abertura seguem a 30 como no original (`scenes60=false`, opção experimental no menu de PC) |
-| Menu START (menu do próprio jogo) | **IMPLEMENTADO**, com **defeito visual** | navegação automática título → JOGAR → JOGO 1 → jogo → pausa; a 7ª entrada "CONFIGURAÇÕES DE PC" se sobrepõe ao contador de Jiggies (item 1 abaixo) |
+| Menu START (menu do próprio jogo) | **IMPLEMENTADO** | pausa: CONTINUAR JOGO, VER TOTAIS, AJUDA E OPÇÕES (com CONFIGURAÇÕES DE PC por último, ícone do Kazooie), CONQUISTAS, SAIR DO JOGO (último); sem sobreposição com o HUD (`MECHANICS.md` §17) |
 | Menu principal da camada de PC (pedido de 2026-11-11) | **IMPLEMENTADO** | JOGAR, CONQUISTAS, AJUDA E OPÇÕES, **CONFIGURAÇÃO DA RECOMPILAÇÃO** (abre o menu do F1), **SAIR PARA O DESKTOP** (confirmação "VOCÊ TEM CERTEZA?" como no original; SIM fecha o programa); CLASSIFICAÇÕES saiu do título. Sonda `--probe-titlemenu` no jogo real: ordem, entrar/voltar em AJUDA, menu de PC aberto e fechado, saída com código 0 (`MECHANICS.md` §14) |
 | Sistema de log completo | **PENDENTE** (pedido de 2026-11-11) | item 2 abaixo |
 | PT-BR | **PARCIAL** | abertura, menus, seleção, introdução, pausa, submenus, mensagem do sistema e fala do Bottles conferidos (15/15); HUD e diálogos das fases ainda não vistos |
@@ -71,7 +71,7 @@ isolados dentro de `app/`; os saves reais da pessoa não foram tocados.
 |---|---|---|---|
 | — | Fechar a reforma do menu de pausa (codegen + rebuild + auto-teste) | era o item 1 da auditoria de 2026-11-11 | **FEITO** (`3aa27aa`, auto-teste 10/10, gancho conferido no original) |
 | — | Regressão completa depois da camada de PC | era o item 6 da auditoria | **FEITO** (smoke 8/8, PT-BR PASS, negativo 22/22) |
-| 1 | **Corrigir a sobreposição** da entrada "CONFIGURAÇÕES DE PC" com o contador de Jiggies na pausa | aparece toda vez que o jogador pausa; mudança pequena e localizada na camada de PC, fácil de provar com captura. **Causa já lida no original (rodada 9, `MECHANICS.md` §13):** cada entrada guarda sua altura ao ser criada (y inicial 62, passo 21 na pausa), então a 7ª cai em y = 188, onde fica o contador. Correção recomendada: no gancho que já existe, passo 21→17 só com a entrada de PC (as 7 cabem no espaço das 6 originais) | PENDENTE (causa conhecida; correção não feita) |
+| 1 | **Corrigir a sobreposição** da entrada "CONFIGURAÇÕES DE PC" com o contador de Jiggies na pausa | resolvido de outro jeito pelo pedido de 2026-11-12: CLASSIFICAÇÕES saiu da pausa e CONFIGURAÇÕES DE PC foi para dentro de AJUDA E OPÇÕES, então a pausa tem 5 entradas e termina em SAIR DO JOGO, longe do contador (`MECHANICS.md` §17) | **FEITO** |
 | — | **Menu principal**: CLASSIFICAÇÕES sai, CONFIGURAÇÃO DA RECOMPILAÇÃO acima de SAIR PARA O DESKTOP (que fecha o jogo) | pedido da pessoa (2026-11-11) | **FEITO** (sonda `--probe-titlemenu` PASS, regressão PT-BR PASS 15/15, `rebuild_check` 5/5, 36/36) |
 | 2 | **Sistema de log completo** (pedido de 2026-11-11, detalhes na seção "Sistema de log completo" abaixo) | base para depurar e implementar tudo o que vem depois (carga de save, distância de desenho, controle físico) e para achar a causa do defeito intermitente de desligamento (item 2b); vem logo depois do item 1, que é pequeno e já tem a causa lida | PENDENTE |
 | 2b | **Desligamento intermitente do runtime** (queda 0xC0000005 ou travamento ao fechar) | causa achada em 2026-11-12: ao fechar, `TerminateTitle` mata as threads do jogo em pontos aleatórios; se uma estava dentro da atualização do relógio do console (`UpdateGuestClock`, trava `tick_mutex_`), a trava ficava quebrada (queda na thread de temporizadores ou travamento em `GraphicsSystem::Shutdown`). Relógio refeito sem trava + thread de vblank sai do laço quando o desligamento é pedido (submódulo `rexglue-sdk`) | **FEITO** (antes: 1 queda em 16 fechamentos; 1ª tentativa: 4 travamentos em 83; depois: **64/64** limpos) |
@@ -153,6 +153,19 @@ Sem funcionalidades novas e sem mudança no jogo ou na camada de PC; só documen
 | Arquivos do jogo depois da execução | **PASS 36/36** iguais à linha de base (`_audit/out/m00-r9/integridade_pos_check.json`) |
 | Pergunta aberta da sobreposição | **respondida** pela leitura do original (`MECHANICS.md` §13: `0x822E5740`, `0x822DEE60`, constantes em `0x82005AA0…`); a correção segue PENDENTE no item 1 |
 | Não feito nesta rodada | smoke da M01 e regressão PT-BR da M02 (nada no código mudou desde a rodada 8, onde passaram) |
+
+## Pausa e ícone do Kazooie (pedido de 2026-11-12)
+
+Pedidos: trocar o sapo pelo Kazooie nas opções de configuração do port; tirar CLASSIFICAÇÕES da
+pausa; pôr CONFIGURAÇÕES DE PC dentro de AJUDA E OPÇÕES; sair sempre por último. Detalhes e
+endereços em `MECHANICS.md` §17; saídas em `_audit/out/m00-r12/`.
+
+| Verificação | Resultado |
+|---|---|
+| `build_port.cmd codegen` + `npm run build` + `build_port.cmd game` | exit 0; 2 ganchos novos (`0x822DF04C`, `0x822DF2D0`) conferidos no código gerado e pelo gerador de valores |
+| Auto-teste no jogo real (`--self-test`, 2 execuções) | **10/10**; `pcmenu`: pausa com 5 entradas, CLASSIFICAÇÕES ausente, SAIR DO JOGO por último; AJUDA E OPÇÕES com 4 entradas, CONFIGURAÇÕES DE PC por último com ícone 13 (Kazooie); A abre o menu de PC |
+| Menu principal (`--probe-titlemenu`) | **PASS**: ordem igual, Kazooie em CONFIGURAÇÃO DA RECOMPILAÇÃO, confirmação de saída (NÃO volta, SIM fecha com código 0) |
+| Regressão PT-BR (`test_traducao.ps1`) | **PASS** (29/29, 15/15). A etapa da pausa roda com `pc_menu_entry = false` para continuar conferindo os textos originais (CLASSIFICAÇÕES e a mensagem do Xbox LIVE) |
 
 ## Leitura Deep do menu e confirmação original de saída (2026-11-12)
 

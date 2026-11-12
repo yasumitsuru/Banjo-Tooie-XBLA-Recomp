@@ -323,61 +323,66 @@ void PcHook_DrawDistance(PPCRegister& r3) {
 bool PcHook_SkipRangeCheckA() { return pc::Get().draw_distance == pc::DrawDistance::Total; }
 bool PcHook_SkipRangeCheckB() { return pc::Get().draw_distance == pc::DrawDistance::Total; }
 
-// ---------------------------------------------------------------- entrada de PC no menu de pausa
-// Banjo 3 (pedido da pessoa): "CONFIGURAÇÕES DE PC" é ACRESCENTADA como 7ª entrada do menu de
-// pausa do jogo, sem renomear nem mexer nas outras (CLASSIFICAÇÕES da pausa continua como no
-// original). O menu de título tem seus próprios ganchos (mais abaixo, "menu principal").
+// ---------------------------------------------------------------- menu de pausa
+// Pedido da pessoa (2026-11-12): a pausa fica CONTINUAR JOGO, VER TOTAIS, AJUDA E OPÇÕES,
+// CONQUISTAS e SAIR DO JOGO (sair sempre por último), e "CONFIGURAÇÕES DE PC" fica DENTRO de
+// AJUDA E OPÇÕES, com o ícone do Kazooie (o que era de CLASSIFICAÇÕES). MECHANICS.md §17.
 // Lido no default.xex (Ghidra + código gerado):
-//  - 0x822DEE60 monta as páginas do menu; com tela+0x198 != 0 (pausa) a página 0 recebe
-//    CONTINUAR JOGO (0x16), VER TOTAIS (0x17), AJUDA E OPÇÕES (3), CLASSIFICAÇÕES (1),
-//    CONQUISTAS (2) e por último SAIR DO JOGO (0x3D), pela chamada compartilhada em 0x822DF11C.
-//  - 0x822E1380(página, texto, ícone, página_alvo, ação): 0x822E12F0 pede o texto a
-//    GetString (0x822E9C28) e acrescenta a entrada (0x822E1230 realoca o vetor de entradas de
-//    136 bytes em página+0, contagem em +4, limites de seleção em +12/+16); grava página_alvo
-//    em entrada+0x28 e a ação em entrada+0x7C.
+//  - 0x822DEE60 monta as páginas; com tela+0x198 != 0 (pausa) a página 0 recebe CONTINUAR JOGO
+//    (22), VER TOTAIS (23), AJUDA E OPÇÕES (3, página-alvo 1), CLASSIFICAÇÕES (1, em 0x822DF050),
+//    CONQUISTAS (2) e SAIR DO JOGO (61); a página 1 (AJUDA E OPÇÕES) recebe COMO JOGAR (6),
+//    CONTROLES (7), CONFIGURAÇÕES (8) e, conforme o caso, CRÉDITOS / DICAS DE JIGGIES /
+//    REINSTALAR EXTRAS; os dois caminhos se juntam em 0x822DF2D0 antes da página seguinte.
+//  - 0x822E1380(página, texto, ícone, página_alvo, ação): 0x822E1230 realoca o vetor de entradas
+//    de 136 bytes e 0x822E5740 grava altura, x, ícone (entrada+8) e o rótulo (entrada+0x3B);
+//    0x822E1380 grava página_alvo em entrada+0x28 e a ação em entrada+0x7C.
 //  - Ao apertar A, 0x822E2AB8 chama entrada+0x7C com r3 = tela; a entrada escolhida é
 //    entradas_da_página_atual (0x822DBB88: *(*(tela+0x154) + *(tela+0x2C)*0x2C))[byte tela+7].
-// O gancho em 0x822DF120 (logo depois de SAIR DO JOGO; r30 = tela, r31 = página 0, nenhum
-// registrador volátil vivo) chama 0x822E1380(página 0, kStrPcSettings, ícone de
-// CONFIGURAÇÕES, -1, 0x822DEC40). A ação é a mesma função de CLASSIFICAÇÕES; o gancho dela
-// separa as duas pela página-alvo (-1 só na entrada nova; CLASSIFICAÇÕES usa 3).
+// A entrada nova usa a ação de CLASSIFICAÇÕES (0x822DEC40) com página-alvo -1;
+// PcHook_LeaderboardsSelect a reconhece e abre o menu de PC (o do F1).
 namespace {
 constexpr uint32_t kStrPcSettings = pc::state::kPcMenuEntryStringId;  // id novo (o X360_strings.dat tem 1521 textos)
 // Valores lidos no default.xex, gerados de mechanics.json (pc.menu) em mechanics_values.h e
-// conferidos contra pc_hooks.toml no build (tools/gen_mechanics_header.py; MECHANICS.md §15).
+// conferidos contra pc_hooks.toml no build (tools/gen_mechanics_header.py; MECHANICS.md §15/§17).
 namespace mm = pc::mechanics;
-constexpr uint32_t kIconSettings = mm::kSettingsIcon;          // ícone de CONFIGURAÇÕES
+constexpr uint32_t kIconKazooie = mm::kKazooieIcon;            // 13: o pássaro (era de CLASSIFICAÇÕES)
 constexpr uint32_t kAddMenuEntry = mm::kAddEntryFn;            // 0x822E1380
 constexpr uint32_t kLeaderboardsAction = mm::kLeaderboardsAction;  // 0x822DEC40
 constexpr uint32_t kNoTargetPage = 0xFFFFFFFFu;  // "li r6,-1" (entradas sem página própria)
 }  // namespace
 
-// Antes de 0x822DF120 (lwz r11,340(r30)), no fim da página 0 do menu.
-void PcHook_PauseMenuBuilt(PPCRegister& r30, PPCRegister& r31) {
+// Em 0x822DF04C (só o caminho da pausa passa aqui): true pula para 0x822DF054 e CLASSIFICAÇÕES
+// não entra na pausa. As seguintes sobem uma linha (a altura é dada na criação, §13).
+bool PcHook_PauseSkipLeaderboards() { return pc::Get().pc_menu_entry; }
+static_assert(mm::kPauseSkipTo == mm::kHookPauseSkipLeaderboards + 8,
+              "0x822DF04C 'mr r3,r31' + 0x822DF050 'bl 0x822E1380' (CLASSIFICAÇÕES da pausa)");
+
+// Antes de 0x822DF2D0 (lwz r11,340(r30)), no fim da página AJUDA E OPÇÕES (r31 = página 1).
+void PcHook_HelpPageBuilt(PPCRegister& r30, PPCRegister& r31) {
   const uint32_t screen = r30.u32;
-  const uint32_t page0 = r31.u32;
-  if (!pc::Get().pc_menu_entry || !GuestHeapPtr(screen) || !GuestHeapPtr(page0)) return;
-  if (ReadU8(screen + mm::kScreenIsPauseOff) == 0) return;  // título: ganchos próprios abaixo
+  const uint32_t page1 = r31.u32;
+  if (!pc::Get().pc_menu_entry || !GuestHeapPtr(screen) || !GuestHeapPtr(page1)) return;
+  if (ReadU8(screen + mm::kScreenIsPauseOff) == 0) return;  // título: entrada própria no menu
   auto* ks = rex::system::kernel_state();
   auto* dispatcher = ks ? ks->function_dispatcher() : nullptr;
   auto* ts = rex::runtime::ThreadState::Get();
   if (!dispatcher || !ts) return;
-  const uint32_t before = ReadU32(page0 + 4);
+  const uint32_t before = ReadU32(page1 + 4);
   __try {
     PPCContext* ctx = ts->context();
     VolatileSnapshot snap{};
     SaveVolatile(*ctx, snap);
-    uint64_t args[5] = {page0, kStrPcSettings, kIconSettings, ~0ull, kLeaderboardsAction};
+    uint64_t args[5] = {page1, kStrPcSettings, kIconKazooie, ~0ull, kLeaderboardsAction};
     dispatcher->Execute(ts, kAddMenuEntry, args, 5);
     RestoreVolatile(*ctx, snap);
   } __except (EXCEPTION_EXECUTE_HANDLER) {
-    REXLOG_ERROR("menu de pausa: falha ao acrescentar CONFIGURAÇÕES DE PC");
+    REXLOG_ERROR("pausa: falha ao acrescentar CONFIGURAÇÕES DE PC em AJUDA E OPÇÕES");
     return;
   }
   pc::state::pause_entry_added.fetch_add(1, std::memory_order_relaxed);
-  pc::state::pause_entry_count.store(ReadU32(page0 + 4), std::memory_order_relaxed);
-  REXLOG_INFO("menu de pausa: CONFIGURAÇÕES DE PC acrescentada ({} -> {} entradas)", before,
-              ReadU32(page0 + 4));
+  pc::state::pause_entry_count.store(ReadU32(page1 + 4), std::memory_order_relaxed);
+  REXLOG_INFO("pausa: CONFIGURAÇÕES DE PC acrescentada em AJUDA E OPÇÕES ({} -> {} entradas)",
+              before, ReadU32(page1 + 4));
 }
 
 // ---------------------------------------------------------------- textos do jogo
@@ -456,7 +461,7 @@ static_assert(mm::kTitleSkipTo == mm::kHookTitleSkipLeaderboards + 8,
 //  1) registra "CONFIGURAÇÃO DA RECOMPILAÇÃO" com a ação de CLASSIFICAÇÕES (0x822DEC40) e
 //     página-alvo -1, que PcHook_LeaderboardsSelect transforma em "abrir o menu de PC" (o do
 //     F1); r4/r6/r7 já estão carregados para a saída, por isso os voláteis são salvos e
-//     restaurados em volta da chamada (como em PcHook_PauseMenuBuilt);
+//     restaurados em volta da chamada (como em PcHook_HelpPageBuilt);
 //  2) troca o texto de VOLTAR À BIBLIOTECA DE JOGOS por SAIR PARA O DESKTOP (id novo; o id 5
 //     dos textos não muda, e o jogo também tem o id 0x112 com o mesmo texto em outra tela).
 void PcHook_TitleExitEntry(PPCRegister& r4, PPCRegister& r31) {
@@ -472,7 +477,7 @@ void PcHook_TitleExitEntry(PPCRegister& r4, PPCRegister& r31) {
         PPCContext* ctx = ts->context();
         VolatileSnapshot snap{};
         SaveVolatile(*ctx, snap);
-        uint64_t args[5] = {page0, pc::state::kTitleRecompEntryStringId, kIconSettings, ~0ull,
+        uint64_t args[5] = {page0, pc::state::kTitleRecompEntryStringId, kIconKazooie, ~0ull,
                             kLeaderboardsAction};
         dispatcher->Execute(ts, kAddMenuEntry, args, 5);
         RestoreVolatile(*ctx, snap);

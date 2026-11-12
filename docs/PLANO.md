@@ -56,7 +56,7 @@ isolados dentro de `app/`; os saves reais da pessoa não foram tocados.
 | 4K (3840×2160) | **IMPLEMENTADO** | auto-teste e captura oficial em 3840×2160 |
 | 60 FPS | **IMPLEMENTADO** | 60,0/60,0 em jogo livre, frametime 16,66 ms. Cenas e abertura seguem a 30 como no original (`scenes60=false`, opção experimental no menu de PC) |
 | Menu START (menu do próprio jogo) | **IMPLEMENTADO**, com **defeito visual** | navegação automática título → JOGAR → JOGO 1 → jogo → pausa; a 7ª entrada "CONFIGURAÇÕES DE PC" se sobrepõe ao contador de Jiggies (item 1 abaixo) |
-| Menu principal da camada de PC (pedido de 2026-11-11) | **IMPLEMENTADO** | JOGAR, CONQUISTAS, AJUDA E OPÇÕES, **CONFIGURAÇÃO DA RECOMPILAÇÃO** (abre o menu do F1), **SAIR PARA O DESKTOP** (fecha o programa); CLASSIFICAÇÕES saiu do título. Sonda `--probe-titlemenu` no jogo real: ordem, entrar/voltar em AJUDA, menu de PC aberto e fechado, saída com código 0 (`MECHANICS.md` §14) |
+| Menu principal da camada de PC (pedido de 2026-11-11) | **IMPLEMENTADO** | JOGAR, CONQUISTAS, AJUDA E OPÇÕES, **CONFIGURAÇÃO DA RECOMPILAÇÃO** (abre o menu do F1), **SAIR PARA O DESKTOP** (confirmação "VOCÊ TEM CERTEZA?" como no original; SIM fecha o programa); CLASSIFICAÇÕES saiu do título. Sonda `--probe-titlemenu` no jogo real: ordem, entrar/voltar em AJUDA, menu de PC aberto e fechado, saída com código 0 (`MECHANICS.md` §14) |
 | Sistema de log completo | **PENDENTE** (pedido de 2026-11-11) | item 2 abaixo |
 | PT-BR | **PARCIAL** | abertura, menus, seleção, introdução, pausa, submenus, mensagem do sistema e fala do Bottles conferidos (15/15); HUD e diálogos das fases ainda não vistos |
 | Draw distance | **PARCIAL** | 3 perfis (Original/Longe/Total) no código e sondas `--probe-dd*`; comparação visual e custo em FPS não medidos nesta rodada |
@@ -153,6 +153,23 @@ Sem funcionalidades novas e sem mudança no jogo ou na camada de PC; só documen
 | Arquivos do jogo depois da execução | **PASS 36/36** iguais à linha de base (`_audit/out/m00-r9/integridade_pos_check.json`) |
 | Pergunta aberta da sobreposição | **respondida** pela leitura do original (`MECHANICS.md` §13: `0x822E5740`, `0x822DEE60`, constantes em `0x82005AA0…`); a correção segue PENDENTE no item 1 |
 | Não feito nesta rodada | smoke da M01 e regressão PT-BR da M02 (nada no código mudou desde a rodada 8, onde passaram) |
+
+## Leitura Deep do menu e confirmação original de saída (2026-11-12)
+
+O Craft pediu a decompilação do que foi construído. Lidas no original (Ghidra) as funções do menu
+principal, da saída e do relógio do console (`MECHANICS.md` §15 e §16). Achado: no jogo original,
+"VOLTAR À BIBLIOTECA DE JOGOS" **não sai na hora**, mas abre a confirmação "VOCÊ TEM CERTEZA?"
+(SIM/NÃO). Decisão (a pessoa pediu para o agente decidir as perguntas): manter essa confirmação
+em "SAIR PARA O DESKTOP" — SIM fecha o programa, NÃO volta ao menu.
+
+| Verificação | Resultado |
+|---|---|
+| Build com os valores do original | `mechanics.json` ganhou o bloco `pc.menu` e 11 valores com fonte; o gerador cria as constantes e **para o build** se os 8 ganchos do menu divergirem dos endereços lidos; `pc_hooks.cpp` e a sonda usam as constantes |
+| `build_port.cmd codegen` + `npm run build` + `build_port.cmd game` | exit 0 |
+| `--probe-titlemenu` (jogo real) | **PASS**: caixa "SAIR PARA O DESKTOP" / "VOCÊ TEM CERTEZA?"; B (NÃO) volta ao menu com as 5 entradas; A (SIM) fecha com código 0 (`_audit/out/m00-r11/titlemenu4.json`) |
+| `test_traducao.ps1` | **PASS** (29/29, 15/15 telas) |
+| `rebuild_check` | build, imagem 3840×2160, auto-teste 10/10 e créditos PASS; "mecânicas" incompleta por limite da própria verificação |
+| Arquivos do jogo | 36/36 |
 
 ## Desligamento ao fechar (2026-11-12)
 

@@ -2,30 +2,221 @@
   "version": 1,
   "note": "Valores reais lidos do default.xex (sha256 3efca627…, imagem plana xex_image.bin) em modo Deep (Ghidra PowerPC:BE:64:A2ALT-32addr). Rodada 2026-11-11: os itens marcados (rev4) foram acrescentados/ajustados e o bloco 'pc' adicionado; a versão do arquivo continua 1 (é a que o Craft Anything lê nesta linha de base); MECHANICS.md §12.",
   "values": [
-    {"name": "bloco do X360_strings para XLanguage 1 (ingles; aqui PT-BR)", "group": "idioma", "value": 0, "source": "funcoes 0x8227D2D0 + 0x8227D9F0 (main)"},
-    {"name": "bloco do X360_strings para XLanguage 2 (japones)", "group": "idioma", "value": 5, "source": "funcoes 0x8227D2D0 + 0x8227D9F0"},
-    {"name": "bloco do X360_strings para XLanguage 3 (alemao)", "group": "idioma", "value": 2, "source": "funcoes 0x8227D2D0 + 0x8227D9F0"},
-    {"name": "bloco do X360_strings para XLanguage 4 (frances)", "group": "idioma", "value": 1, "source": "funcoes 0x8227D2D0 + 0x8227D9F0"},
-    {"name": "bloco do X360_strings para XLanguage 5 (espanhol)", "group": "idioma", "value": 3, "source": "funcoes 0x8227D2D0 + 0x8227D9F0"},
-    {"name": "bloco do X360_strings para XLanguage 6 (italiano)", "group": "idioma", "value": 4, "source": "funcoes 0x8227D2D0 + 0x8227D9F0"},
-    {"name": "bloco do X360_strings para XLanguage 7 a 12", "group": "idioma", "value": 0, "source": "funcao 0x8227D2D0 (qualquer outro id -> codigo interno 0)"},
-    {"name": "XLanguage invalido (0 ou maior que 12) usa a regiao do console", "group": "idioma", "value": true, "source": "funcao 0x825B1FA8"},
-    {"name": "user_language padrao do runtime do port", "group": "idioma", "value": 1, "source": "rexglue-sdk/src/kernel/xam/xam_user.cpp:31"},
-    {"name": "variavel do jogo com o idioma dos dialogos", "group": "idioma", "value": "0xC0D (3 bits)", "source": "funcoes 0x8226B4B0 (ler) e 0x8226B4C0 (gravar)"},
-    {"name": "idioma dos dialogos regravado a cada carregamento do jogo salvo", "group": "idioma", "value": true, "source": "funcao 0x8226B528"},
-    {"name": "X360_strings: inteiros little-endian (u16 n, u16 L, u32 tamanhos e comprimentos)", "group": "formato", "value": true, "source": "funcoes 0x822E9AE0 e 0x822E9B40"},
-    {"name": "X360_strings: inicio do bloco k = 4 + 4L + 4nL + soma dos tamanhos anteriores", "group": "formato", "value": "4 + 4*L + 4*n*L + sum(tamanho[0..k-1])", "unit": "bytes", "source": "funcao 0x822E9C90"},
-    {"name": "X360_strings: blocos lidos por execucao", "group": "formato", "value": 1, "source": "funcao 0x822E9C90"},
-    {"name": "valor de 'nenhum bloco carregado' em 0x8264B59C", "group": "formato", "value": 6, "source": "funcao 0x822E9C90"},
-    {"name": "tabela de recursos do db360 = buffer + 8", "group": "formato", "value": 8, "unit": "bytes", "source": "funcao 0x82220790"},
-    {"name": "intervalo de apresentacao do jogo original", "group": "video", "value": 2, "unit": "quadros de 60 Hz (30 FPS)", "source": "codigo em 0x82276E34 ('li r9,2'; 0x7d6b0034 e o cntlzw de 0x8227D0C0 estao no arquivo)"},
-    {"name": "resolucao original", "group": "video", "value": "1280x720", "source": "captura do port (MECHANICS.md §10) e funcao 0x823021A8"},
-    {"name": "taxa do audio", "group": "audio", "value": 48, "unit": "amostras por ms (48 kHz)", "source": "constante 0x82000F1C, funcao 0x8250D050"},
-    {"name": "espera entre tentativas do erro fatal", "group": "sistema", "value": 250, "unit": "ms", "source": "funcao 0x8227D128 (0xFA)"},
-    {"name": "global do estado das texturas (lista solta=1, pacote cmp carregado=2, falha=3)", "group": "formato", "value": "0x826AEE20 (rev4: era 0x8269EE20; a instrucao 'addis r10,r0,0x826A; stw r11,0xEE20(r10)' em 0x8227D0FC/0x8227D10C e o 'stw r11,0xEE20(r21)' de 0x8227D688 dao 0x826Aee20; 2/3 = cntlzw(ret&0xFF)>>5+2)", "source": "funcao 0x8227D0C0, instrucoes em 0x8227D0FC-0x8227D10C e 0x8227D688"},
-    {"name": "acumulo do cronometro da caixa de texto e ps_add f13,f13,f29 (nao fadds)", "group": "video", "value": "0x8225D8A8 = 0xEDADE82A (ps_add); cronometro em caixa+0x22C, intervalo por letra em caixa+0x230", "source": "instrucao em 0x8225D8A8, funcao 0x8225D580"},
-    {"name": "formula do alcance de desenho do ator", "group": "video", "value": "(base & 0x3FFFFFFF) << 2", "source": "funcao 0x82240DE8; gancho em 0x82240DF8 (slwi r3,r3,2 = 0x5463103A)"},
-    {"name": "formula do percentual de vblank do agendador", "group": "video", "value": "min(100, ((TBL - ctx+0x40A8) * 100) / (freq/refresh) + 1); refresh padrao 0x3C=60 quando ctx+0xB4=0", "source": "funcao 0x822F9CB8"}
+    {
+      "name": "bloco do X360_strings para XLanguage 1 (ingles; aqui PT-BR)",
+      "group": "idioma",
+      "value": 0,
+      "source": "funcoes 0x8227D2D0 + 0x8227D9F0 (main)"
+    },
+    {
+      "name": "bloco do X360_strings para XLanguage 2 (japones)",
+      "group": "idioma",
+      "value": 5,
+      "source": "funcoes 0x8227D2D0 + 0x8227D9F0"
+    },
+    {
+      "name": "bloco do X360_strings para XLanguage 3 (alemao)",
+      "group": "idioma",
+      "value": 2,
+      "source": "funcoes 0x8227D2D0 + 0x8227D9F0"
+    },
+    {
+      "name": "bloco do X360_strings para XLanguage 4 (frances)",
+      "group": "idioma",
+      "value": 1,
+      "source": "funcoes 0x8227D2D0 + 0x8227D9F0"
+    },
+    {
+      "name": "bloco do X360_strings para XLanguage 5 (espanhol)",
+      "group": "idioma",
+      "value": 3,
+      "source": "funcoes 0x8227D2D0 + 0x8227D9F0"
+    },
+    {
+      "name": "bloco do X360_strings para XLanguage 6 (italiano)",
+      "group": "idioma",
+      "value": 4,
+      "source": "funcoes 0x8227D2D0 + 0x8227D9F0"
+    },
+    {
+      "name": "bloco do X360_strings para XLanguage 7 a 12",
+      "group": "idioma",
+      "value": 0,
+      "source": "funcao 0x8227D2D0 (qualquer outro id -> codigo interno 0)"
+    },
+    {
+      "name": "XLanguage invalido (0 ou maior que 12) usa a regiao do console",
+      "group": "idioma",
+      "value": true,
+      "source": "funcao 0x825B1FA8"
+    },
+    {
+      "name": "user_language padrao do runtime do port",
+      "group": "idioma",
+      "value": 1,
+      "source": "rexglue-sdk/src/kernel/xam/xam_user.cpp:31"
+    },
+    {
+      "name": "variavel do jogo com o idioma dos dialogos",
+      "group": "idioma",
+      "value": "0xC0D (3 bits)",
+      "source": "funcoes 0x8226B4B0 (ler) e 0x8226B4C0 (gravar)"
+    },
+    {
+      "name": "idioma dos dialogos regravado a cada carregamento do jogo salvo",
+      "group": "idioma",
+      "value": true,
+      "source": "funcao 0x8226B528"
+    },
+    {
+      "name": "X360_strings: inteiros little-endian (u16 n, u16 L, u32 tamanhos e comprimentos)",
+      "group": "formato",
+      "value": true,
+      "source": "funcoes 0x822E9AE0 e 0x822E9B40"
+    },
+    {
+      "name": "X360_strings: inicio do bloco k = 4 + 4L + 4nL + soma dos tamanhos anteriores",
+      "group": "formato",
+      "value": "4 + 4*L + 4*n*L + sum(tamanho[0..k-1])",
+      "unit": "bytes",
+      "source": "funcao 0x822E9C90"
+    },
+    {
+      "name": "X360_strings: blocos lidos por execucao",
+      "group": "formato",
+      "value": 1,
+      "source": "funcao 0x822E9C90"
+    },
+    {
+      "name": "valor de 'nenhum bloco carregado' em 0x8264B59C",
+      "group": "formato",
+      "value": 6,
+      "source": "funcao 0x822E9C90"
+    },
+    {
+      "name": "tabela de recursos do db360 = buffer + 8",
+      "group": "formato",
+      "value": 8,
+      "unit": "bytes",
+      "source": "funcao 0x82220790"
+    },
+    {
+      "name": "intervalo de apresentacao do jogo original",
+      "group": "video",
+      "value": 2,
+      "unit": "quadros de 60 Hz (30 FPS)",
+      "source": "codigo em 0x82276E34 ('li r9,2'; 0x7d6b0034 e o cntlzw de 0x8227D0C0 estao no arquivo)"
+    },
+    {
+      "name": "resolucao original",
+      "group": "video",
+      "value": "1280x720",
+      "source": "captura do port (MECHANICS.md §10) e funcao 0x823021A8"
+    },
+    {
+      "name": "taxa do audio",
+      "group": "audio",
+      "value": 48,
+      "unit": "amostras por ms (48 kHz)",
+      "source": "constante 0x82000F1C, funcao 0x8250D050"
+    },
+    {
+      "name": "espera entre tentativas do erro fatal",
+      "group": "sistema",
+      "value": 250,
+      "unit": "ms",
+      "source": "funcao 0x8227D128 (0xFA)"
+    },
+    {
+      "name": "global do estado das texturas (lista solta=1, pacote cmp carregado=2, falha=3)",
+      "group": "formato",
+      "value": "0x826AEE20 (rev4: era 0x8269EE20; a instrucao 'addis r10,r0,0x826A; stw r11,0xEE20(r10)' em 0x8227D0FC/0x8227D10C e o 'stw r11,0xEE20(r21)' de 0x8227D688 dao 0x826Aee20; 2/3 = cntlzw(ret&0xFF)>>5+2)",
+      "source": "funcao 0x8227D0C0, instrucoes em 0x8227D0FC-0x8227D10C e 0x8227D688"
+    },
+    {
+      "name": "acumulo do cronometro da caixa de texto e ps_add f13,f13,f29 (nao fadds)",
+      "group": "video",
+      "value": "0x8225D8A8 = 0xEDADE82A (ps_add); cronometro em caixa+0x22C, intervalo por letra em caixa+0x230",
+      "source": "instrucao em 0x8225D8A8, funcao 0x8225D580"
+    },
+    {
+      "name": "formula do alcance de desenho do ator",
+      "group": "video",
+      "value": "(base & 0x3FFFFFFF) << 2",
+      "source": "funcao 0x82240DE8; gancho em 0x82240DF8 (slwi r3,r3,2 = 0x5463103A)"
+    },
+    {
+      "name": "formula do percentual de vblank do agendador",
+      "group": "video",
+      "value": "min(100, ((TBL - ctx+0x40A8) * 100) / (freq/refresh) + 1); refresh padrao 0x3C=60 quando ctx+0xB4=0",
+      "source": "funcao 0x822F9CB8"
+    },
+    {
+      "name": "menu: tamanho de cada entrada (bytes)",
+      "group": "menu",
+      "value": 136,
+      "source": "funcao 0x822E1230 (realoca o vetor em passos de 0x88)"
+    },
+    {
+      "name": "menu: texto de CLASSIFICACOES",
+      "group": "menu",
+      "value": 1,
+      "source": "0x822DF09C 'li r4,1' em 0x822DEE60"
+    },
+    {
+      "name": "menu: pagina-alvo de CLASSIFICACOES",
+      "group": "menu",
+      "value": 3,
+      "source": "0x822DF090 'li r6,3' em 0x822DEE60"
+    },
+    {
+      "name": "menu: texto de VOLTAR A BIBLIOTECA DE JOGOS",
+      "group": "menu",
+      "value": 5,
+      "source": "0x822DF110 'li r4,5' em 0x822DEE60"
+    },
+    {
+      "name": "menu: pergunta da confirmacao de saida (VOCE TEM CERTEZA?)",
+      "group": "menu",
+      "value": 53,
+      "source": "funcao 0x822DE260 'li r3,53' + GetString 0x822E9C28"
+    },
+    {
+      "name": "menu: altura inicial das entradas no titulo",
+      "group": "menu",
+      "value": 66,
+      "source": "funcao 0x822DEE60, constante 0x82005AAC"
+    },
+    {
+      "name": "menu: passo vertical das entradas no titulo",
+      "group": "menu",
+      "value": 26,
+      "source": "funcao 0x822DEE60, constante 0x82005AB4"
+    },
+    {
+      "name": "menu: altura inicial das entradas na pausa",
+      "group": "menu",
+      "value": 62,
+      "source": "funcao 0x822DEE60, constante 0x82005AB8"
+    },
+    {
+      "name": "menu: passo vertical das entradas na pausa",
+      "group": "menu",
+      "value": 21,
+      "source": "funcao 0x822DEE60, constante 0x82005AC8"
+    },
+    {
+      "name": "relogio: taxa de atualizacao padrao do agendador de quadros (Hz)",
+      "group": "tempo",
+      "value": 60,
+      "source": "funcao 0x822F9CB8 (contexto+0xB4 = 0 -> 0x3C)"
+    },
+    {
+      "name": "relogio: teto da fracao de vblank (%)",
+      "group": "tempo",
+      "value": 100,
+      "source": "funcao 0x822F9CB8 min(100, (TBL-ultimo)*100/(freq/Hz)+1)"
+    }
   ],
   "pc": {
     "created": "2026-11-11",
@@ -42,23 +233,194 @@
       "note_map_id": "u16 com o mapa atual (usado pelo perfil de distancia de desenho)"
     },
     "k60": [
-      {"hook": "0x822C8930", "register": "f0", "orig": 0.05, "orig_addr": "0x82000B48", "v60": 0.2, "v60_addr": "0x8200073C", "note": "lfs f0,0xB48(r11) em 0x822C8930"},
-      {"hook": "0x821A22E4", "register": "f5", "orig": 3.0, "orig_addr": "0x82000800", "v60": 9.0, "v60_addr": "0x82001EDC", "note": "FUN_001a2288 (0x821A2288); limite da funcao = 90.0 (0x820007C0)"},
-      {"hook": "0x821A22E8", "register": "f3", "orig": -0.01, "orig_addr": "0x82000924", "v60": -0.03, "v60_addr": "0x82004238", "note": ""},
-      {"hook": "0x821A22EC", "register": "f2", "orig": -1.0, "orig_addr": "0x82000748", "v60": -3.0, "v60_addr": "0x82000B20", "note": ""},
-      {"hook": "0x821A2324", "register": "f5", "orig": 3.0, "orig_addr": "0x82000800", "v60": 9.0, "v60_addr": "0x82001EDC", "note": ""},
-      {"hook": "0x821A2328", "register": "f3", "orig": 0.01, "orig_addr": "0x82000778", "v60": 0.03, "v60_addr": "0x82000B30", "note": ""},
-      {"hook": "0x821A232C", "register": "f2", "orig": 1.0, "orig_addr": "0x82000738", "v60": 3.0, "v60_addr": "0x82000800", "note": ""},
-      {"hook": "0x821A2358", "register": "f0", "orig": 90.0, "orig_addr": "0x820007C0", "v60": 100.0, "v60_addr": "0x82000774", "note": "limite de clamp: min(x*0.98, 90.0)"},
-      {"hook": "0x8213E2EC", "register": "f5", "orig": 3.0, "orig_addr": "0x82000800", "v60": 11.0, "v60_addr": "0x82002060", "note": "FUN_0013e290 (0x8213E290); limite da funcao = 200.0 (0x820008F4)"},
-      {"hook": "0x8213E2F0", "register": "f3", "orig": -0.01, "orig_addr": "0x82000924", "v60": -0.03, "v60_addr": "0x82004238", "note": ""},
-      {"hook": "0x8213E2F4", "register": "f2", "orig": -1.0, "orig_addr": "0x82000748", "v60": -3.90625, "v60_addr": "0x820028F0", "note": ""},
-      {"hook": "0x8213E32C", "register": "f5", "orig": 3.0, "orig_addr": "0x82000800", "v60": 11.0, "v60_addr": "0x82002060", "note": ""},
-      {"hook": "0x8213E330", "register": "f3", "orig": 0.01, "orig_addr": "0x82000778", "v60": 0.03, "v60_addr": "0x82000B30", "note": ""},
-      {"hook": "0x8213E334", "register": "f2", "orig": 1.0, "orig_addr": "0x82000738", "v60": 3.75, "v60_addr": "0x820013F4", "note": ""},
-      {"hook": "0x8213E340", "register": "f0", "orig": -0.01, "orig_addr": "0x82000924", "v60": -0.03, "v60_addr": "0x82004238", "note": ""},
-      {"hook": "0x8213E360", "register": "f0", "orig": 200.0, "orig_addr": "0x820008F4", "v60": 220.0, "v60_addr": "0x82000B0C", "note": "limite de clamp: min(x*0.98, 200.0)"},
-      {"hook": "0x821129B8", "register": "f0", "orig": 0.028, "orig_addr": "0x82000974", "v60": 0.014285714, "v60_addr": "0x82001EF8", "note": "FUN_00112980: fator por quadro = 0.028 * (1.0/dt do quadro); a 60 FPS dobra a metade (1/70)"}
-    ]
+      {
+        "hook": "0x822C8930",
+        "register": "f0",
+        "orig": 0.05,
+        "orig_addr": "0x82000B48",
+        "v60": 0.2,
+        "v60_addr": "0x8200073C",
+        "note": "lfs f0,0xB48(r11) em 0x822C8930"
+      },
+      {
+        "hook": "0x821A22E4",
+        "register": "f5",
+        "orig": 3.0,
+        "orig_addr": "0x82000800",
+        "v60": 9.0,
+        "v60_addr": "0x82001EDC",
+        "note": "FUN_001a2288 (0x821A2288); limite da funcao = 90.0 (0x820007C0)"
+      },
+      {
+        "hook": "0x821A22E8",
+        "register": "f3",
+        "orig": -0.01,
+        "orig_addr": "0x82000924",
+        "v60": -0.03,
+        "v60_addr": "0x82004238",
+        "note": ""
+      },
+      {
+        "hook": "0x821A22EC",
+        "register": "f2",
+        "orig": -1.0,
+        "orig_addr": "0x82000748",
+        "v60": -3.0,
+        "v60_addr": "0x82000B20",
+        "note": ""
+      },
+      {
+        "hook": "0x821A2324",
+        "register": "f5",
+        "orig": 3.0,
+        "orig_addr": "0x82000800",
+        "v60": 9.0,
+        "v60_addr": "0x82001EDC",
+        "note": ""
+      },
+      {
+        "hook": "0x821A2328",
+        "register": "f3",
+        "orig": 0.01,
+        "orig_addr": "0x82000778",
+        "v60": 0.03,
+        "v60_addr": "0x82000B30",
+        "note": ""
+      },
+      {
+        "hook": "0x821A232C",
+        "register": "f2",
+        "orig": 1.0,
+        "orig_addr": "0x82000738",
+        "v60": 3.0,
+        "v60_addr": "0x82000800",
+        "note": ""
+      },
+      {
+        "hook": "0x821A2358",
+        "register": "f0",
+        "orig": 90.0,
+        "orig_addr": "0x820007C0",
+        "v60": 100.0,
+        "v60_addr": "0x82000774",
+        "note": "limite de clamp: min(x*0.98, 90.0)"
+      },
+      {
+        "hook": "0x8213E2EC",
+        "register": "f5",
+        "orig": 3.0,
+        "orig_addr": "0x82000800",
+        "v60": 11.0,
+        "v60_addr": "0x82002060",
+        "note": "FUN_0013e290 (0x8213E290); limite da funcao = 200.0 (0x820008F4)"
+      },
+      {
+        "hook": "0x8213E2F0",
+        "register": "f3",
+        "orig": -0.01,
+        "orig_addr": "0x82000924",
+        "v60": -0.03,
+        "v60_addr": "0x82004238",
+        "note": ""
+      },
+      {
+        "hook": "0x8213E2F4",
+        "register": "f2",
+        "orig": -1.0,
+        "orig_addr": "0x82000748",
+        "v60": -3.90625,
+        "v60_addr": "0x820028F0",
+        "note": ""
+      },
+      {
+        "hook": "0x8213E32C",
+        "register": "f5",
+        "orig": 3.0,
+        "orig_addr": "0x82000800",
+        "v60": 11.0,
+        "v60_addr": "0x82002060",
+        "note": ""
+      },
+      {
+        "hook": "0x8213E330",
+        "register": "f3",
+        "orig": 0.01,
+        "orig_addr": "0x82000778",
+        "v60": 0.03,
+        "v60_addr": "0x82000B30",
+        "note": ""
+      },
+      {
+        "hook": "0x8213E334",
+        "register": "f2",
+        "orig": 1.0,
+        "orig_addr": "0x82000738",
+        "v60": 3.75,
+        "v60_addr": "0x820013F4",
+        "note": ""
+      },
+      {
+        "hook": "0x8213E340",
+        "register": "f0",
+        "orig": -0.01,
+        "orig_addr": "0x82000924",
+        "v60": -0.03,
+        "v60_addr": "0x82004238",
+        "note": ""
+      },
+      {
+        "hook": "0x8213E360",
+        "register": "f0",
+        "orig": 200.0,
+        "orig_addr": "0x820008F4",
+        "v60": 220.0,
+        "v60_addr": "0x82000B0C",
+        "note": "limite de clamp: min(x*0.98, 200.0)"
+      },
+      {
+        "hook": "0x821129B8",
+        "register": "f0",
+        "orig": 0.028,
+        "orig_addr": "0x82000974",
+        "v60": 0.014285714,
+        "v60_addr": "0x82001EF8",
+        "note": "FUN_00112980: fator por quadro = 0.028 * (1.0/dt do quadro); a 60 FPS dobra a metade (1/70)"
+      }
+    ],
+    "menu": {
+      "why": "Menu principal da camada de PC (MECHANICS.md §14/§15); enderecos e valores lidos no default.xex (Ghidra + bytes).",
+      "add_entry_fn": "0x822E1380",
+      "add_entry_src": "FUN 0x822E1380: 0x822E12F0(pagina,texto,icone) e grava pagina-alvo em +0x28 e acao em +0x7C",
+      "entry_size": 136,
+      "entry_target_page_off": "0x28",
+      "entry_action_off": "0x7C",
+      "entry_label_off": "0x3B",
+      "entry_label_max": 64,
+      "screen_is_pause_off": "0x198",
+      "screen_cursor_off": "0x7",
+      "screen_dialog_off": "0x38",
+      "screen_callback_off": "0x22C",
+      "leaderboards_action": "0x822DEC40",
+      "leaderboards_text_id": 1,
+      "leaderboards_target_page": 3,
+      "leaderboards_icon": 13,
+      "settings_icon": "0x54",
+      "exit_action": "0x822DED40",
+      "exit_text_id": 5,
+      "exit_dialog_fn": "0x822DE260",
+      "exit_dialog_title_ret": "0x822DE290",
+      "exit_dialog_question_id": 53,
+      "exit_yes_callback": "0x822DD720",
+      "exit_no_callback": "0x822DDA70",
+      "hook_title_skip_leaderboards": "0x822DF0A0",
+      "title_skip_to": "0x822DF0A8",
+      "hook_title_exit_entry": "0x822DF110",
+      "hook_pause_menu_built": "0x822DF120",
+      "hook_get_string": "0x822E9C28",
+      "title_start_y": 66,
+      "title_step_y": 26,
+      "pause_start_y": 62,
+      "pause_step_y": 21
+    }
   }
 }

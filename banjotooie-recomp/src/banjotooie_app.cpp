@@ -542,12 +542,12 @@ void BanjotooieApp::MonitorLoop() {
       rep.SetFrames(frames, fps, elapsed);
     }
     if (exit_posted) continue;
-    // Menu principal: SAIR PARA O DESKTOP (gancho em 0x822DED40) fecha o programa pelo mesmo
+    // Menu principal: SIM na confirmacao de SAIR PARA O DESKTOP (gancho em 0x822DD720) fecha pelo mesmo
     // caminho do botão de fechar a janela (desligamento normal, saves e opções gravados).
     if (pc::state::exit_to_desktop_request.exchange(false, std::memory_order_acq_rel)) {
       exit_posted = true;
       app_context().CallInUIThread([this] {
-        RequestExitOnUiThread(port::kExitOk, "SAIR PARA O DESKTOP escolhida no menu principal");
+        RequestExitOnUiThread(port::kExitOk, "SAIR PARA O DESKTOP confirmada (SIM) no menu principal");
       });
       continue;
     }

@@ -666,3 +666,66 @@ JOGAR, CONQUISTAS, AJUDA E OPÇÕES, CONFIGURAÇÃO DA RECOMPILAÇÃO, SAIR PARA
   código 0, motivo "SAIR PARA O DESKTOP escolhida no menu principal" no relatório de boot). Rede
   de segurança: se o processo ainda estiver vivo 15 s depois de qualquer pedido de saída, ele é
   encerrado com o mesmo código (ver PLANO, defeito intermitente de desligamento).
+
+## 15. Saída do menu principal: a confirmação original (leitura Deep de 2026-11-12)
+
+Lido com `native_function_pseudocode` (Ghidra) no `xex_image.bin` aberto como raw-binary
+(`PowerPC:BE:64:A2ALT-32addr`). Funções que começam com `bl 0x8259ADA8` (rotina que salva
+registradores) aparecem como esqueleto "não retorna" no Ghidra; para elas o pseudocódigo foi
+pedido 8 bytes depois do início (marcado com "+8").
+
+| Função | Endereço | O que faz (pseudocódigo) | Evidência |
+|---|---|---|---|
+| ação de VOLTAR À BIBLIOTECA | `0x822DED40` | `0x822DBC18(tela, 7)`; `tela+0x22C = 0x8227E6B0() ? 0x822DE260 : 0x822DE9A8` (jogo completo / demonstração) | ev_2fabf7ae9033 |
+| licença | `0x8227E6B0` | `return 0x822E5BE8(0x8269EE90) != 0` | ev_927100b21a84 |
+| confirmação (jogo completo) | `0x822DE260` (+8) | `t = GetString(53)` ("VOCÊ TEM CERTEZA?"), `h = GetString(5)` (retorno em `0x822DE290`); `0x822E3B10(tela+0x38, 204, 40, 50, 55, h, t, 0xC0000000)`; `0x822DBC18(tela, 9)`; botão 1 → `0x822DDAD8`, botão 0 → `0x822DDBA0` | ev_00badbc6126d |
+| cria a caixa | `0x822E3B10` | aloca 0x878 bytes em `*(tela+0x38)`; `+0x24 = título`, `+0x28 = pergunta`; quebra a pergunta em linhas | ev_acad3a502eb7 |
+| grava botão | `0x822E4B58` | `caixa[(botão + 0x216) * 4] = callback` | ev_853cb2ab89cb |
+| botão 0 | `0x822DDBA0` | `tela+0x22C = 0x822DD720`; `0x822DBC18(tela, 0xB)` | ev_0da097788f68 |
+| botão 1 | `0x822DDAD8` | `tela+0x22C = 0x822DDA70`; `0x822DBC18(tela, 0xB)` | ev_bf05d8753600 |
+| fecha a caixa | `0x822E2538` (+8) | quando `0x822E40E0` termina: libera a caixa (não zera `tela+0x38`) e chama `tela+0x22C` com r3 = tela | ev_070409b69b60 |
+| SIM confirmado | `0x822DD720` | `0x822DBC18(tela,0)`; `0x825B1EB8("XLNI_DASH_ARCADE")` (painel de jogos do console); `0x82248820(0x19C,0,0)` | ev_fd0fda1d5033, ev_75977b0dc53c |
+| NÃO | `0x822DDA70` | `0x822DBFA0(tela, 0, …)`; `0x822DBC18(tela, 4)` (volta ao menu) | ev_a92fe44cb542 |
+| acrescenta entrada | `0x822E1230` (+8) | realoca o vetor em passos de **136 bytes** (limite 0x1E1E1E1 entradas), chama `0x822E5740`, ajusta limites de seleção | ev_59661a032d6d |
+| registra entrada | `0x822E1380` (+8) | `i = 0x822E12F0(...)`; `entrada[i]+0x28 = página-alvo`; `entrada[i]+0x7C = ação` | ev_a2b2de26a8fb |
+| ação de CLASSIFICAÇÕES | `0x822DEC40` | sem perfil (`0x8269EF20 = 0`) abre a tela "exige perfil" (`tela+0x22C = 0x822DE7E8`); com perfil grava a página-alvo e vai à tela 7 | ev_4df5cfde3dc5 |
+| troca de tela | `0x822DBC18` (+8) | estado 3..16 por tabela; senão `tela+4 = estado` | ev_ccfecace7745 |
+
+**Regra que o build segue agora** (no jogo real: "(A) SIM" à esquerda, "(B) NÃO" à direita,
+capturado em `_audit/out/m00-r11/titlemenu_4_confirmacao.png`):
+1. Escolher SAIR PARA O DESKTOP roda o original (`0x822DED40` → `0x822DE260`); o port só marca
+   que a confirmação veio do menu principal (`PcHook_TitleExitSelect`, não intercepta mais).
+2. O título da caixa vira "SAIR PARA O DESKTOP" quando `GetString(5)` volta para `0x822DE290`
+   com a marca ligada (`PcHook_GetString`); a pergunta continua o texto 53 "VOCÊ TEM CERTEZA?".
+3. NÃO (B): o original volta ao menu (`0x822DDA70`); o port só desliga a marca
+   (`PcHook_ExitCancelled`).
+4. SIM (A): no lugar de `0x822DD720` (painel do console, que não existe no PC) o port fecha o
+   programa pelo caminho normal (`PcHook_ExitConfirmed`), só com a marca ligada e na tela de
+   título; os outros usos de `0x822DDBA0` (`0x822DE9A8`, `0x82473048`) seguem o original.
+
+**Valores no build:** `mechanics.json` → bloco `pc.menu` → `tools/gen_mechanics_header.py` gera
+`mechanics_values.h` (`kExitTextId = 5`, `kExitDialogQuestionId = 53`, `kExitDialogTitleRet =
+0x822DE290`, `kExitYesCallback = 0x822DD720`, `kExitNoCallback = 0x822DDA70`, `kEntrySize = 136`,
+`kEntryActionOff = 0x7C`, `kEntryTargetPageOff = 0x28`, `kScreenIsPauseOff = 0x198`,
+`kSettingsIcon = 0x54`, alturas 66/26 e 62/21 do §13…) e **para o build** se os endereços dos
+ganchos em `pc_hooks.toml` divergirem dos lidos aqui. `pc_hooks.cpp` e a sonda usam essas
+constantes em vez de números soltos.
+
+**Prova no jogo real** (`--probe-titlemenu`, `_audit/out/m00-r11/titlemenu3.json`): caixa com
+título "SAIR PARA O DESKTOP" e pergunta "VOCÊ TEM CERTEZA?"; B → cancelada, menu com as 5
+entradas e o cursor em SAIR; A → confirmada, programa fechado com código 0.
+
+## 16. Relógio do console que o jogo lê (leitura Deep de 2026-11-12)
+
+- O `mftb` do jogo (18 pontos, ex.: `0x822F9BA0`, `0x822F9CB8`, `0x822E9EB8`, `0x825B1E60`) é
+  recompilado como `REX_QUERY_TIMEBASE()` = `rex::chrono::Clock::QueryGuestTickCount()`
+  (`rexglue-sdk/resources/templates/codegen/init_h.inja`). A frequência do relógio do console
+  é 50 MHz (`runtime.cpp`: `set_guest_tick_frequency(50000000)`).
+- Agendador de vblank `0x822F9CB8` (ev_ddd22d4b7ce5, relido): `Hz = contexto+0xB4` ou **60**
+  se 0; `freq = 0x825F2E44()`; fração do vblank `= min(100, (TBL − contexto+0x40A8) × 100 /
+  (freq / Hz) + 1)`; depois de cada troca grava `TBL` em `contexto+0x5B50`. O ritmo do jogo
+  depende de o TBL avançar de forma contínua e exata.
+- Por isso o relógio do motor (`rexglue-sdk/src/core/clock.cpp`, 2026-11-12) é calculado sem
+  trava a partir de uma base imutável: o valor é `base_guest + Δhost × num / den`, exato (a
+  razão 50 MHz/10 MHz reduz a 5/1), contínuo e nunca deixado pela metade quando o desligamento
+  mata uma thread (PLANO, item 2b).

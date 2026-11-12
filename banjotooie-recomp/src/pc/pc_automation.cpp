@@ -34,6 +34,7 @@
 #include "pc_progress.h"
 #include "pc_settings.h"
 #include "pc_state.h"
+#include "mechanics_values.h"
 #include "png_write.h"
 #include "scripted_input.h"
 
@@ -2213,17 +2214,93 @@ void Start(const Options& opts, rex::ui::WindowedAppContext* ui,
       const bool ready = order_ok && recomp_above_exit && last_is_exit && !has_leaderboards &&
                          help_ok && opened && activated > 0 && closed && stayed && at_exit;
       o << ",\"pronto_para_sair\":" << (ready ? 1 : 0);
-      std::ofstream(opts.probe_titlemenu) << o.str() << ",\"saida_apertada\":"
-                                          << (at_exit ? 1 : 0) << "}\n";
+      auto flush = [&](const std::string& tail) {
+        std::ofstream(opts.probe_titlemenu) << o.str() << tail << "}\n";
+      };
+      flush("");
       if (!at_exit) Finish(8);
-      const uint32_t exits0 = pc::state::title_exit_activations.load();
-      Tap(input::kA, 12);
-      // o app fecha a janela pela thread da interface; se nada acontecer, registra a falha
+      // 5) Regra do original (MECHANICS.md §15): a escolha abre a confirmação do jogo
+      //    (0x822DE260) com título = texto 5 (aqui SAIR PARA O DESKTOP) e pergunta = texto 53
+      //    "VOCÊ TEM CERTEZA?". Caixa em *(tela+0x38): título em +0x24, pergunta em +0x28.
+      constexpr uint32_t kDialogOff = mechanics::kScreenDialogOff;
+      auto read_cstr = [&](uint32_t a) {
+        std::string t;
+        if (a < 0x10000u || a >= 0xFFFF0000u) return t;  // heap do jogo ou do sistema
+        for (uint32_t k = 0; k < 160; ++k) {
+          const uint8_t c = ReadU8(a + k);
+          if (!c) break;
+          t += char(c);
+        }
+        return t;
+      };
+      auto dialog_ptr = [&]() {
+        const uint32_t dlg = ReadU32(kScreenObjAddr + kDialogOff);
+        return (dlg >= 0x40000000u && dlg < 0xA0000000u) ? dlg : 0u;
+      };
+      auto open_dialog = [&]() {
+        const uint32_t sel0 = pc::state::title_exit_activations.load();
+        Tap(input::kA, 12);
+        for (int w = 0; w < 90; ++w) {
+          WaitFrames(2);
+          if (pc::state::title_exit_activations.load() > sel0 && dialog_ptr()) break;
+        }
+        WaitFrames(45);  // a caixa anima ao abrir
+        return dialog_ptr();
+      };
+      const uint32_t dlg = open_dialog();
+      const uint32_t dlg_title_ptr = dlg ? ReadU32(dlg + 0x24) : 0;
+      const std::string dlg_title = read_cstr(dlg_title_ptr);
+      const std::string dlg_question = dlg ? read_cstr(ReadU32(dlg + 0x28)) : "";
+      shot_guest("_4_confirmacao.png");
+      const bool dlg_ok = dlg && dlg_title == kExit && dlg_question == "VOC\xCA TEM CERTEZA?";
+      o << ",\"confirmacao_aberta\":" << (dlg ? 1 : 0) << ",\"confirmacao_titulo\":\""
+        << json_text(dlg_title) << "\",\"confirmacao_pergunta\":\"" << json_text(dlg_question)
+        << "\",\"confirmacao_ok\":" << (dlg_ok ? 1 : 0)
+        << ",\"titulo_trocado\":" << pc::state::title_exit_dialog_labels.load()
+        << ",\"confirmacao_titulo_ptr\":" << dlg_title_ptr;
+      flush("");
+      if (!dlg) Finish(10);
+      // 6) Botões da caixa (captura da rodada de 2026-11-12: "(A) SIM" e "(B) NÃO", como no
+      //    original). Primeiro B = NÃO: tem de chamar 0x822DDA70 (cancelado++), fechar a caixa,
+      //    deixar o menu principal como estava e o programa aberto. Depois reabre e A = SIM:
+      //    tem de chamar 0x822DD720 (confirmado++) e o app fecha (conferido no relatório de boot).
+      bool no_ok = false;
+      {
+        const uint32_t c0 = pc::state::title_exit_cancelled.load();
+        Tap(input::kB, 12);
+        for (int w = 0; w < 120 && pc::state::title_exit_cancelled.load() == c0; ++w)
+          WaitFrames(2);
+        WaitFrames(60);
+        const MenuView vn = view();
+        // (o ponteiro da caixa em tela+0x38 não é zerado ao fechar: 0x822E2538 só libera)
+        no_ok = pc::state::title_exit_cancelled.load() > c0 && vn.title && vn.page == 0 &&
+                vn.count == v1.count && vn.cursor == last &&
+                !pc::state::title_exit_confirmed.load() &&
+                !pc::state::exit_to_desktop_request.load();
+        shot_guest("_5_nao.png");
+        o << ",\"nao_volta_ao_menu\":" << (no_ok ? 1 : 0)
+          << ",\"nao_cancelado\":" << (pc::state::title_exit_cancelled.load() - c0)
+          << ",\"menu_apos_nao\":" << vn.count;
+      }
+      const bool reopened = move_to(last) && open_dialog() != 0;
+      o << ",\"reaberta\":" << (reopened ? 1 : 0);
+      flush(",\"sim_apertado\":1");
+      if (!reopened) Finish(11);
+      // a caixa reaberta depois do NÃO leva mais tempo para aceitar o A (volta do estado 4):
+      // espera e repete o A até 3 vezes, registrando quantos foram precisos
+      int sim_presses = 0;
+      WaitFrames(60);
+      for (int k = 0; k < 3 && !pc::state::title_exit_confirmed.load(); ++k) {
+        ++sim_presses;
+        flush(",\"sim_apertado\":" + std::to_string(sim_presses));
+        Tap(input::kA, 12);
+        for (int w = 0; w < 90 && !pc::state::title_exit_confirmed.load(); ++w) WaitFrames(2);
+      }
+      // o app fecha pela thread da interface; se ainda estiver aberto em 20 s, registra
       std::this_thread::sleep_for(seconds(20));
-      std::ofstream(opts.probe_titlemenu)
-          << o.str() << ",\"saida_apertada\":1,\"saida_escolhida\":"
-          << (pc::state::title_exit_activations.load() - exits0)
-          << ",\"programa_ainda_aberto_20s\":1}\n";
+      flush(",\"sim_apertado\":" + std::to_string(sim_presses) + ",\"sim_confirmado\":" +
+            std::to_string(pc::state::title_exit_confirmed.load()) +
+            ",\"programa_ainda_aberto_20s\":1");
       Finish(9);
     }
 

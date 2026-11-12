@@ -33,6 +33,10 @@ inline constexpr uint32_t kTitleExitEntryStringId = 0x0F02;
 inline std::atomic<uint32_t> title_recomp_entry_built{0};    // vezes que o título recebeu a entrada
 inline std::atomic<uint32_t> title_exit_entry_built{0};      // vezes que a saída foi renomeada
 inline std::atomic<uint32_t> title_exit_activations{0};      // vezes que SAIR PARA O DESKTOP foi escolhida
+inline std::atomic<bool> title_exit_armed{false};            // confirmação aberta por SAIR PARA O DESKTOP
+inline std::atomic<uint32_t> title_exit_dialog_labels{0};    // título da confirmação trocado
+inline std::atomic<uint32_t> title_exit_confirmed{0};        // SIM na confirmação
+inline std::atomic<uint32_t> title_exit_cancelled{0};        // NÃO / voltar na confirmação
 inline std::atomic<bool> exit_to_desktop_request{false};     // consumido pelo monitor do app
 
 // Registro de pedidos de texto (id, chamador) para a sonda --probe-menu: tabela aberta de

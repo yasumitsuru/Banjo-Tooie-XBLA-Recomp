@@ -343,10 +343,13 @@ bool PcHook_SkipRangeCheckB() { return pc::Get().draw_distance == pc::DrawDistan
 // separa as duas pela página-alvo (-1 só na entrada nova; CLASSIFICAÇÕES usa 3).
 namespace {
 constexpr uint32_t kStrPcSettings = pc::state::kPcMenuEntryStringId;  // id novo (o X360_strings.dat tem 1521 textos)
-constexpr uint32_t kIconSettings = 0x54;      // ícone de CONFIGURAÇÕES (página AJUDA E OPÇÕES)
-constexpr uint32_t kAddMenuEntry = 0x822E1380;
-constexpr uint32_t kLeaderboardsAction = 0x822DEC40;
-constexpr uint32_t kNoTargetPage = 0xFFFFFFFFu;
+// Valores lidos no default.xex, gerados de mechanics.json (pc.menu) em mechanics_values.h e
+// conferidos contra pc_hooks.toml no build (tools/gen_mechanics_header.py; MECHANICS.md §15).
+namespace mm = pc::mechanics;
+constexpr uint32_t kIconSettings = mm::kSettingsIcon;          // ícone de CONFIGURAÇÕES
+constexpr uint32_t kAddMenuEntry = mm::kAddEntryFn;            // 0x822E1380
+constexpr uint32_t kLeaderboardsAction = mm::kLeaderboardsAction;  // 0x822DEC40
+constexpr uint32_t kNoTargetPage = 0xFFFFFFFFu;  // "li r6,-1" (entradas sem página própria)
 }  // namespace
 
 // Antes de 0x822DF120 (lwz r11,340(r30)), no fim da página 0 do menu.
@@ -354,7 +357,7 @@ void PcHook_PauseMenuBuilt(PPCRegister& r30, PPCRegister& r31) {
   const uint32_t screen = r30.u32;
   const uint32_t page0 = r31.u32;
   if (!pc::Get().pc_menu_entry || !GuestHeapPtr(screen) || !GuestHeapPtr(page0)) return;
-  if (ReadU8(screen + 0x198) == 0) return;  // menu de título: fica como no original
+  if (ReadU8(screen + mm::kScreenIsPauseOff) == 0) return;  // título: ganchos próprios abaixo
   auto* ks = rex::system::kernel_state();
   auto* dispatcher = ks ? ks->function_dispatcher() : nullptr;
   auto* ts = rex::runtime::ThreadState::Get();
@@ -421,6 +424,16 @@ uint32_t LabelFor(uint32_t id) {
 bool PcHook_GetString(PPCRegister& r3, uint64_t& lr) {
   const uint32_t id = r3.u32;
   pc::state::NoteStringRequest(id, static_cast<uint32_t>(lr));
+  // Título da confirmação de saída: 0x822DE260 pede GetString(5) com retorno em 0x822DE290
+  // (a pergunta, GetString(53), fica "VOCÊ TEM CERTEZA?" como no jogo).
+  if (id == mm::kExitTextId && static_cast<uint32_t>(lr) == mm::kExitDialogTitleRet &&
+      pc::state::title_exit_armed.load(std::memory_order_acquire)) {
+    if (const uint32_t label = LabelFor(pc::state::kTitleExitEntryStringId)) {
+      pc::state::title_exit_dialog_labels.fetch_add(1, std::memory_order_relaxed);
+      r3.u64 = label;
+      return true;
+    }
+  }
   if (const uint32_t label = LabelFor(id)) {
     r3.u64 = label;
     return true;  // devolve o texto novo sem consultar a tabela (o id não existe nela)
@@ -436,6 +449,8 @@ bool PcHook_GetString(PPCRegister& r3, uint64_t& lr) {
 // CLASSIFICAÇÕES (texto 1, ícone 13, página-alvo 3); true pula para 0x822DF0A8 e ela não entra
 // no menu. A altura de cada entrada é dada na criação (0x822E5740), então as seguintes sobem.
 bool PcHook_TitleSkipLeaderboards() { return pc::Get().pc_menu_entry; }
+static_assert(mm::kTitleSkipTo == mm::kHookTitleSkipLeaderboards + 8,
+              "0x822DF0A0 'mr r3,r31' + 0x822DF0A4 'bl 0x822E1380' (CLASSIFICAÇÕES)");
 
 // Depois de 0x822DF110 ("li r4,5", só o caminho do título passa aqui; r31 = página 0):
 //  1) registra "CONFIGURAÇÃO DA RECOMPILAÇÃO" com a ação de CLASSIFICAÇÕES (0x822DEC40) e
@@ -445,7 +460,7 @@ bool PcHook_TitleSkipLeaderboards() { return pc::Get().pc_menu_entry; }
 //  2) troca o texto de VOLTAR À BIBLIOTECA DE JOGOS por SAIR PARA O DESKTOP (id novo; o id 5
 //     dos textos não muda, e o jogo também tem o id 0x112 com o mesmo texto em outra tela).
 void PcHook_TitleExitEntry(PPCRegister& r4, PPCRegister& r31) {
-  if (r4.u32 != 5) return;
+  if (r4.u32 != mm::kExitTextId) return;
   const uint32_t page0 = r31.u32;
   if (pc::Get().pc_menu_entry && GuestHeapPtr(page0)) {
     auto* ks = rex::system::kernel_state();
@@ -473,17 +488,43 @@ void PcHook_TitleExitEntry(PPCRegister& r4, PPCRegister& r31) {
   pc::state::title_exit_entry_built.fetch_add(1, std::memory_order_relaxed);
 }
 
-// Ação 0x822DED40 (a entrada de saída do menu principal; 0x822E2860 a chama sem exigir
-// perfil). No PC não existe biblioteca de jogos: pede o encerramento normal do programa
-// (o monitor do app fecha a janela pela thread da interface, como o botão de fechar) e não
-// executa o original. Só no menu principal (tela+0x198 = 0).
+// Regra do jogo original (MECHANICS.md §15): a ação 0x822DED40 (0x822E2860 a chama sem exigir
+// perfil) não sai na hora; no jogo completo ela abre a confirmação do próprio jogo
+// (0x822DE260: título = texto 5, pergunta = texto 53 "VOCÊ TEM CERTEZA?"). O port mantém essa
+// confirmação: aqui só marca que ela veio do menu principal (tela+0x198 = 0) e deixa o original
+// seguir. O título vira SAIR PARA O DESKTOP (PcHook_GetString), o SIM fecha o programa
+// (PcHook_ExitConfirmed) e o NÃO volta ao menu como no original (PcHook_ExitCancelled).
 bool PcHook_TitleExitSelect(PPCRegister& r3) {
   const uint32_t screen = r3.u32;
-  if (!GuestHeapPtr(screen) || ReadU8(screen + 0x198) != 0) return false;
+  if (!GuestHeapPtr(screen) || ReadU8(screen + mm::kScreenIsPauseOff) != 0) return false;
   pc::state::title_exit_activations.fetch_add(1, std::memory_order_relaxed);
+  pc::state::title_exit_armed.store(true, std::memory_order_release);
+  REXLOG_INFO("menu principal: SAIR PARA O DESKTOP escolhida; confirmação do jogo aberta");
+  return false;  // o original abre a confirmação
+}
+
+// 0x822DD720 = SIM confirmado (callback em tela+0x22C, chamado por 0x822E2538 com r3 = tela).
+// No original chama 0x825B1EB8("XLNI_DASH_ARCADE") para ir ao painel do console. Só quando a
+// confirmação veio de SAIR PARA O DESKTOP: fecha o programa pelo caminho normal (o monitor do
+// app chama o mesmo caminho do botão de fechar a janela) e não executa o original. Outros usos
+// desse callback (0x822DDBA0 também é registrado por 0x822DE9A8 e 0x82473048) seguem o jogo.
+bool PcHook_ExitConfirmed(PPCRegister& r3) {
+  if (!pc::state::title_exit_armed.exchange(false, std::memory_order_acq_rel)) return false;
+  const uint32_t screen = r3.u32;
+  if (!GuestHeapPtr(screen) || ReadU8(screen + mm::kScreenIsPauseOff) != 0) return false;
+  pc::state::title_exit_confirmed.fetch_add(1, std::memory_order_relaxed);
   pc::state::exit_to_desktop_request.store(true, std::memory_order_release);
-  REXLOG_INFO("menu principal: SAIR PARA O DESKTOP escolhida; encerrando o programa");
+  REXLOG_INFO("menu principal: SAIR PARA O DESKTOP confirmada (SIM); encerrando o programa");
   return true;
+}
+
+// 0x822DDA70 = voltar da confirmação (NÃO). Usado por várias caixas do jogo; só desarma.
+void PcHook_ExitCancelled(PPCRegister& r3) {
+  (void)r3;
+  if (pc::state::title_exit_armed.exchange(false, std::memory_order_acq_rel)) {
+    pc::state::title_exit_cancelled.fetch_add(1, std::memory_order_relaxed);
+    REXLOG_INFO("menu principal: SAIR PARA O DESKTOP cancelada (NÃO); volta ao menu");
+  }
 }
 
 // Ação compartilhada (0x822DEC40), antes de o handler criar a pilha: retornar aqui não deixa
@@ -499,10 +540,11 @@ bool PcHook_LeaderboardsSelect(PPCRegister& r3) {
   if (!GuestHeapPtr(pages) || page > 16) return false;
   const uint32_t entries = ReadU32(pages + page * 0x2C);
   const uint32_t count = ReadU32(pages + page * 0x2C + 4);
-  const uint32_t cursor = ReadU8(screen + 7);
+  const uint32_t cursor = ReadU8(screen + mm::kScreenCursorOff);
   if (!GuestHeapPtr(entries) || cursor >= count) return false;
-  const uint32_t entry = entries + cursor * 136;
-  if (ReadU32(entry + 0x7C) != kLeaderboardsAction || ReadU32(entry + 0x28) != kNoTargetPage)
+  const uint32_t entry = entries + cursor * mm::kEntrySize;
+  if (ReadU32(entry + mm::kEntryActionOff) != kLeaderboardsAction ||
+      ReadU32(entry + mm::kEntryTargetPageOff) != kNoTargetPage)
     return false;  // CLASSIFICAÇÕES: comportamento original
   uint8_t* f = GuestBase() + screen + 0x220;
   if (f[0] == 0 && f[1] == 0 && f[2] == 0 && f[3] == 1) f[3] = 0;

@@ -207,14 +207,32 @@ name = "PcHook_TitleExitEntry"
 registers = ["r4", "r31"]
 after_instruction = true
 
-# 0x822DED40 = ação de VOLTAR À BIBLIOTECA DE JOGOS (vai para a tela 7 e grava o callback em
-# tela+0x22C). Com a entrada renomeada, o gancho pede o encerramento normal do programa
-# (mesmo caminho de fechar a janela) e não executa o original.
+# 0x822DED40 = ação de VOLTAR À BIBLIOTECA DE JOGOS: 0x822DBC18(tela, 7) e callback em
+# tela+0x22C = 0x822DE260 (jogo completo, 0x8227E6B0 != 0). 0x822DE260 abre a confirmação do
+# próprio jogo: título GetString(5) (chamada com retorno em 0x822DE290), pergunta GetString(53)
+# "VOCÊ TEM CERTEZA?", botão 0 -> 0x822DDBA0 (tela+0x22C = 0x822DD720, "sair") e botão 1 ->
+# 0x822DDAD8 (tela+0x22C = 0x822DDA70, volta ao menu). MECHANICS.md §15.
+# O gancho só marca que a confirmação veio do menu principal; o original continua.
 [[midasm_hook]]
 address = 0x822DED40
 name = "PcHook_TitleExitSelect"
 registers = ["r3"]
 return_on_true = true
+
+# 0x822DD720 = "sair" confirmado: no original chama 0x825B1EB8("XLNI_DASH_ARCADE") (painel do
+# console). Só quando a confirmação veio de SAIR PARA O DESKTOP, o port fecha o programa pelo
+# caminho normal e não executa o original. Chamado por 0x822E2538 com r3 = tela.
+[[midasm_hook]]
+address = 0x822DD720
+name = "PcHook_ExitConfirmed"
+registers = ["r3"]
+return_on_true = true
+
+# 0x822DDA70 = "voltar" da confirmação (usado por várias caixas do jogo): desarma a marca.
+[[midasm_hook]]
+address = 0x822DDA70
+name = "PcHook_ExitCancelled"
+registers = ["r3"]
 
 # 0x822DEC40 = ação de CLASSIFICAÇÕES (página-alvo 3) e também da entrada nova (página-alvo -1).
 # O original confere o perfil Xbox Live (byte 0x8269EF20) e, sem ele, abre a tela "ESTE RECURSO

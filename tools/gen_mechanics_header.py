@@ -83,6 +83,23 @@ def main():
         if hooks.get(name) != addr:
             fail("%s: ausente ou com endereco diferente no pc_hooks.toml (decompilado: %s)" %
                  (name, hex(addr)))
+    menu = pc.get("menu") or {}
+    if not menu:
+        fail("mechanics.json: falta o bloco pc.menu (MECHANICS.md secao 15)")
+    menu_hooks = {
+        "PcHook_TitleSkipLeaderboards": menu["hook_title_skip_leaderboards"],
+        "PcHook_TitleExitEntry": menu["hook_title_exit_entry"],
+        "PcHook_PauseMenuBuilt": menu["hook_pause_menu_built"],
+        "PcHook_GetString": menu["hook_get_string"],
+        "PcHook_LeaderboardsSelect": menu["leaderboards_action"],
+        "PcHook_TitleExitSelect": menu["exit_action"],
+        "PcHook_ExitConfirmed": menu["exit_yes_callback"],
+        "PcHook_ExitCancelled": menu["exit_no_callback"],
+    }
+    for name, addr in menu_hooks.items():
+        if hooks.get(name) != int(addr, 16):
+            fail("%s: endereco no pc_hooks.toml (%s) difere do decompilado (%s)" %
+                 (name, hex(hooks.get(name, 0)), addr))
 
     # ---- header text
     lines = []
@@ -111,6 +128,43 @@ def main():
         w("constexpr float %s_orig      = %s;   // f32 em %s" % (name, _f32(k["orig"]), k["orig_addr"].lower()))
         w("constexpr float %s           = %s;   // f32 em %s" % (name, _f32(k["v60"]), k["v60_addr"].lower()))
     w("")
+    w("// ---- menus do jogo (MECHANICS.md secoes 13-15; enderecos conferidos no pc_hooks.toml) ----")
+    def hx(key, note):
+        w("constexpr uint32_t %-26s = %su;  // %s" % (_camel(key), menu[key].lower(), note))
+    def dec(key, note):
+        w("constexpr uint32_t %-26s = %du;  // %s" % (_camel(key), int(menu[key]), note))
+    hx("add_entry_fn", "acrescenta entrada (pagina, texto, icone, pagina-alvo, acao)")
+    dec("entry_size", "bytes por entrada (0x822E1230)")
+    hx("entry_target_page_off", "pagina-alvo na entrada")
+    hx("entry_action_off", "acao na entrada")
+    hx("entry_label_off", "rotulo copiado na entrada (0x822E5740)")
+    dec("entry_label_max", "tamanho maximo do rotulo")
+    hx("screen_is_pause_off", "byte: 0 = menu de titulo, !=0 = pausa")
+    hx("screen_cursor_off", "byte: entrada sob o cursor")
+    hx("screen_dialog_off", "ponteiro da caixa de dialogo aberta")
+    hx("screen_callback_off", "callback ao fechar a caixa (0x822E2538)")
+    hx("leaderboards_action", "acao de CLASSIFICACOES (e da entrada de PC)")
+    dec("leaderboards_text_id", "texto de CLASSIFICACOES")
+    dec("leaderboards_target_page", "pagina-alvo de CLASSIFICACOES")
+    dec("leaderboards_icon", "icone de CLASSIFICACOES")
+    hx("settings_icon", "icone de CONFIGURACOES (pagina AJUDA E OPCOES)")
+    hx("exit_action", "acao de VOLTAR A BIBLIOTECA DE JOGOS")
+    dec("exit_text_id", "texto de VOLTAR A BIBLIOTECA DE JOGOS")
+    hx("exit_dialog_fn", "abre a confirmacao 'VOCE TEM CERTEZA?'")
+    hx("exit_dialog_title_ret", "retorno do GetString(5) do titulo da confirmacao")
+    dec("exit_dialog_question_id", "texto 'VOCE TEM CERTEZA?'")
+    hx("exit_yes_callback", "SIM: no original vai ao painel (XLNI_DASH_ARCADE)")
+    hx("exit_no_callback", "NAO: volta ao menu")
+    hx("hook_title_skip_leaderboards", "titulo: registro de CLASSIFICACOES")
+    hx("title_skip_to", "titulo: proxima entrada (JOGAR/CONQUISTAS...)")
+    hx("hook_title_exit_entry", "titulo: depois de 'li r4,5'")
+    hx("hook_pause_menu_built", "pausa: depois de SAIR DO JOGO")
+    hx("hook_get_string", "GetString(id)")
+    dec("title_start_y", "y da 1a entrada no titulo (0x82005AAC)")
+    dec("title_step_y", "passo no titulo (0x82005AB4)")
+    dec("pause_start_y", "y da 1a entrada na pausa (0x82005AB8)")
+    dec("pause_step_y", "passo na pausa (0x82005AC8)")
+    w("")
     w("}  // namespace mechanics")
     w("}  // namespace pc")
     w("")
@@ -131,6 +185,10 @@ def main():
            "inalterado" if wrote else "gerado",
            len(k60), int(frame["original_step"])))
     return 0
+
+
+def _camel(key):
+    return "k" + "".join(part.capitalize() for part in key.split("_"))
 
 
 def _f32(v):

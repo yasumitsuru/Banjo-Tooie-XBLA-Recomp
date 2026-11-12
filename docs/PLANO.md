@@ -74,7 +74,7 @@ isolados dentro de `app/`; os saves reais da pessoa não foram tocados.
 | 1 | **Corrigir a sobreposição** da entrada "CONFIGURAÇÕES DE PC" com o contador de Jiggies na pausa | aparece toda vez que o jogador pausa; mudança pequena e localizada na camada de PC, fácil de provar com captura. **Causa já lida no original (rodada 9, `MECHANICS.md` §13):** cada entrada guarda sua altura ao ser criada (y inicial 62, passo 21 na pausa), então a 7ª cai em y = 188, onde fica o contador. Correção recomendada: no gancho que já existe, passo 21→17 só com a entrada de PC (as 7 cabem no espaço das 6 originais) | PENDENTE (causa conhecida; correção não feita) |
 | — | **Menu principal**: CLASSIFICAÇÕES sai, CONFIGURAÇÃO DA RECOMPILAÇÃO acima de SAIR PARA O DESKTOP (que fecha o jogo) | pedido da pessoa (2026-11-11) | **FEITO** (sonda `--probe-titlemenu` PASS, regressão PT-BR PASS 15/15, `rebuild_check` 5/5, 36/36) |
 | 2 | **Sistema de log completo** (pedido de 2026-11-11, detalhes na seção "Sistema de log completo" abaixo) | base para depurar e implementar tudo o que vem depois (carga de save, distância de desenho, controle físico) e para achar a causa do defeito intermitente de desligamento (item 2b); vem logo depois do item 1, que é pequeno e já tem a causa lida | PENDENTE |
-| 2b | **Desligamento intermitente do runtime**: numa regressão PT-BR (rodada 9) um processo ficou parado 150 s depois do estágio `shutdown` e outro caiu com 0xC0000005 em `ntdll` (escrita na pilha de outra thread, chamadas em `rexruntime.dll`) depois de `guest_thread_exit`; 0 em 4 repetições e 0 nas sondas | hoje há uma rede de segurança (encerra 15 s depois do pedido de saída, mesmo código); a causa exige símbolos do `rexruntime.dll` (não há PDB) e o log do item 2 | PENDENTE (mitigado, causa desconhecida) |
+| 2b | **Desligamento intermitente do runtime** (queda 0xC0000005 ou travamento ao fechar) | causa achada em 2026-11-12: ao fechar, `TerminateTitle` mata as threads do jogo em pontos aleatórios; se uma estava dentro da atualização do relógio do console (`UpdateGuestClock`, trava `tick_mutex_`), a trava ficava quebrada (queda na thread de temporizadores ou travamento em `GraphicsSystem::Shutdown`). Relógio refeito sem trava + thread de vblank sai do laço quando o desligamento é pedido (submódulo `rexglue-sdk`) | **FEITO** (antes: 1 queda em 16 fechamentos; 1ª tentativa: 4 travamentos em 83; depois: **64/64** limpos) |
 | 3 | **Carregar save automaticamente** (`--make-advanced-save` + `--probe-advanced-save` em perfil de teste) | fecha o requisito "saves" (hoje só a gravação tem prova); protege os saves da pessoa antes de qualquer outra mudança no jogo | PENDENTE |
 | 4 | **Draw distance**: capturas dos 3 perfis (`--probe-drawdistance`, `--probe-dd-worlds`) e custo em FPS a 4K | já implementado, falta a prova visual e o efeito nos 60 FPS | PENDENTE |
 | 5 | **PT-BR no HUD e nos diálogos das fases** (continuação da Missão 02) | cobertura de texto ainda parcial; usa a mesma regressão já ajustada | PENDENTE |
@@ -153,6 +153,24 @@ Sem funcionalidades novas e sem mudança no jogo ou na camada de PC; só documen
 | Arquivos do jogo depois da execução | **PASS 36/36** iguais à linha de base (`_audit/out/m00-r9/integridade_pos_check.json`) |
 | Pergunta aberta da sobreposição | **respondida** pela leitura do original (`MECHANICS.md` §13: `0x822E5740`, `0x822DEE60`, constantes em `0x82005AA0…`); a correção segue PENDENTE no item 1 |
 | Não feito nesta rodada | smoke da M01 e regressão PT-BR da M02 (nada no código mudou desde a rodada 8, onde passaram) |
+
+## Desligamento ao fechar (2026-11-12)
+
+Retomada depois de uma parada. Nenhuma mudança de comportamento do jogo; corrigido um defeito do
+motor que aparecia ao fechar (inclusive por "SAIR PARA O DESKTOP"). Saídas em `_audit/out/m00-r10/`.
+
+| Passo | Resultado |
+|---|---|
+| Linha de base: 16 aberturas e fechamentos curtos (`--screenshot`, 6 s) | 15 limpos, **1 queda** 0xC0000005 depois de `guest_thread_exit` (`stress/`) |
+| Onde caiu (despejo lido com leitor próprio; nomes pelas exportações do `rexruntime.dll`) | thread `TimerQueue::TimerThreadMain` → callback do xboxkrnl → `Clock::QueryGuestUptimeMillis` → `UpdateGuestClock` (trava `tick_mutex_`) → ntdll escrevendo na pilha de outra thread; mesma assinatura da queda da rodada 9 |
+| Causa | `KernelState::TerminateTitle` suspende e encerra com `TerminateThread` as threads do jogo; quem morre esperando a trava deixa o bloco de espera numa pilha que não existe mais (queda); quem morre segurando a trava trava os outros (travamento) |
+| 1ª tentativa: trava que não dorme | queda sumiu, mas **4 travamentos em 83** (`stress_fix/`, `hang/`): o relógio congelava e a thread de vblank esperava para sempre um prazo; despejos dos processos travados mostram a thread principal em `GraphicsSystem::Shutdown` esperando essa thread |
+| Correção final (`rexglue-sdk`): relógio calculado sem trava (base fixa + relógio do PC, `src/core/clock.cpp`) e laço do vblank que sai quando `vsync_worker_running_` cai (`src/graphics/graphics_system.cpp`) | **64/64** fechamentos limpos (código 0, estágio `shutdown`, captura gravada, máx. 9,2 s; `stress_fix2/`) |
+| Regressões | sonda `--probe-titlemenu` PASS; `test_traducao.ps1` **PASS** (29/29, 15/15 telas; cenas no tempo certo); auto-teste 60,0/60,0 em 2 execuções locais |
+| `rebuild_check` | build, imagem 3840×2160, auto-teste e créditos PASS; na 1ª execução o passo `fps` mediu 54,8 (soluço passageiro: 60,0 nas 2 repetições locais e na 2ª execução oficial). "Mecânicas" fica **incompleta** por limite da própria verificação (não compara valores em execução) |
+| Arquivos do jogo | 36/36 iguais à linha de base |
+
+A rede de segurança de 15 s (`RequestExitOnUiThread`) continua como proteção.
 
 ## Menu principal (pedido de 2026-11-11, depois da rodada 9)
 

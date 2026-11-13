@@ -43,5 +43,5 @@ set "PATH=%LLVM%;C:\Program Files\CMake\bin;%PATH%"
   "-DREXSDK_DIR=%APP%\rexglue-sdk"
 if errorlevel 1 exit /b %ERRORLEVEL%
 
-"%CMAKE%" --build "%BUILD%" --target banjotooie banjotooie_craft_launcher --parallel 4
+"%CMAKE%" --build "%BUILD%" --target banjotooie banjotooie_craft_launcher banjotooie_seletor --parallel 4
 exit /b %ERRORLEVEL%

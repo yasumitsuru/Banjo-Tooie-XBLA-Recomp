@@ -35,6 +35,7 @@
 #include <vector>
 
 #include "pc_ingame_menu.h"
+#include "pc_lang.h"
 #include "pc_menu.h"
 #include "pc_progress.h"
 #include "pc_settings.h"
@@ -45,6 +46,31 @@
 
 namespace pc::automation {
 namespace {
+
+// Textos esperados no idioma do jogo carregado (pedido de 2026-11-13: a versão global, em inglês,
+// roda no mesmo port). Os do jogo vêm da própria tabela de textos (GetString); os do port seguem
+// pc_lang. Assim os mesmos testes valem para a pasta PT-BR e para a global.
+std::string GameText(uint32_t id) { return pc::lang::GameString(id); }
+std::string PortLabel(const char* pt_latin1, const char* en) {
+  return pc::lang::English() ? en : pt_latin1;
+}
+std::string Utf8ToLatin1(const std::string& u8) {
+  std::string out;
+  for (size_t i = 0; i < u8.size();) {
+    const unsigned char c = static_cast<unsigned char>(u8[i]);
+    if (c < 0x80) {
+      out += char(c);
+      ++i;
+    } else if ((c & 0xE0) == 0xC0 && i + 1 < u8.size()) {
+      out += char(((c & 0x1F) << 6) | (static_cast<unsigned char>(u8[i + 1]) & 0x3F));
+      i += 2;
+    } else {
+      out += '?';
+      i += (c & 0xF0) == 0xE0 ? 3 : 4;
+    }
+  }
+  return out;
+}
 
 std::atomic<bool> g_automation_running{false};
 
@@ -2691,7 +2717,6 @@ void Start(const Options& opts, rex::ui::WindowedAppContext* ui,
         return pview().cursor == target;
       };
       const uint32_t kPc = pc::ingame::PageIndex();
-      const std::string kRecomp = "CONFIGURA\xC7\xC3O DA RECOMPILA\xC7\xC3O";
       std::ostringstream o;
       o << "{\"version\":1";
       while (ReadU16(kMapIdAddr) != 0x14F && steady_clock::now() - t0 < seconds(200))
@@ -2704,6 +2729,8 @@ void Start(const Options& opts, rex::ui::WindowedAppContext* ui,
         v0 = pview();
         if (v0.title && v0.page == 0 && v0.count >= 4) break;
       }
+      const std::string kRecomp =
+          PortLabel("CONFIGURA\xC7\xC3O DA RECOMPILA\xC7\xC3O", "RECOMPILATION SETTINGS");
       int recomp = -1;
       for (size_t i = 0; i < v0.labels.size(); ++i)
         if (v0.labels[i] == kRecomp) recomp = int(i);
@@ -2750,7 +2777,8 @@ void Start(const Options& opts, rex::ui::WindowedAppContext* ui,
           if (s == 0) {  // GRÁFICOS: ANISOTROPIA (cvar anisotropic_override) troca e desfaz
             int an = -1;
             for (int i = 0; i < rows; ++i)
-              if (pc::menu::options::RowText(0, i).rfind("ANISOTROPIA", 0) == 0) an = i;
+              if (pc::menu::options::RowText(0, i).rfind(PortLabel("ANISOTROPIA", "ANISOTROPY"), 0) == 0)
+                an = i;
             if (an >= 0 && move_to(uint32_t(an))) {
               cvar_before = rex::cvar::GetFlagByName("anisotropic_override");
               press(input::kDpadRight);
@@ -2923,8 +2951,8 @@ void Start(const Options& opts, rex::ui::WindowedAppContext* ui,
         }
         return view().cursor == target;
       };
-      const std::string kRecomp = "CONFIGURA\xC7\xC3O DA RECOMPILA\xC7\xC3O";
-      const std::string kExit = "SAIR PARA O DESKTOP";
+      // Rótulos do port no idioma do jogo: decididos depois que o jogo carregou os textos.
+      std::string kRecomp, kExit;
       std::ostringstream o;
       o << "{\"version\":1";
       // tela de título: espera o mapa do título e abre o menu com Start
@@ -2939,6 +2967,8 @@ void Start(const Options& opts, rex::ui::WindowedAppContext* ui,
         if (v0.title && v0.page == 0 && v0.count >= 4) break;
       }
       shot_guest("_1_menu.png");
+      kRecomp = PortLabel("CONFIGURA\xC7\xC3O DA RECOMPILA\xC7\xC3O", "RECOMPILATION SETTINGS");
+      kExit = PortLabel("SAIR PARA O DESKTOP", "EXIT TO DESKTOP");
       o << ",\"title_menu\":" << (v0.title && v0.page == 0 && v0.count >= 4 ? 1 : 0)
         << ",\"count\":" << v0.count << ",\"labels\":[";
       for (size_t i = 0; i < v0.labels.size(); ++i)
@@ -2946,11 +2976,11 @@ void Start(const Options& opts, rex::ui::WindowedAppContext* ui,
       o << "],\"recomp_entry_built\":" << pc::state::title_recomp_entry_built.load()
         << ",\"exit_entry_built\":" << pc::state::title_exit_entry_built.load();
       const bool has_leaderboards =
-          std::find(v0.labels.begin(), v0.labels.end(), std::string("CLASSIFICA\xC7\xD5" "ES")) !=
+          std::find(v0.labels.begin(), v0.labels.end(), GameText(1)) !=
           v0.labels.end();
       // ordem pedida: a entrada da recompilação logo acima de SAIR PARA O DESKTOP
-      const std::string kHelp = "AJUDA E OP\xC7\xD5" "ES";  // Latin-1, como na entrada
-      const std::vector<std::string> kExpected = {"JOGAR", "CONQUISTAS", kHelp, kRecomp, kExit};
+      const std::string kHelp = GameText(3);  // Latin-1, como na entrada
+      const std::vector<std::string> kExpected = {GameText(0), GameText(2), kHelp, kRecomp, kExit};
       const bool order_ok = v0.labels == kExpected;
       const uint32_t recomp_idx = v0.count >= 2 ? v0.count - 2 : 0;
       const bool recomp_above_exit = v0.labels.size() >= 2 && v0.labels[recomp_idx] == kRecomp;
@@ -3055,7 +3085,7 @@ void Start(const Options& opts, rex::ui::WindowedAppContext* ui,
       const std::string dlg_title = read_cstr(dlg_title_ptr);
       const std::string dlg_question = dlg ? read_cstr(ReadU32(dlg + 0x28)) : "";
       shot_guest("_4_confirmacao.png");
-      const bool dlg_ok = dlg && dlg_title == kExit && dlg_question == "VOC\xCA TEM CERTEZA?";
+      const bool dlg_ok = dlg && dlg_title == kExit && dlg_question == GameText(53);
       o << ",\"confirmacao_aberta\":" << (dlg ? 1 : 0) << ",\"confirmacao_titulo\":\""
         << json_text(dlg_title) << "\",\"confirmacao_pergunta\":\"" << json_text(dlg_question)
         << "\",\"confirmacao_ok\":" << (dlg_ok ? 1 : 0)
@@ -4054,10 +4084,10 @@ void Start(const Options& opts, rex::ui::WindowedAppContext* ui,
           page_entries(nullptr, &cur);
           return cur == target;
         };
-        const std::string kLeader = "CLASSIFICA\xC7\xD5" "ES";
-        const std::string kQuit = "SAIR DO JOGO";
-        const std::string kHelp = "AJUDA E OP\xC7\xD5" "ES";
-        const std::string kPcEntry = "CONFIGURA\xC7\xD5" "ES DE PC";
+        const std::string kLeader = GameText(1);  // CLASSIFICAÇÕES / LEADERBOARDS
+        const std::string kQuit = GameText(61);   // SAIR DO JOGO / EXIT GAME
+        const std::string kHelp = GameText(3);    // AJUDA E OPÇÕES / HELP & OPTIONS
+        const std::string kPcEntry = PortLabel("CONFIGURA\xC7\xD5" "ES DE PC", "PC SETTINGS");
         uint32_t page0 = 99;
         const std::vector<Entry> p0 = page_entries(&page0, nullptr);
         const bool no_leader = index_of(p0, kLeader) < 0;
@@ -4127,9 +4157,11 @@ void Start(const Options& opts, rex::ui::WindowedAppContext* ui,
           page_entries(nullptr, &cur);
           return cur == target;
         };
-        const std::string kGraphics = "GR\xC1" "FICOS";
-        const std::string kGameSec = "JOGO";
-        const std::string kFpsRow = "CONTADOR DE FPS : ";
+        const std::string kGraphics = Utf8ToLatin1(pc::menu::options::SectionTitle(0));
+        const std::string kGameSec = Utf8ToLatin1(pc::menu::options::SectionTitle(1));
+        const std::string kFpsRow = PortLabel("CONTADOR DE FPS : ", "FPS COUNTER : ");
+        const std::string kYesL = PortLabel("SIM", "YES");
+        const std::string kNoL = PortLabel("N\xC3O", "NO");
         std::vector<Entry> root, game;
         bool in_root = false, root_ok = false, in_game = false, toggled = false,
              restored = false, back_root = false, back_help = false;
@@ -4166,7 +4198,7 @@ void Start(const Options& opts, rex::ui::WindowedAppContext* ui,
           std::vector<Entry> now = page_entries(nullptr, nullptr);
           label_on = size_t(fps_row) < now.size() ? now[size_t(fps_row)].label : "";
           toggled = pc::Get().show_fps != fps_before &&
-                    label_on == kFpsRow + (pc::Get().show_fps ? "SIM" : "N\xC3O");
+                    label_on == kFpsRow + (pc::Get().show_fps ? kYesL : kNoL);
           rex::ui::RawImage jogo_img = capture();
           if (jogo_img.width) {
             ReduceTo1920(jogo_img);
@@ -4180,7 +4212,7 @@ void Start(const Options& opts, rex::ui::WindowedAppContext* ui,
           now = page_entries(nullptr, nullptr);
           label_off = size_t(fps_row) < now.size() ? now[size_t(fps_row)].label : "";
           restored = pc::Get().show_fps == fps_before &&
-                     label_off == kFpsRow + (fps_before ? "SIM" : "N\xC3O");
+                     label_off == kFpsRow + (fps_before ? kYesL : kNoL);
         }
         if (in_game) {
           Tap(input::kB, 12);

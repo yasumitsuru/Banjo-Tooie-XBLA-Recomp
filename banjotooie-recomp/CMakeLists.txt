@@ -26,6 +26,7 @@ set(BANJOTOOIE_SOURCES
     src/pc/pc_automation.cpp
     src/pc/pc_menu.cpp
     src/pc/pc_ingame_menu.cpp
+    src/pc/pc_lang.cpp
     src/pc/pc_saves.cpp
     src/pc/pc_progress.cpp
     src/pc/scripted_input.cpp
@@ -72,4 +73,13 @@ if(WIN32)
     set_target_properties(banjotooie_craft_launcher PROPERTIES
         OUTPUT_NAME banjotooie
         RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/../Build")
+
+    # Seletor de versao (PT-BR ou global/ingles) para validacao visual (pedido de 2026-11-13).
+    # Fica em app/Seletor, fora de app/Build, para nao mudar o programa que o Craft verifica.
+    add_executable(banjotooie_seletor WIN32 ../tools/version_selector.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/banjotooie.rc)
+    target_link_libraries(banjotooie_seletor PRIVATE shell32 gdi32 user32)
+    set_target_properties(banjotooie_seletor PROPERTIES
+        OUTPUT_NAME BanjoTooie_Seletor
+        RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/../Seletor")
 endif()

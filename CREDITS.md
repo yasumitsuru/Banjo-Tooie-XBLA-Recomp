@@ -26,6 +26,16 @@ Origem: `W:\Decomp\Banjo 3\Banjo Tooie BR\` (36 arquivos fornecidos legalmente p
 | `RAWFiles\58410955033F0001` | Contêiner PIRS (tema NXE) |
 | `ArcadeInfo.xml` + 24 PNGs | Metadados/ícones XBLA (não são necessários para o jogo em si) |
 
+## Versão global em inglês (2026-11-13)
+
+Origem: `W:\Decomp\Banjo 3\Banjo-Tooie (World) (XBLA)\` (36 arquivos fornecidos pela pessoa dona da
+cópia). O mesmo port nativo abre esta pasta com `--game_data_root` (ou pelo seletor
+`Seletor\BanjoTooie_Seletor.exe`), **sem cópia** para o projeto e somente leitura (36/36 hashes
+iguais antes e depois do teste de fumaça). O `default.xex` dela é o arquivo de varejo cifrado
+(sha256 `4b512ae9…`, o mesmo que o projeto-base usa); depois de decifrado é a mesma imagem do XEX
+PT-BR, por isso o código recompilado serve às duas. Diferem só os textos e texturas traduzidos
+(`X360_strings.dat`, `db360.cmp`, `db360.textures.cmp`); os outros arquivos são idênticos.
+
 ## Ferramentas e código de terceiros usados no port (Missão 01)
 
 | Item | Onde está | Licença | O que foi usado |

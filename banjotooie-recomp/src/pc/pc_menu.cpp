@@ -36,6 +36,7 @@
 
 #include "pc_automation.h"
 #include "pc_ingame_menu.h"
+#include "pc_lang.h"
 #include "pc_progress.h"
 #include "pc_saves.h"
 #include "pc_settings.h"
@@ -1214,14 +1215,24 @@ bool SetResolutionForAutomation(Resolution resolution) {
 namespace options {
 namespace {
 
-std::string YesNo(bool b) { return b ? "SIM" : "NÃO"; }
+// Rótulo nos dois idiomas; o texto mostrado segue o idioma do jogo (pc_lang.h): a versão global
+// é em inglês (pedido de 2026-11-13).
+struct L {
+  const char* pt;
+  const char* en;
+};
+std::string Tx(const L& l) { return pc::lang::T(l.pt, l.en); }
+bool En() { return pc::lang::English(); }
 
-// Número com vírgula (PT-BR), 2 casas.
+std::string YesNo(bool b) { return b ? Tx({"SIM", "YES"}) : Tx({"NÃO", "NO"}); }
+
+// Número com 2 casas: vírgula em PT-BR, ponto em inglês.
 std::string Num2(float v) {
   char b[24];
   std::snprintf(b, sizeof b, "%.2f", double(v));
-  for (char* p = b; *p; ++p)
-    if (*p == '.') *p = ',';
+  if (!En())
+    for (char* p = b; *p; ++p)
+      if (*p == '.') *p = ',';
   return b;
 }
 
@@ -1239,6 +1250,8 @@ float StepF(float v, float lo, float hi, float step, int dir) {
   return std::clamp(n * step, lo, hi);
 }
 
+std::string RestartHint() { return Tx({" (REINICIE)", " (RESTART)"}); }
+
 // Linha da página: texto atual e o que esquerda/direita (dir ±1) ou A (dir 0) fazem.
 struct Row {
   std::function<std::string()> text;
@@ -1246,8 +1259,8 @@ struct Row {
   bool value = true;
 };
 
-Row Bool(const char* label, bool Settings::*field, std::function<void()> after = {}) {
-  return {[label, field] { return std::string(label) + " : " + YesNo(pc::Get().*field); },
+Row Bool(L label, bool Settings::*field, std::function<void()> after = {}) {
+  return {[label, field] { return Tx(label) + " : " + YesNo(pc::Get().*field); },
           [field, after](int) {
             pc::Get().*field = !(pc::Get().*field);
             if (after) after();
@@ -1256,9 +1269,9 @@ Row Bool(const char* label, bool Settings::*field, std::function<void()> after =
           }};
 }
 
-Row Float(const char* label, float Settings::*field, float lo, float hi, float step,
+Row Float(L label, float Settings::*field, float lo, float hi, float step,
           std::function<void()> after = {}) {
-  return {[label, field] { return std::string(label) + " : " + Num2(pc::Get().*field); },
+  return {[label, field] { return Tx(label) + " : " + Num2(pc::Get().*field); },
           [field, lo, hi, step, after](int dir) {
             const float old = pc::Get().*field;
             const float v = StepF(old, lo, hi, step, dir == 0 ? 1 : dir);
@@ -1270,17 +1283,17 @@ Row Float(const char* label, float Settings::*field, float lo, float hi, float s
           }};
 }
 
-// Cvar com uma lista fixa de valores (o texto mostrado em names[i]).
 // Cvar com uma lista fixa de valores (o texto mostrado em names[i]). Só entram os valores que
 // o runtime aceita (lista .allowed() do cvar): este build não tem o AMD FidelityFX, então
 // present_effect só aceita "bilinear" e os pedidos "cas"/"fsr" eram recusados ("not in allowed
 // values", 45 avisos nos logs de 2026-11-12) sem mudar nada. "(REINICIE)" aparece quando o
 // runtime só aplica o cvar ao reiniciar (lifecycle) e o valor difere do da partida.
-Row CvarList(const char* label, const char* cvar, std::vector<std::string> values,
-             std::vector<std::string> names, bool restart_hint = false) {
+Row CvarList(L label, const char* cvar, std::vector<std::string> values, std::vector<L> names,
+             bool restart_hint = false) {
   if (const rex::cvar::FlagEntry* info = rex::cvar::GetFlagInfo(cvar)) {
     if (info->constraints.HasAllowedValues()) {
-      std::vector<std::string> v2, n2;
+      std::vector<std::string> v2;
+      std::vector<L> n2;
       for (size_t i = 0; i < values.size(); ++i) {
         const auto& ok = info->constraints.allowed_values;
         if (std::find(ok.begin(), ok.end(), values[i]) != ok.end()) {
@@ -1302,10 +1315,10 @@ Row CvarList(const char* label, const char* cvar, std::vector<std::string> value
     return 0;
   };
   Row row{[label, names, index, restart_hint, cvar] {
-            std::string t = std::string(label) + " : " + names[size_t(index())];
+            std::string t = Tx(label) + " : " + Tx(names[size_t(index())]);
             const auto start = g_startup_cvars.find(cvar);
             if (restart_hint && start != g_startup_cvars.end() && CvarNow(cvar) != start->second)
-              t += " (REINICIE)";
+              t += RestartHint();
             return t;
           },
           [cvar, values, index](int dir) {
@@ -1321,18 +1334,21 @@ Row CvarList(const char* label, const char* cvar, std::vector<std::string> value
 
 void ApplyRuntimeLater() { PostUi([] { pc::ApplyRuntimeOptions(); }); }
 
+const L kYes{"SIM", "YES"};
+const L kNo{"NÃO", "NO"};
+
 std::vector<Row> BuildGraphics() {
   std::vector<Row> r;
   r.push_back({[] {
                  const auto res = pc::Get().resolution;
-                 std::string t = std::string("RESOLUÇÃO : ") +
-                                 (res == Resolution::R1080p   ? "1080P"
-                                  : res == Resolution::R1440p ? "1440P"
-                                                              : "4K");
+                 const std::string v = res == Resolution::R1080p   ? "1080P"
+                                       : res == Resolution::R1440p ? "1440P"
+                                                                   : "4K";
                  // Pendente até reiniciar: rótulo curto para caber numa linha no título
                  // (texto maior; "INVERTER ANALÓGICO X : NÃO", 26 letras largas, já quebra).
-                 if (res != g_startup_resolution) t = "RESOL." + t.substr(t.find(" :")) + " (REINICIE)";
-                 return t;
+                 if (res != g_startup_resolution)
+                   return Tx({"RESOL.", "RES."}) + " : " + v + RestartHint();
+                 return Tx({"RESOLUÇÃO", "RESOLUTION"}) + " : " + v;
                },
                [](int dir) {
                  auto& s = pc::Get();
@@ -1346,9 +1362,10 @@ std::vector<Row> BuildGraphics() {
                }});
   r.push_back({[] {
                  const auto m = pc::Get().display_mode;
-                 return std::string("MODO : ") + (m == DisplayMode::Janela      ? "JANELA"
-                                                  : m == DisplayMode::SemBordas ? "SEM BORDAS"
-                                                                                : "TELA CHEIA");
+                 return Tx({"MODO", "MODE"}) + " : " +
+                        (m == DisplayMode::Janela      ? Tx({"JANELA", "WINDOWED"})
+                         : m == DisplayMode::SemBordas ? Tx({"SEM BORDAS", "BORDERLESS"})
+                                                       : Tx({"TELA CHEIA", "FULLSCREEN"}));
                },
                [](int dir) {
                  auto& s = pc::Get();
@@ -1361,27 +1378,31 @@ std::vector<Row> BuildGraphics() {
   // VSYNC = imagem entregue no retraço do monitor (host_vsync, sem tearing). O cvar 'vsync' do
   // runtime é o ritmo de 60 Hz do console: desligado, o jogo receberia um "retraço" a cada 1 ms
   // (graphics_system.cpp) — fica sempre ligado (pc_menu::Create).
-  r.push_back(CvarList("VSYNC", "host_vsync", {"true", "false"}, {"SIM", "NÃO"}));
-  r.push_back(CvarList("FXAA", "swap_post_effect", {"none", "fxaa", "fxaa_extreme"},
-                       {"NÃO", "SIM", "FORTE"}));
-  r.push_back(CvarList("MSAA 2X", "native_2x_msaa", {"false", "true"}, {"NÃO", "SIM"}, true));
-  r.push_back(CvarList("ANISOTROPIA", "anisotropic_override", {"-1", "0", "2", "3", "4", "5"},
-                       {"DO JOGO", "DESLIGADA", "2X", "4X", "8X", "16X"}));
-  r.push_back(CvarList("ESCALA", "present_effect", {"bilinear", "cas", "fsr"},
-                       {"BILINEAR", "AMD CAS", "AMD FSR"}));
+  r.push_back(CvarList({"VSYNC", "VSYNC"}, "host_vsync", {"true", "false"}, {kYes, kNo}));
+  r.push_back(CvarList({"FXAA", "FXAA"}, "swap_post_effect", {"none", "fxaa", "fxaa_extreme"},
+                       {kNo, kYes, {"FORTE", "STRONG"}}));
+  r.push_back(CvarList({"MSAA 2X", "MSAA 2X"}, "native_2x_msaa", {"false", "true"}, {kNo, kYes},
+                       true));
+  r.push_back(CvarList({"ANISOTROPIA", "ANISOTROPY"}, "anisotropic_override",
+                       {"-1", "0", "2", "3", "4", "5"},
+                       {{"DO JOGO", "GAME"}, {"DESLIGADA", "OFF"}, {"2X", "2X"}, {"4X", "4X"},
+                        {"8X", "8X"}, {"16X", "16X"}}));
+  r.push_back(CvarList({"ESCALA", "SCALING"}, "present_effect", {"bilinear", "cas", "fsr"},
+                       {{"BILINEAR", "BILINEAR"}, {"AMD CAS", "AMD CAS"}, {"AMD FSR", "AMD FSR"}}));
   return r;
 }
 
 std::vector<Row> BuildGame() {
   std::vector<Row> r;
-  r.push_back(Bool("60 FPS", &Settings::fps60));
-  r.push_back(Bool("RITMO FIXO EM 60", &Settings::lock60));
-  r.push_back(Bool("CENAS A 60 FPS", &Settings::scenes60));
+  r.push_back(Bool({"60 FPS", "60 FPS"}, &Settings::fps60));
+  r.push_back(Bool({"RITMO FIXO EM 60", "LOCKED 60 PACING"}, &Settings::lock60));
+  r.push_back(Bool({"CENAS A 60 FPS", "CUTSCENES AT 60 FPS"}, &Settings::scenes60));
   r.push_back({[] {
                  const auto d = pc::Get().draw_distance;
-                 return std::string("DISTÂNCIA : ") + (d == DrawDistance::Longe   ? "LONGE"
-                                                       : d == DrawDistance::Total ? "TOTAL"
-                                                                                  : "ORIGINAL");
+                 return Tx({"DISTÂNCIA", "DRAW DISTANCE"}) + " : " +
+                        (d == DrawDistance::Longe   ? Tx({"LONGE", "FAR"})
+                         : d == DrawDistance::Total ? Tx({"TOTAL", "FULL"})
+                                                    : Tx({"ORIGINAL", "ORIGINAL"}));
                },
                [](int dir) {
                  auto& s = pc::Get();
@@ -1390,10 +1411,12 @@ std::vector<Row> BuildGame() {
                  return true;
                }});
   r.push_back({[] {
-                 static const char* const kNames[] = {"ORIGINAL", "RÁPIDOS", "MUITO RÁPIDOS",
-                                                      "INSTANTÂNEOS"};
-                 return std::string("DIÁLOGOS : ") +
-                        kNames[std::clamp(pc::Get().dialog_speed, 0, 3)];
+                 static const L kNames[] = {{"ORIGINAL", "ORIGINAL"},
+                                            {"RÁPIDOS", "FAST"},
+                                            {"MUITO RÁPIDOS", "VERY FAST"},
+                                            {"INSTANTÂNEOS", "INSTANT"}};
+                 return Tx({"DIÁLOGOS", "DIALOGUE"}) + " : " +
+                        Tx(kNames[std::clamp(pc::Get().dialog_speed, 0, 3)]);
                },
                [](int dir) {
                  auto& s = pc::Get();
@@ -1401,42 +1424,49 @@ std::vector<Row> BuildGame() {
                  RequestSave();
                  return true;
                }});
-  r.push_back(Bool("CONTADOR DE FPS", &Settings::show_fps));
-  r.push_back(Bool("DESEMPENHO NA TELA", &Settings::show_perf_stats));
-  r.push_back(Bool("RASTREADOR DE ITENS", &Settings::show_collectibles));
-  r.push_back(Bool("PAUSAR SEM FOCO", &Settings::pause_on_focus_loss));
-  r.push_back(Bool("INÍCIO RÁPIDO", &Settings::skip_intro_logos));
+  r.push_back(Bool({"CONTADOR DE FPS", "FPS COUNTER"}, &Settings::show_fps));
+  r.push_back(Bool({"DESEMPENHO NA TELA", "PERFORMANCE STATS"}, &Settings::show_perf_stats));
+  r.push_back(Bool({"RASTREADOR DE ITENS", "ITEM TRACKER"}, &Settings::show_collectibles));
+  r.push_back(Bool({"PAUSAR SEM FOCO", "PAUSE ON FOCUS LOSS"}, &Settings::pause_on_focus_loss));
+  r.push_back(Bool({"INÍCIO RÁPIDO", "QUICK START"}, &Settings::skip_intro_logos));
   return r;
 }
 
 std::vector<Row> BuildController() {
   std::vector<Row> r;
-  r.push_back(Bool("VIBRAÇÃO", &Settings::pad_vibration, ApplyRuntimeLater));
-  r.push_back(Float("ZONA MORTA", &Settings::pad_deadzone, 0.0f, 0.5f, 0.01f, ApplyRuntimeLater));
-  r.push_back(Float("ANALÓGICO DIREITO X", &Settings::pad_sens_x, 0.1f, 3.0f, 0.05f,
+  r.push_back(Bool({"VIBRAÇÃO", "VIBRATION"}, &Settings::pad_vibration, ApplyRuntimeLater));
+  r.push_back(Float({"ZONA MORTA", "DEAD ZONE"}, &Settings::pad_deadzone, 0.0f, 0.5f, 0.01f,
                     ApplyRuntimeLater));
-  r.push_back(Float("ANALÓGICO DIREITO Y", &Settings::pad_sens_y, 0.1f, 3.0f, 0.05f,
-                    ApplyRuntimeLater));
-  r.push_back(Bool("INVERTER ANALÓG. X", &Settings::pad_invert_x, ApplyRuntimeLater));
-  r.push_back(Bool("INVERTER ANALÓG. Y", &Settings::pad_invert_y, ApplyRuntimeLater));
+  r.push_back(Float({"ANALÓGICO DIREITO X", "RIGHT STICK X"}, &Settings::pad_sens_x, 0.1f, 3.0f,
+                    0.05f, ApplyRuntimeLater));
+  r.push_back(Float({"ANALÓGICO DIREITO Y", "RIGHT STICK Y"}, &Settings::pad_sens_y, 0.1f, 3.0f,
+                    0.05f, ApplyRuntimeLater));
+  r.push_back(Bool({"INVERTER ANALÓG. X", "INVERT STICK X"}, &Settings::pad_invert_x,
+                   ApplyRuntimeLater));
+  r.push_back(Bool({"INVERTER ANALÓG. Y", "INVERT STICK Y"}, &Settings::pad_invert_y,
+                   ApplyRuntimeLater));
   return r;
 }
 
 // Rótulos curtos dos 17 atalhos (mesma ordem de kKeyActions).
-const char* const kKeyLabels[] = {
-    "START / PAUSA",   "BOTÃO A",        "BOTÃO B",         "BOTÃO X",
-    "BOTÃO Y",         "DIRECIONAL CIMA", "DIRECIONAL BAIXO", "DIRECIONAL ESQ.",
-    "DIRECIONAL DIR.", "MOVER CIMA",     "MOVER BAIXO",     "MOVER ESQ.",
-    "MOVER DIR.",      "CÂMERA CIMA",    "CÂMERA BAIXO",    "CÂMERA ESQ.",
-    "CÂMERA DIR."};
+const L kKeyLabels[] = {
+    {"START / PAUSA", "START / PAUSE"}, {"BOTÃO A", "A BUTTON"},
+    {"BOTÃO B", "B BUTTON"},            {"BOTÃO X", "X BUTTON"},
+    {"BOTÃO Y", "Y BUTTON"},            {"DIRECIONAL CIMA", "D-PAD UP"},
+    {"DIRECIONAL BAIXO", "D-PAD DOWN"}, {"DIRECIONAL ESQ.", "D-PAD LEFT"},
+    {"DIRECIONAL DIR.", "D-PAD RIGHT"}, {"MOVER CIMA", "MOVE UP"},
+    {"MOVER BAIXO", "MOVE DOWN"},       {"MOVER ESQ.", "MOVE LEFT"},
+    {"MOVER DIR.", "MOVE RIGHT"},       {"CÂMERA CIMA", "CAMERA UP"},
+    {"CÂMERA BAIXO", "CAMERA DOWN"},    {"CÂMERA ESQ.", "CAMERA LEFT"},
+    {"CÂMERA DIR.", "CAMERA RIGHT"}};
 
-// Nome de tecla para a tela (maiúsculas; os mais comuns em PT-BR).
+// Nome de tecla para a tela (maiúsculas; os mais comuns traduzidos em PT-BR).
 std::string KeyDisplayName(const std::string& raw) {
   const std::string up = Upper(raw);
   if (up == "RETURN" || up == "ENTER") return "ENTER";
-  if (up == "SPACE") return "ESPAÇO";
+  if (up == "SPACE") return Tx({"ESPAÇO", "SPACE"});
   if (up == "ESCAPE") return "ESC";
-  if (up.empty()) return "NENHUMA";
+  if (up.empty()) return Tx({"NENHUMA", "NONE"});
   return up;
 }
 static_assert(sizeof(kKeyLabels) / sizeof(kKeyLabels[0]) ==
@@ -1444,25 +1474,28 @@ static_assert(sizeof(kKeyLabels) / sizeof(kKeyLabels[0]) ==
 
 std::vector<Row> BuildKeyboardMouse() {
   std::vector<Row> r;
-  r.push_back(Bool("CÂMERA PELO MOUSE", &Settings::mouse_look, [] {
+  r.push_back(Bool({"CÂMERA PELO MOUSE", "MOUSE CAMERA"}, &Settings::mouse_look, [] {
     const bool on = pc::Get().mouse_look;
     PostUi([on] {
       pc::input::SetMouseLook(on);
       pc::input::SetCaptureEnabled(on && !g_menu_open);
     });
   }));
-  r.push_back(Float("MOUSE HORIZONTAL", &Settings::cam_sens_x, 0.1f, 3.0f, 0.05f));
-  r.push_back(Float("MOUSE VERTICAL", &Settings::cam_sens_y, 0.1f, 3.0f, 0.05f));
-  r.push_back(Bool("INVERTER MOUSE X", &Settings::cam_invert_x));
-  r.push_back(Bool("INVERTER MOUSE Y", &Settings::cam_invert_y));
-  r.push_back(Float("SUAVIZAÇÃO", &Settings::cam_smoothing, 0.0f, 0.9f, 0.05f));
+  r.push_back(Float({"MOUSE HORIZONTAL", "MOUSE HORIZONTAL"}, &Settings::cam_sens_x, 0.1f, 3.0f,
+                    0.05f));
+  r.push_back(Float({"MOUSE VERTICAL", "MOUSE VERTICAL"}, &Settings::cam_sens_y, 0.1f, 3.0f,
+                    0.05f));
+  r.push_back(Bool({"INVERTER MOUSE X", "INVERT MOUSE X"}, &Settings::cam_invert_x));
+  r.push_back(Bool({"INVERTER MOUSE Y", "INVERT MOUSE Y"}, &Settings::cam_invert_y));
+  r.push_back(Float({"SUAVIZAÇÃO", "SMOOTHING"}, &Settings::cam_smoothing, 0.0f, 0.9f, 0.05f));
   const int keys = int(sizeof(kKeyActions) / sizeof(kKeyActions[0]));
   for (int i = 0; i < keys; ++i) {
     Row k;
     k.value = false;
     k.text = [i] {
-      if (g_ig_capture.load() == i) return std::string(kKeyLabels[i]) + " : APERTE A TECLA";
-      return std::string(kKeyLabels[i]) + " : " + KeyDisplayName(CurrentKeyName(kKeyActions[i]));
+      if (g_ig_capture.load() == i)
+        return Tx(kKeyLabels[i]) + " : " + Tx({"APERTE A TECLA", "PRESS A KEY"});
+      return Tx(kKeyLabels[i]) + " : " + KeyDisplayName(CurrentKeyName(kKeyActions[i]));
     };
     k.input = [i](int dir) {
       if (dir != 0 || g_ig_capture.load() >= 0) return false;
@@ -1476,7 +1509,10 @@ std::vector<Row> BuildKeyboardMouse() {
 
 std::vector<Row> BuildAudioSaves() {
   std::vector<Row> r;
-  r.push_back({[] { return "VOLUME GERAL : " + std::to_string(pc::Get().volume_master); },
+  r.push_back({[] {
+                 return Tx({"VOLUME GERAL", "MASTER VOLUME"}) + " : " +
+                        std::to_string(pc::Get().volume_master);
+               },
                [](int dir) {
                  auto& s = pc::Get();
                  const int v = std::clamp(s.volume_master + (dir < 0 ? -5 : 5), 0, 100);
@@ -1486,9 +1522,13 @@ std::vector<Row> BuildAudioSaves() {
                  RequestSave();
                  return true;
                }});
-  r.push_back(CvarList("SILENCIAR TUDO", "audio_mute", {"false", "true"}, {"NÃO", "SIM"}));
-  r.push_back(Bool("BACKUPS DO SAVE", &Settings::save_backup));
-  r.push_back({[] { return "BACKUPS MANTIDOS : " + std::to_string(pc::Get().backup_count); },
+  r.push_back(CvarList({"SILENCIAR TUDO", "MUTE ALL"}, "audio_mute", {"false", "true"},
+                       {kNo, kYes}));
+  r.push_back(Bool({"BACKUPS DO SAVE", "SAVE BACKUPS"}, &Settings::save_backup));
+  r.push_back({[] {
+                 return Tx({"BACKUPS MANTIDOS", "BACKUPS KEPT"}) + " : " +
+                        std::to_string(pc::Get().backup_count);
+               },
                [](int dir) {
                  auto& s = pc::Get();
                  const int v = std::clamp(s.backup_count + (dir < 0 ? -1 : 1), 1, 30);
@@ -1501,10 +1541,10 @@ std::vector<Row> BuildAudioSaves() {
   restore.value = false;
   restore.text = [] {
     switch (g_restore_state.load()) {
-      case 1: return std::string("CONFIRMA? APERTE A");
-      case 2: return std::string("RESTAURADO - REINICIE");
-      case 3: return std::string("NENHUM BACKUP VÁLIDO");
-      default: return std::string("RESTAURAR ÚLTIMO BACKUP");
+      case 1: return Tx({"CONFIRMA? APERTE A", "SURE? PRESS A AGAIN"});
+      case 2: return Tx({"RESTAURADO - REINICIE", "RESTORED - RESTART"});
+      case 3: return Tx({"NENHUM BACKUP VÁLIDO", "NO VALID BACKUP"});
+      default: return Tx({"RESTAURAR ÚLTIMO BACKUP", "RESTORE LATEST BACKUP"});
     }
   };
   restore.input = [](int dir) {
@@ -1524,16 +1564,16 @@ std::vector<Row> BuildAudioSaves() {
 }
 
 struct Section {
-  const char* title;
+  L title;
   std::vector<Row> rows;
 };
 
 std::vector<Section>& Sections() {
-  static std::vector<Section> s = {{"GRÁFICOS", BuildGraphics()},
-                                   {"JOGO", BuildGame()},
-                                   {"CONTROLE", BuildController()},
-                                   {"TECLADO E MOUSE", BuildKeyboardMouse()},
-                                   {"ÁUDIO E SAVES", BuildAudioSaves()}};
+  static std::vector<Section> s = {{{"GRÁFICOS", "GRAPHICS"}, BuildGraphics()},
+                                   {{"JOGO", "GAME"}, BuildGame()},
+                                   {{"CONTROLE", "CONTROLLER"}, BuildController()},
+                                   {{"TECLADO E MOUSE", "KEYBOARD & MOUSE"}, BuildKeyboardMouse()},
+                                   {{"ÁUDIO E SAVES", "AUDIO & SAVES"}, BuildAudioSaves()}};
   return s;
 }
 
@@ -1550,7 +1590,7 @@ int SectionCount() { return int(Sections().size()); }
 
 std::string SectionTitle(int section) {
   auto& s = Sections();
-  return section >= 0 && section < int(s.size()) ? s[size_t(section)].title : "";
+  return section >= 0 && section < int(s.size()) ? Tx(s[size_t(section)].title) : "";
 }
 
 int RowCount(int section) {

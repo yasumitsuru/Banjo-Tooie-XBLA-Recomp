@@ -24,6 +24,7 @@
 #include <windows.h>
 
 #include "pc_ingame_menu.h"
+#include "pc_lang.h"
 #include "pc_settings.h"
 #include "pc_state.h"
 #include "mechanics_values.h"
@@ -442,13 +443,25 @@ uint32_t GuestLabel(uint32_t& slot, const uint8_t* text, size_t size) {
   return slot;
 }
 
+// Versão global (inglês, pedido de 2026-11-13): os mesmos rótulos no idioma do jogo.
+constexpr uint8_t kLabelPcEn[] = "PC SETTINGS";
+constexpr uint8_t kLabelRecompEn[] = "RECOMPILATION SETTINGS";
+constexpr uint8_t kLabelExitEn[] = "EXIT TO DESKTOP";
+
 uint32_t LabelFor(uint32_t id) {
+  // O idioma é o dos textos que o jogo já carregou (pc_lang.cpp); cada processo roda uma só
+  // pasta do jogo, então o rótulo guardado na memória do jogo não muda depois.
   static uint32_t slot_pc = 0, slot_recomp = 0, slot_exit = 0;
-  if (id == kStrPcSettings) return GuestLabel(slot_pc, kLabelPc, sizeof(kLabelPc));
+  const bool en = pc::lang::English();
+  if (id == kStrPcSettings)
+    return en ? GuestLabel(slot_pc, kLabelPcEn, sizeof(kLabelPcEn))
+              : GuestLabel(slot_pc, kLabelPc, sizeof(kLabelPc));
   if (id == pc::state::kTitleRecompEntryStringId)
-    return GuestLabel(slot_recomp, kLabelRecomp, sizeof(kLabelRecomp));
+    return en ? GuestLabel(slot_recomp, kLabelRecompEn, sizeof(kLabelRecompEn))
+              : GuestLabel(slot_recomp, kLabelRecomp, sizeof(kLabelRecomp));
   if (id == pc::state::kTitleExitEntryStringId)
-    return GuestLabel(slot_exit, kLabelExit, sizeof(kLabelExit));
+    return en ? GuestLabel(slot_exit, kLabelExitEn, sizeof(kLabelExitEn))
+              : GuestLabel(slot_exit, kLabelExit, sizeof(kLabelExit));
   return 0;
 }
 }  // namespace

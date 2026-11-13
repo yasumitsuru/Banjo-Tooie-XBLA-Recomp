@@ -13,20 +13,40 @@
 # A janela abre atras das outras e devolve o foco (--background_window implicito no modo automatico).
 #
 # Uso: pwsh -File tools\smoke_port.ps1 [-GameDir <pasta>] [-OutDir <pasta>] [-ShotSeconds 75]
+#      [-Exe <banjotooie.exe>] [-Inventory <inventario.json>]
+# 2026-11-13: a pasta global (ingles) tambem roda neste port. Sem -Inventory, a pasta PT-BR usa
+# a linha de base da auditoria (_audit\out\inventory.json); outra pasta usa a foto dos proprios
+# arquivos tirada no inicio (o que se confere e que o teste nao altera os arquivos do jogo).
 param(
   [string]$GameDir = (Join-Path $PSScriptRoot "..\..\Banjo Tooie BR"),
   [string]$OutDir = (Join-Path $PSScriptRoot "..\_audit\out\m01\smoke"),
   [double]$ShotSeconds = 75,
-  [double]$TimeoutSeconds = 240
+  [double]$TimeoutSeconds = 240,
+  [string]$Exe = "",
+  [string]$Inventory = ""
 )
 $ErrorActionPreference = "Stop"
 $App = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
 $GameDir = (Resolve-Path $GameDir).Path
 New-Item -ItemType Directory -Force $OutDir | Out-Null
 $OutDir = (Resolve-Path $OutDir).Path
-$Exe = Join-Path $App "banjotooie-recomp\out\build\win-amd64-release\banjotooie.exe"
+if (-not $Exe) { $Exe = Join-Path $App "banjotooie-recomp\out\build\win-amd64-release\banjotooie.exe" }
 if (-not (Test-Path $Exe)) { throw "executavel nao encontrado: $Exe (rode tools\build_port.cmd)" }
-$Inventory = Join-Path $App "_audit\out\inventory.json"
+$Exe = (Resolve-Path $Exe).Path
+if (-not $Inventory) {
+  $ptbr = Join-Path $App "..\Banjo Tooie BR"
+  if ((Test-Path $ptbr) -and ((Resolve-Path $ptbr).Path -eq $GameDir)) {
+    $Inventory = Join-Path $App "_audit\out\inventory.json"
+  } else {
+    # Foto da pasta no inicio: sha256 de cada arquivo (so leitura).
+    $Inventory = Join-Path $OutDir "inventario_inicio.json"
+    $files = @(Get-ChildItem -LiteralPath $GameDir -Recurse -File | ForEach-Object {
+      [ordered]@{ rel = $_.FullName.Substring($GameDir.Length).TrimStart('\');
+                  sha256 = (Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash.ToLower() } })
+    [ordered]@{ root = $GameDir; files = $files } | ConvertTo-Json -Depth 4 |
+      Set-Content -LiteralPath $Inventory -Encoding utf8
+  }
+}
 $results = [ordered]@{ started = (Get-Date).ToString("s"); exe = $Exe; game_dir = $GameDir; steps = @() }
 
 function Add-Step($name, $passed, $detail, $extra = @{}) {

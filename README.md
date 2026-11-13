@@ -20,6 +20,15 @@ medidos no jogo real (3840×2160, 60,0 quadros/s), menu de configurações de PC
 saves com backup e auto-teste `--self-test`. **Estado atual, provas e próximos passos:
 [`docs/PLANO.md`](docs/PLANO.md)** (verificação geral de 2026-11-11).
 
+## Escolher a versão (PT-BR ou global em inglês)
+
+`Seletor\BanjoTooie_Seletor.exe` abre uma janela com dois botões: **Português (PT-BR)** (pasta
+`Banjo Tooie BR`) e **Global (inglês)** (pasta `Banjo-Tooie (World) (XBLA)`). O jogo é o mesmo
+port; só muda a pasta de dados. As duas versões usam os mesmos saves e configurações (os do
+lançador `Build\banjotooie.exe`), para comparar o mesmo ponto do jogo nas duas línguas. A camada
+de PC (menu de configurações dentro do jogo e entradas novas dos menus) segue o idioma do jogo.
+Para testes: `BanjoTooie_Seletor.exe --auto ptbr|global [opções do jogo]`.
+
 ## Como compilar e rodar
 
 Para o checker do Craft Anything, `npm run build` executa o build C++/CMake real

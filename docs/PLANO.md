@@ -282,5 +282,25 @@ Logs lidos: `out/native/logs/banjotooie_281..293.log`, `banjotooie_boot.json`,
 | VSYNC = NÃO quebraria o ritmo do jogo | o cvar `vsync` desligado faz o "retraço" do console bater a cada 1 ms | `vsync` fica sempre ligado (religado na partida, com aviso no log) | código `graphics_system.cpp` |
 | `Flag 'present_effect': 'fsr'/'cas' not in allowed values` (45×) | este runtime não tem o AMD FidelityFX: só aceita `bilinear` | o menu só oferece valores aceitos pelo runtime (ESCALA : BILINEAR); FXAA e escala mostram "(REINICIE)" quando só valem ao reiniciar | `--probe-pcpages`: 0 avisos |
 | `XamShowAchievementsUI STUB` (9×) | CONQUISTAS abre o painel do Xbox, que não existe no PC | **não corrigido**: decisão da pessoa (esconder CONQUISTAS como CLASSIFICAÇÕES, ou manter) | — |
-| `gamecontrollerdb.txt` ausente (85×), `db360_TexFileList.txt` (94×), `ShaderDumpxe:` (94×), `Content 0…` (31×) | avisos inofensivos: o SDL tem mapeamentos próprios (o controle Xbox foi reconhecido); arquivo opcional (`MECHANICS.md` §2); caminho de depuração do jogo; procura de conteúdo extra | nenhuma mudança | — |
+| `gamecontrollerdb.txt` ausente (85×), `db360_TexFileList.txt` (94×), `ShaderDumpxe:` (94×), `Content\0000…` (31×) | avisos inofensivos: o SDL tem mapeamentos próprios (o controle Xbox foi reconhecido); arquivo opcional (`MECHANICS.md` §2); caminho de depuração do jogo; procura de conteúdo extra | nenhuma mudança | — |
+
+## Versão global (inglês) e seletor de versão (pedido de 2026-11-13)
+
+- **Compatibilidade:** o `default.xex` da pasta `Banjo-Tooie (World) (XBLA)` é o de varejo cifrado
+  (sha256 `4b512ae9…`, o testado pelo projeto-base); decifrado, é a mesma imagem do XEX PT-BR, então
+  o mesmo `banjotooie.exe` roda as duas. Diferem só `X360_strings.dat`, `db360.cmp` e
+  `db360.textures.cmp` (textos e texturas traduzidos); os outros 8 arquivos são idênticos.
+- **Testes na global (dados isolados, `_audit/out/global/`):** auto-teste 10/10 (com
+  `--self-test-f1`), `smoke_port.ps1` 8/8 (arquivos 36/36 intactos), `--probe-titlemenu` (ordem,
+  AJUDA, página de PC, saída com "ARE YOU SURE?") e `--probe-pcpages` (5 seções, cvar, F1) ok.
+  `test_traducao.ps1` não se aplica (confere a tradução PT-BR). A PT-BR repetiu o auto-teste 10/10.
+- **Ajuste:** a camada de PC escrevia rótulos em português num jogo em inglês. Agora detecta o
+  idioma pelos textos que o jogo carregou (texto 0 = "JOGAR" ou "PLAY GAME"; `pc_lang.cpp`) e usa
+  "PC SETTINGS", "RECOMPILATION SETTINGS", "EXIT TO DESKTOP" e as 51 opções em inglês. Os testes
+  leem os textos esperados da própria tabela do jogo, então valem para as duas versões.
+- **Seletor:** `Seletor\BanjoTooie_Seletor.exe` (fonte `tools/version_selector.cpp`), fora de
+  `Build\` para não mudar o programa que o Craft verifica. `--auto ptbr|global` abriu cada versão e
+  a tela de abertura mostrou "PRESSIONE START PARA JOGAR" / "PRESS START TO PLAY".
+- Fica em PT-BR mesmo na global: o menu sobreposto de reserva (Shift+F1), o contador de FPS e o
+  rastreador de itens (janelas do port, não do jogo).
 

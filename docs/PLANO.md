@@ -304,3 +304,43 @@ Logs lidos: `out/native/logs/banjotooie_281..293.log`, `banjotooie_boot.json`,
 - Fica em PT-BR mesmo na global: o menu sobreposto de reserva (Shift+F1), o contador de FPS e o
   rastreador de itens (janelas do port, não do jogo).
 
+## Check 15 (2026-11-13): verificações do Craft separadas dos saves da pessoa
+
+- **Problema:** o lançador usado pelo Craft (`Build\banjotooie.exe`) usava a mesma pasta de saves e
+  configurações que a pessoa usa para jogar (`out\craft-runtime\user`, também a do seletor). O
+  auto-teste passou a carregar o save da pessoa (ovos 100/100, penas 99/100), o jogo regravou o
+  save (10:03 e 10:05) e o teste do menu de PC deixou `show_fps = true` gravado (a última gravação,
+  a que desliga, se perdeu quando o programa encerrou).
+- **Correção:** com `--self-test`, `--screenshot`, `--probe-*` ou `--make-advanced-save`, o lançador
+  usa `out\craft-check\user`, esvaziada no início (cada verificação começa de um jogo novo);
+  jogar normalmente e o seletor continuam em `out\craft-runtime`. Os testes esperam (até 2 s) a fila
+  de gravação das opções antes de encerrar (`pc::menu::PendingUiWork`).
+- **Dados da pessoa restaurados:** `savegame.dat` voltou ao backup das 09:21:57 (o último gravado
+  por ela; depois disso só as verificações gravaram) e `pc_settings.toml` ao anterior
+  (`show_fps = false`). Cópias de antes e depois em `_audit/out/save-protecao-20261113/`.
+- **Prova:** auto-teste pelo lançador do Craft: jogo novo (ovos 0/100, andou 719,8), 10/10, pasta
+  `out\craft-runtime\user` com os mesmos arquivos, tamanhos e datas antes e depois.
+
+## Save em Documentos\My Games\Banjo-Tooie XBLA, um por conta do Windows (2026-11-13)
+
+- **Pedido:** o save fica dentro dos Documentos do perfil, em `Documentos\My Games\Banjo-Tooie XBLA`;
+  cada conta de usuário do Windows tem o seu próprio save.
+- **Feito:** o próprio jogo escolhe a pasta quando não recebe `--user_data_root`
+  (`src/pc/pc_userdir.cpp`, `OnConfigurePaths`): a pasta conhecida Documentos da conta atual
+  (aqui ela está no OneDrive: `C:\Users\...\OneDrive\All\Documentos`). Save, opções de PC
+  (`pc_settings.toml`), backups e relatórios de falha ficam lá. O lançador do Craft e o seletor
+  não passam mais a pasta compartilhada `out\craft-runtime\user`. O cache de shaders (não pessoal)
+  fica em `out\craft-runtime\cache`, fora do OneDrive. Execuções automáticas sem
+  `--user_data_root` usam `out\craft-check\user-direct`, nunca a pasta da pessoa.
+- **Cópia do save antigo:** na primeira abertura em cada conta, se a pasta nova não tem save nem
+  opções, o jogo copia (não move nem apaga) o save mais recente entre `out\craft-runtime\user` e o
+  padrão antigo `Documentos\banjotooie`, passando por uma pasta provisória. A origem ganha
+  `MIGRADO-PARA-MY-GAMES.txt` e não é copiada de novo (outra conta começa um jogo novo).
+- **Prova:** `--preflight_only` pelo lançador aponta para a pasta nova sem gravar nada; abertura
+  normal copiou 15 arquivos de `out\craft-runtime\user` (mesmos SHA-256, origem inalterada), o jogo
+  rodou e fechou com código 0; o check do Craft seguinte passou com jogo novo (ovos 0/100) e a pasta
+  `My Games` ficou com os mesmos arquivos e datas. Evidências: `_audit/out/userdir-20261113/`.
+- **Fica para a pessoa:** a pasta antiga `Documentos\banjotooie` (testes de 09-10/11) não foi usada nem
+  apagada; o arquivo de opções do runtime (`out\native\banjotooie.toml`: atalhos e alguns ajustes
+  de vídeo) continua ao lado do jogo, igual para todas as contas.
+

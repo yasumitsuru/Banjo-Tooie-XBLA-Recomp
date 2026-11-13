@@ -32,6 +32,7 @@ set(BANJOTOOIE_SOURCES
     src/pc/scripted_input.cpp
     src/pc/pc_crash.cpp
     src/pc/pc_shaders.cpp
+    src/pc/pc_userdir.cpp
 )
 
 if(WIN32)

@@ -24,10 +24,19 @@ saves com backup e auto-teste `--self-test`. **Estado atual, provas e próximos 
 
 `Seletor\BanjoTooie_Seletor.exe` abre uma janela com dois botões: **Português (PT-BR)** (pasta
 `Banjo Tooie BR`) e **Global (inglês)** (pasta `Banjo-Tooie (World) (XBLA)`). O jogo é o mesmo
-port; só muda a pasta de dados. As duas versões usam os mesmos saves e configurações (os do
-lançador `Build\banjotooie.exe`), para comparar o mesmo ponto do jogo nas duas línguas. A camada
-de PC (menu de configurações dentro do jogo e entradas novas dos menus) segue o idioma do jogo.
+port; só muda a pasta de dados. As duas versões usam os mesmos saves e configurações, para
+comparar o mesmo ponto do jogo nas duas línguas. A camada de PC (menu de configurações dentro do
+jogo e entradas novas dos menus) segue o idioma do jogo.
 Para testes: `BanjoTooie_Seletor.exe --auto ptbr|global [opções do jogo]`.
+
+## Onde fica o save
+
+Em **`Documentos\My Games\Banjo-Tooie XBLA`** da conta do Windows que está jogando: cada conta
+tem o seu próprio save, as suas opções de PC (`pc_settings.toml`) e os seus backups (`backups\`).
+Na primeira vez em que o jogo abre, ele copia o save das versões anteriores (pasta
+`out\craft-runtime\user` do app) para lá, sem apagar o original, que ganha o aviso
+`MIGRADO-PARA-MY-GAMES.txt` e não é copiado para mais nenhuma conta. As verificações do Craft usam
+outra pasta (`out\craft-check\user`) e nunca mexem no save de ninguém.
 
 ## Como compilar e rodar
 

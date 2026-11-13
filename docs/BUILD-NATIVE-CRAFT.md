@@ -26,8 +26,12 @@ discovers for Play and screenshot checks. It runs the actual native game, forwar
 all command-line arguments, waits for it, and returns its exit code. The game itself
 produces screenshots. Original game assets remain outside `app/`, in the existing
 sibling folder `Banjo Tooie BR`; the launcher supplies that default `--game_data_root`.
-Checker user data and cache are isolated in `out\craft-runtime`. Explicit
-`--game_data_root`, `--user_data_root`, and `--cache_path` arguments override those
+Normal launches keep saves and PC settings in the current Windows account's
+`Documents\My Games\Banjo-Tooie XBLA` (chosen by the game, `src\pc\pc_userdir.h`; the old
+shared `out\craft-runtime\user` save is copied there once). Check runs (`--self-test`,
+`--screenshot`, `--probe-*`, `--make-advanced-save`) get `out\craft-check\user`, emptied
+first, so they never touch the person's save. The shader cache is `out\craft-runtime\cache`.
+Explicit `--game_data_root`, `--user_data_root`, and `--cache_path` arguments override those
 defaults. The launcher does not copy or bundle the game's assets.
 
 Build success proves compilation and linking. It does not prove gameplay, 4K/60 FPS,

@@ -36,6 +36,7 @@
 #include "pc/pc_settings.h"
 #include "pc/pc_shaders.h"
 #include "pc/pc_state.h"
+#include "pc/pc_userdir.h"
 #include "pc/scripted_input.h"
 #include <rex/runtime.h>
 #include <rex/system/kernel_state.h>
@@ -162,6 +163,39 @@ void BanjotooieApp::OnConfigurePaths(rex::PathConfig& paths) {
                REXCVAR_GET(smoke_seconds) > 0.0 || REXCVAR_GET(port_test_crash) ||
                !REXCVAR_GET(port_test_input).empty() || pc::automation::ParseCommandLine().active();
   const bool silent = REXCVAR_GET(port_silent) || automated_;
+
+  // Pedido de 2026-11-13: saves e opções de PC de cada conta do Windows em
+  // Documentos\My Games\Banjo-Tooie XBLA (pc_userdir.h); na primeira vez o save antigo é copiado
+  // para lá. --user_data_root continua valendo (testes, pastas isoladas). Execuções automáticas
+  // sem ele (auto-teste, capturas, sondas) usam uma pasta de teste do app e nunca o save da
+  // pessoa (achado do check 15). O cache de shaders não é dado pessoal e fica no app (fora do
+  // OneDrive), como no lançador do Craft.
+  std::string user_data_source = "--user_data_root";
+  if (rex::cvar::GetFlagByName("user_data_root").empty()) {
+    const fs::path out_dir = exe_dir.parent_path();  // app\out (o exe fica em app\out\native)
+    const fs::path mine = pc::userdir::DefaultRoot();
+    if (automated_ && !REXCVAR_GET(preflight_only)) {
+      paths.user_data_root = out_dir / "craft-check" / "user-direct";
+      user_data_source = "pasta de teste (automatico sem --user_data_root)";
+    } else if (!mine.empty()) {
+      paths.user_data_root = mine;
+      user_data_source = "Documentos\\My Games (conta atual)";
+      if (!REXCVAR_GET(preflight_only)) {  // a verificação de arquivos não grava nada
+        std::error_code ec;
+        fs::create_directories(mine, ec);
+        const pc::userdir::Migration m = pc::userdir::MigrateLegacy(exe_dir, mine);
+        if (m.copied) {
+          user_data_source += fmt::format("; {} arquivos copiados de {}", m.files, m.from.string());
+        } else if (!m.error.empty()) {
+          user_data_source += "; copia do save antigo falhou: " + m.error;
+        }
+        std::fprintf(stderr, "[banjotooie] dados do usuario: %s\n", user_data_source.c_str());
+      }
+    }
+    if (rex::cvar::GetFlagByName("cache_path").empty())
+      paths.cache_root = out_dir / "craft-runtime" / "cache";
+  }
+  rep.SetInfo("user_data_source", user_data_source);
 
   rep.SetInfo("command_line", Utf8CommandLine());
   rep.SetInfo("exe_dir", exe_dir.string());

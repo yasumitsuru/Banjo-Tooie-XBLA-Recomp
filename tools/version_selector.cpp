@@ -1,8 +1,10 @@
 // Seletor de versão do Banjo-Tooie (pedido de 2026-11-13): escolhe qual pasta do jogo o port
 // abre — a traduzida (PT-BR, "Banjo Tooie BR") ou a global (inglês, "Banjo-Tooie (World)
 // (XBLA)") — para comparar as duas na tela. O jogo é sempre o mesmo port nativo
-// (out\native\banjotooie.exe); só muda --game_data_root. Saves, configurações e cache são os
-// mesmos do lançador do Craft (out\craft-runtime), para abrir o mesmo ponto nas duas versões.
+// (out\native\banjotooie.exe); só muda --game_data_root. As duas versões usam o mesmo save e as
+// mesmas opções, os da conta do Windows em Documentos\My Games\Banjo-Tooie XBLA (o jogo escolhe
+// a pasta, pedido de 2026-11-13), para abrir o mesmo ponto nas duas. O cache de shaders é o do
+// lançador do Craft (out\craft-runtime\cache).
 //
 // Uso: abrir o programa e clicar numa versão. Para testes sem janela:
 //   BanjoTooie_Seletor.exe --auto ptbr|global [opções extras repassadas ao jogo]
@@ -88,7 +90,6 @@ HANDLE Start(const Version& v, const std::vector<std::wstring>& extra, DWORD* er
   std::wstring cmd = Quote(g_game.wstring());
   const std::vector<std::wstring> args = {
       L"--game_data_root", v.dir.wstring(),
-      L"--user_data_root", (g_app / L"out" / L"craft-runtime" / L"user").wstring(),
       L"--cache_path", (g_app / L"out" / L"craft-runtime" / L"cache").wstring()};
   for (const auto& a : args) cmd += L" " + Quote(a);
   for (const auto& a : extra) cmd += L" " + Quote(a);
@@ -205,11 +206,12 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
       }
       HWND hint = CreateWindowExW(
           0, L"STATIC",
-          L"O jogo é o mesmo port; só muda a pasta de dados. As duas versões usam os mesmos "
-          L"saves e as mesmas configurações, para comparar o mesmo ponto do jogo.",
-          WS_CHILD | WS_VISIBLE, Px(24), Px(186), Px(520), Px(40), hwnd, nullptr, nullptr, nullptr);
+          L"O jogo é o mesmo port; só muda a pasta de dados. As duas versões usam o seu save e "
+          L"as suas configurações (Documentos\\My Games\\Banjo-Tooie XBLA desta conta do Windows), "
+          L"para comparar o mesmo ponto do jogo.",
+          WS_CHILD | WS_VISIBLE, Px(24), Px(182), Px(520), Px(52), hwnd, nullptr, nullptr, nullptr);
       SendMessageW(hint, WM_SETFONT, WPARAM(g_font_small), TRUE);
-      g_status = CreateWindowExW(0, L"STATIC", L"Pronto.", WS_CHILD | WS_VISIBLE, Px(24), Px(232),
+      g_status = CreateWindowExW(0, L"STATIC", L"Pronto.", WS_CHILD | WS_VISIBLE, Px(24), Px(242),
                                  Px(520), Px(40), hwnd, nullptr, nullptr, nullptr);
       SendMessageW(g_status, WM_SETFONT, WPARAM(g_font), TRUE);
       if (!fs::exists(g_game)) SetStatus(L"Atenção: o jogo ainda não foi compilado (out\\native).");
@@ -290,7 +292,7 @@ int WINAPI wWinMain(HINSTANCE inst, HINSTANCE, PWSTR, int show) {
   wc.hIconSm = wc.hIcon;
   wc.lpszClassName = L"BanjoTooieSeletorDeVersao";
   RegisterClassExW(&wc);
-  RECT r{0, 0, Px(568), Px(280)};
+  RECT r{0, 0, Px(568), Px(292)};
   const DWORD style = WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX;
   AdjustWindowRect(&r, style, FALSE);
   HWND hwnd = CreateWindowExW(0, wc.lpszClassName, L"Banjo-Tooie — escolher versão", style,

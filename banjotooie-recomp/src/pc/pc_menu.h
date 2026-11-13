@@ -110,4 +110,9 @@ uint32_t Generation();
 bool CaptureActive();
 }  // namespace options
 
+// Há tarefas da interface (gravar opções, aplicar cvars) ainda na fila. Os testes esperam esvaziar
+// antes de encerrar: senão a última gravação se perde (achado no check 15 de 2026-11-13: o
+// auto-teste ligou e desligou o contador de FPS e o arquivo ficou com ele ligado).
+bool PendingUiWork();
+
 }  // namespace pc::menu

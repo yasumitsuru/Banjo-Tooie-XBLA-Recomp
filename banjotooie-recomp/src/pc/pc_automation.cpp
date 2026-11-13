@@ -461,6 +461,9 @@ DiffStats CompareImages(const rex::ui::RawImage& a, const rex::ui::RawImage& b) 
 }
 
 [[noreturn]] void Finish(int code) {
+  // Espera (até 2 s) as gravações de opções ainda na fila da interface (pc_menu PostUi).
+  for (int i = 0; i < 200 && pc::menu::PendingUiWork(); ++i)
+    std::this_thread::sleep_for(std::chrono::milliseconds(10));
   fflush(nullptr);
   TerminateProcess(GetCurrentProcess(), static_cast<UINT>(code));
   for (;;) {}

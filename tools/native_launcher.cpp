@@ -57,8 +57,29 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int) {
     }
   };
   add_default(L"--game_data_root", app.parent_path() / L"Banjo Tooie BR");
-  // Keep checker runs separate from the person's ordinary saves and shader cache.
-  add_default(L"--user_data_root", app / L"out" / L"craft-runtime" / L"user");
+  // Normal launches pass no --user_data_root: the game keeps saves and PC settings in the current
+  // Windows account's Documents\My Games\Banjo-Tooie XBLA (requested 2026-11-13; the game copies
+  // the old out\craft-runtime\user save there once, see src/pc/pc_userdir.h).
+  // Check runs (--self-test, --screenshot, --probe-*, --make-advanced-save) never touch the
+  // person's saves and PC settings: they get their own folder, emptied first, so every check
+  // starts a new game. Found 2026-11-13 (Craft check 15): the self-test had loaded the person's
+  // save, the game wrote it back, and the FPS-counter toggle of the pcmenu step stayed "on".
+  bool check_run = false;
+  for (const auto& arg : args) {
+    for (std::wstring_view flag : {std::wstring_view(L"--self-test"), std::wstring_view(L"--screenshot"),
+                                   std::wstring_view(L"--probe"), std::wstring_view(L"--make-advanced-save")}) {
+      if (arg.starts_with(flag)) check_run = true;
+    }
+  }
+  if (check_run && !HasOption(args, L"--user_data_root")) {
+    const auto check_user = app / L"out" / L"craft-check" / L"user";
+    std::error_code ec;
+    std::filesystem::remove_all(check_user, ec);  // only this scratch folder, inside app\out
+    std::filesystem::create_directories(check_user, ec);
+    args.emplace_back(L"--user_data_root");
+    args.emplace_back(check_user.wstring());
+  }
+  // The shader cache is not personal data; checks and accounts share it (faster start).
   add_default(L"--cache_path", app / L"out" / L"craft-runtime" / L"cache");
 
   std::wstring command = Quote(game.wstring());

@@ -1084,8 +1084,9 @@ class PcSettingsDialog : public rex::ui::ImGuiDialog {
       }
       ImGui::TextWrapped("%s", pc::saves::Status().c_str());
       ImGui::TextWrapped(
-          "Os backups ficam em Documentos\\banjotooie\\backups, separados dos saves e das "
-          "configurações. O save atual é copiado antes de qualquer restauração.");
+          "Os backups ficam em Documentos\\My Games\\Banjo-Tooie XBLA\\backups (de cada conta "
+          "do Windows), separados dos saves e das configurações. O save atual é copiado antes "
+          "de qualquer restauração.");
       ImGui::EndChild();
     }
   }
@@ -1141,6 +1142,12 @@ void Destroy() {
 void Open() { g_menu_open = true; }
 
 void SetInputSystem(rex::input::InputSystem* system) { g_input_system = system; }
+
+bool PendingUiWork() {
+  if (g_ui_drain_scheduled.load() || g_save_queued.load()) return true;
+  std::lock_guard<std::mutex> lk(g_ui_mu);
+  return !g_ui_tasks.empty();
+}
 
 bool BlocksGameInput() {
   return g_menu_open || g_ig_capture.load() >= 0 ||

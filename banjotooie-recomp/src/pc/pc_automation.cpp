@@ -34,6 +34,7 @@
 #include <utility>
 #include <vector>
 
+#include "pc_ingame_menu.h"
 #include "pc_menu.h"
 #include "pc_progress.h"
 #include "pc_settings.h"
@@ -838,6 +839,8 @@ bool OpenPauseMenu() {
 
 Options ParseCommandLine() {
   Options o;
+  // Opção sem valor: o laço abaixo só olha pares (opção, valor) e pularia a última palavra.
+  o.self_test_f1 = wcsstr(GetCommandLineW(), L"--self-test-f1") != nullptr;
   int argc = 0;
   LPWSTR* argv = CommandLineToArgvW(GetCommandLineW(), &argc);
   for (int i = 1; argv && i + 1 < argc; ++i) {
@@ -846,6 +849,7 @@ Options ParseCommandLine() {
     // de boot, --screenshot_seconds, capturas de teste). Aqui so consome o argumento.
     if (a == L"--screenshot") ++i;
     else if (a == L"--self-test") o.self_test = argv[++i];
+    else if (a == L"--self-test-f1") o.self_test_f1 = true;
     else if (a == L"--frames") o.frames = _wtoi(argv[++i]);
     else if (a == L"--measure-secs") o.measure_secs = _wtoi(argv[++i]);
     else if (a == L"--probe-position") o.probe_position = argv[++i];
@@ -863,6 +867,7 @@ Options ParseCommandLine() {
     else if (a == L"--probe-menu") o.probe_menu = argv[++i];
     else if (a == L"--probe-titlepc") o.probe_titlepc = argv[++i];
     else if (a == L"--probe-titlemenu") o.probe_titlemenu = argv[++i];
+    else if (a == L"--probe-pcpages") o.probe_pcpages = argv[++i];
     else if (a == L"--probe-menucursor") o.probe_menucursor = argv[++i];
     else if (a == L"--probe-gamepad") o.probe_gamepad = argv[++i];
     else if (a == L"--probe-dd-maps") o.probe_dd_maps = argv[++i];
@@ -904,8 +909,11 @@ void Start(const Options& opts, rex::ui::WindowedAppContext* ui,
     g_saved_skip_intro_logos = pc::Get().skip_intro_logos;
     pc::Get().skip_intro_logos = true;
     // Cão de guarda: grava o que já foi medido e encerra antes do limite da verificação.
-    std::thread([file = opts.self_test]() {
-      while (SecondsSinceProcessStart() < kSelfTestBudgetSecs)
+    // Com --self-test-f1 (só verificação manual, o Craft não passa) o prazo é 120 s: a prova do
+    // F1 no jogo livre não cabe nos 80 s da verificação do Craft.
+    const double budget = opts.self_test_f1 ? 120.0 : kSelfTestBudgetSecs;
+    std::thread([file = opts.self_test, budget]() {
+      while (SecondsSinceProcessStart() < budget)
         std::this_thread::sleep_for(std::chrono::milliseconds(250));
       std::vector<Step> steps;
       {
@@ -916,7 +924,7 @@ void Start(const Options& opts, rex::ui::WindowedAppContext* ui,
       std::snprintf(buf, sizeof buf,
                     "o auto-teste passou de %.0f s e foi encerrado pelo cão de guarda depois de "
                     "%zu passos",
-                    kSelfTestBudgetSecs, steps.size());
+                    budget, steps.size());
       steps.push_back({"time_budget", false, buf});
       WriteSelfTestOnce(file, steps);
       Finish(4);
@@ -2487,6 +2495,217 @@ void Start(const Options& opts, rex::ui::WindowedAppContext* ui,
       Finish(0);
     }
 
+    // Configurações de PC DENTRO do menu do jogo (pedido de 2026-11-12, MECHANICS.md §18), no
+    // menu principal e pelo controle virtual: entra pela CONFIGURAÇÃO DA RECOMPILAÇÃO, visita as
+    // 5 seções e rola cada uma até o fim (uma captura a cada 5 linhas), troca e desfaz um valor
+    // de cvar (ANISOTROPIA, aplicado na thread da interface), volta com B e abre/fecha pelo F1.
+    // Lê tudo da memória do jogo (página, cursor, rótulos em entrada+0x3B).
+    if (!opts.probe_pcpages.empty()) {
+      input::SetActive(true);
+      std::filesystem::path base = opts.probe_pcpages;
+      base.replace_extension();
+      auto shot = [&](const std::string& suffix) {
+        rex::ui::RawImage im = capture();
+        if (!im.width) return;
+        ReduceTo1920(im);
+        std::filesystem::path png = base;
+        png += suffix;
+        WritePng(png, im.width, im.height, im.data.data(), im.stride);
+      };
+      auto utf8 = [](const std::string& latin1) {
+        std::string o;
+        for (unsigned char c : latin1) {
+          if (c == '"' || c == '\\') {
+            o += '\\';
+            o += char(c);
+          } else if (c < 0x80) {
+            o += char(c);
+          } else {
+            o += char(0xC0 | (c >> 6));
+            o += char(0x80 | (c & 0x3F));
+          }
+        }
+        return o;
+      };
+      struct PView {
+        uint32_t state = 0, page = 99, cursor = 0, count = 0;
+        bool title = false;
+        std::vector<std::string> labels;
+      };
+      auto pview = [&]() {
+        PView v;
+        v.state = ReadU8(kScreenObjAddr + 4);
+        v.title = ReadU8(kScreenObjAddr + 0x198) == 0;
+        v.page = ReadU32(kScreenObjAddr + 0x2C);
+        v.cursor = ReadU8(kScreenObjAddr + 7);
+        const uint32_t pages = ReadU32(kScreenObjAddr + 0x154);
+        if (pages < 0x40000000u || pages >= 0xA0000000u || v.page >= 12) return v;
+        const uint32_t entries = ReadU32(pages + v.page * 0x2C);
+        const uint32_t count = ReadU32(pages + v.page * 0x2C + 4);
+        if (entries < 0x40000000u || entries >= 0xA0000000u || count > 64) return v;
+        v.count = count;
+        for (uint32_t i = 0; i < count; ++i) {
+          std::string s;
+          for (uint32_t k = 0; k < 0x40; ++k) {
+            const uint8_t c = ReadU8(entries + i * 0x88 + 0x3B + k);
+            if (!c) break;
+            s += char(c);
+          }
+          v.labels.push_back(s);
+        }
+        return v;
+      };
+      auto wait_for = [&](auto pred, int frames) {
+        for (int w = 0; w < frames / 2; ++w) {
+          if (pred(pview())) return true;
+          WaitFrames(2);
+        }
+        return pred(pview());
+      };
+      auto press = [&](uint16_t b) {
+        input::SetButton(b, true);
+        WaitFrames(10);
+        input::SetButton(b, false);
+        WaitFrames(16);
+      };
+      auto move_to = [&](uint32_t target) {
+        for (int i = 0; i < 48; ++i) {
+          const PView v = pview();
+          if (v.cursor == target) return true;
+          press(v.cursor < target ? input::kDpadDown : input::kDpadUp);
+        }
+        return pview().cursor == target;
+      };
+      const uint32_t kPc = pc::ingame::PageIndex();
+      const std::string kRecomp = "CONFIGURA\xC7\xC3O DA RECOMPILA\xC7\xC3O";
+      std::ostringstream o;
+      o << "{\"version\":1";
+      while (ReadU16(kMapIdAddr) != 0x14F && steady_clock::now() - t0 < seconds(200))
+        std::this_thread::sleep_for(milliseconds(20));
+      WaitFrames(90);
+      PView v0;
+      for (int tries = 0; tries < 6; ++tries) {
+        Tap(input::kStart, 12);
+        WaitFrames(150);
+        v0 = pview();
+        if (v0.title && v0.page == 0 && v0.count >= 4) break;
+      }
+      int recomp = -1;
+      for (size_t i = 0; i < v0.labels.size(); ++i)
+        if (v0.labels[i] == kRecomp) recomp = int(i);
+      bool root_ok = false;
+      if (recomp >= 0 && move_to(uint32_t(recomp))) {
+        press(input::kA);
+        root_ok = wait_for([&](const PView& v) { return v.page == kPc && v.count == 5 && v.state == 6; }, 180);
+        WaitFrames(120);
+        shot("_raiz.png");
+      }
+      o << ",\"titulo\":" << (v0.title ? 1 : 0) << ",\"raiz\":" << (root_ok ? 1 : 0)
+        << ",\"secoes\":[";
+      bool all_ok = root_ok;
+      int max_len = 0;
+      std::string max_label;
+      bool cvar_changed = false, cvar_restored = false;
+      std::string cvar_before, cvar_mid, cvar_after, aniso_label;
+      const int sections = pc::menu::options::SectionCount();
+      for (int s = 0; root_ok && s < sections; ++s) {
+        bool sec_ok = move_to(uint32_t(s));
+        const int rows = pc::menu::options::RowCount(s);
+        if (sec_ok) {
+          press(input::kA);
+          sec_ok = wait_for([&](const PView& v) {
+            return v.page == kPc && int(v.count) == rows && v.state == 6 &&
+                   pc::ingame::GetStatus().view == s;
+          }, 180);
+          WaitFrames(120);
+        }
+        const PView sv = pview();
+        int shots = 0;
+        if (sec_ok) {
+          shot("_s" + std::to_string(s) + "_0.png");
+          ++shots;
+          for (int r = 1; r < rows; ++r) {
+            press(input::kDpadDown);
+            if (r % 5 == 4 || r == rows - 1) {
+              WaitFrames(20);
+              shot("_s" + std::to_string(s) + "_" + std::to_string(r) + ".png");
+              ++shots;
+            }
+          }
+          sec_ok = pview().cursor == uint32_t(rows - 1);
+          if (s == 0) {  // GRÁFICOS: ANISOTROPIA (cvar anisotropic_override) troca e desfaz
+            int an = -1;
+            for (int i = 0; i < rows; ++i)
+              if (pc::menu::options::RowText(0, i).rfind("ANISOTROPIA", 0) == 0) an = i;
+            if (an >= 0 && move_to(uint32_t(an))) {
+              cvar_before = rex::cvar::GetFlagByName("anisotropic_override");
+              press(input::kDpadRight);
+              WaitFrames(20);
+              cvar_mid = rex::cvar::GetFlagByName("anisotropic_override");
+              aniso_label = utf8(pview().labels.size() > size_t(an) ? pview().labels[size_t(an)] : "");
+              shot("_s0_anisotropia.png");
+              press(input::kDpadLeft);
+              WaitFrames(20);
+              cvar_after = rex::cvar::GetFlagByName("anisotropic_override");
+              cvar_changed = cvar_mid != cvar_before;
+              cvar_restored = cvar_after == cvar_before;
+            }
+          }
+        }
+        press(input::kB);
+        const bool back = wait_for([&](const PView& v) {
+          return v.page == kPc && v.count == 5 && v.state == 6 && v.cursor == uint32_t(s);
+        }, 180);
+        WaitFrames(30);
+        o << (s ? "," : "") << "{\"secao\":\"" << pc::menu::options::SectionTitle(s)  // UTF-8
+          << "\",\"linhas\":" << rows << ",\"abriu\":" << (sec_ok ? 1 : 0)
+          << ",\"capturas\":" << shots << ",\"volta_no_cursor\":" << (back ? 1 : 0) << ",\"rotulos\":[";
+        for (size_t i = 0; i < sv.labels.size(); ++i) {
+          o << (i ? "," : "") << "\"" << utf8(sv.labels[i]) << "\"";
+          if (int(sv.labels[i].size()) > max_len) {
+            max_len = int(sv.labels[i].size());
+            max_label = sv.labels[i];
+          }
+        }
+        o << "]}";
+        all_ok = all_ok && sec_ok && back;
+      }
+      o << "],\"anisotropia\":{\"antes\":\"" << cvar_before << "\",\"depois_direita\":\""
+        << cvar_mid << "\",\"rotulo\":\"" << aniso_label << "\",\"depois_esquerda\":\""
+        << cvar_after << "\",\"trocou\":" << (cvar_changed ? 1 : 0)
+        << ",\"desfez\":" << (cvar_restored ? 1 : 0) << "}";
+      o << ",\"maior_rotulo\":\"" << utf8(max_label) << "\",\"maior_rotulo_bytes\":" << max_len;
+      // B na raiz: volta ao menu principal com o cursor na entrada da recompilação
+      bool back_title = false;
+      if (root_ok) {
+        press(input::kB);
+        back_title = wait_for([&](const PView& v) {
+          return v.title && v.page == 0 && v.state == 6 && v.cursor == uint32_t(recomp);
+        }, 240);
+        WaitFrames(30);
+      }
+      // F1 no menu principal: vai à página 7; F1 de novo: volta (no título, um B)
+      bool f1_open = false, f1_close = false;
+      if (back_title) {
+        pc::ingame::RequestToggle();
+        f1_open = wait_for([&](const PView& v) { return v.page == kPc && v.count == 5 && v.state == 6; }, 240);
+        WaitFrames(120);
+        shot("_f1.png");
+        pc::ingame::RequestToggle();
+        f1_close = wait_for([&](const PView& v) { return v.page == 0 && v.state == 6; }, 240);
+      }
+      const auto st = pc::ingame::GetStatus();
+      all_ok = all_ok && back_title && f1_open && f1_close && cvar_changed && cvar_restored &&
+               !pc::menu::IsOpen();
+      o << ",\"volta_ao_titulo_na_entrada\":" << (back_title ? 1 : 0)
+        << ",\"f1_abre\":" << (f1_open ? 1 : 0) << ",\"f1_fecha\":" << (f1_close ? 1 : 0)
+        << ",\"janela_sobreposta\":" << (pc::menu::IsOpen() ? 1 : 0)
+        << ",\"trocas_de_pagina\":" << st.switches << ",\"f1_saltos\":" << st.f1_jumps
+        << ",\"linhas_reescritas\":" << st.refreshes << ",\"ok\":" << (all_ok ? 1 : 0) << "}\n";
+      std::ofstream(opts.probe_pcpages) << o.str();
+      Finish(all_ok ? 0 : 7);
+    }
+
     // Menu principal (pedido de 2026-11-11), no jogo real e pelo controle virtual:
     //  1) lê os rótulos da página 0 do menu de título (entrada+0x3B, Latin-1);
     //     e confere a ordem pedida (JOGAR, CONQUISTAS, AJUDA E OPÇÕES, CONFIGURAÇÃO DA
@@ -2645,35 +2864,31 @@ void Start(const Options& opts, rex::ui::WindowedAppContext* ui,
         }
         o << ",\"ajuda_entra_e_volta\":" << (help_ok ? 1 : 0);
       }
-      // 3) CONFIGURAÇÃO DA RECOMPILAÇÃO -> menu de PC
+      // 3) CONFIGURAÇÃO DA RECOMPILAÇÃO -> Configurações de PC DENTRO do menu do jogo
+      //    (pedido de 2026-11-12: página 7 do próprio menu, MECHANICS.md §18), e B volta.
       const bool at_recomp = recomp_above_exit && move_to(recomp_idx) &&
                              view().labels.size() > recomp_idx &&
                              view().labels[view().cursor] == kRecomp;
-      const uint32_t act0 = pc::state::pc_entry_activations.load();
+      const uint32_t switches0 = pc::ingame::GetStatus().switches;
       bool opened = false;
       if (at_recomp) {
         WaitFrames(10);
         Tap(input::kA, 12);
         for (int w = 0; w < 90 && !opened; ++w) {
           WaitFrames(2);
-          opened = pc::menu::IsOpen();
+          const MenuView vp = view();
+          opened = vp.title && vp.page == pc::ingame::PageIndex() && vp.count == 5;
         }
       }
-      const uint32_t activated = pc::state::pc_entry_activations.load() - act0;
+      const uint32_t activated = pc::ingame::GetStatus().switches - switches0;
       if (opened) {
-        WaitFrames(20);
-        rex::ui::RawImage im = CaptureWindowOnScreen();
-        if (im.width) {
-          ReduceTo1920(im);
-          std::filesystem::path png = base;
-          png += "_2_configuracao.png";
-          WritePng(png, im.width, im.height, im.data.data(), im.stride);
-        }
-        pc::state::menu_close_request.store(true);
-        WaitFrames(40);
+        WaitFrames(150);  // as linhas aparecem letra a letra
+        shot_guest("_2_configuracao.png");
+        Tap(input::kB, 12);
+        WaitFrames(90);
       }
       const MenuView v1 = view();
-      const bool closed = !pc::menu::IsOpen();
+      const bool closed = !pc::menu::IsOpen() && v1.page == 0;
       const bool stayed = v1.title && v1.page == 0 && v1.cursor == recomp_idx;
       o << ",\"cursor_na_recompilacao\":" << (at_recomp ? 1 : 0) << ",\"ativada\":" << activated
         << ",\"menu_pc_aberto\":" << (opened ? 1 : 0) << ",\"menu_pc_fechado\":" << (closed ? 1 : 0)
@@ -3692,7 +3907,7 @@ void Start(const Options& opts, rex::ui::WindowedAppContext* ui,
           if (pages < 0x40000000u || pages >= 0xA0000000u || page >= 16) return list;
           const uint32_t entries = ReadU32(pages + page * 0x2C);
           const uint32_t count = ReadU32(pages + page * 0x2C + 4);
-          if (entries < 0x40000000u || entries >= 0xA0000000u || count > 12) return list;
+          if (entries < 0x40000000u || entries >= 0xA0000000u || count > 64) return list;
           for (uint32_t i = 0; i < count; ++i) {
             const uint32_t e = entries + i * mm::kEntrySize;
             std::string t;
@@ -3745,7 +3960,7 @@ void Start(const Options& opts, rex::ui::WindowedAppContext* ui,
             p1 = page_entries(&page1, nullptr);
             in_help = page1 == mm::kHelpPageIndex && !p1.empty();
           }
-          WaitFrames(150);  // os rótulos da página aparecem letra a letra (~2 s)
+          WaitFrames(70);  // os rótulos da página aparecem letra a letra
           p1 = page_entries(&page1, nullptr);
         }
         const bool pc_last = !p1.empty() && p1.back().label == kPcEntry;
@@ -3762,18 +3977,59 @@ void Start(const Options& opts, rex::ui::WindowedAppContext* ui,
         const bool at_pc = pc_last && step_to(uint32_t(p1.size() - 1));
         WaitFrames(20);
         const uint32_t labels = pc::state::pc_entry_label_requests.load();
-        const uint32_t act0 = pc::state::pc_entry_activations.load();
-        bool opened = false;
+        // Pedido de 2026-11-12: a entrada abre as Configurações de PC DENTRO do menu do jogo
+        // (página 7, MECHANICS.md §18), não a janela sobreposta. Confere pela memória do jogo:
+        // a página atual, as entradas que o jogo desenha (rótulos em entrada+0x3B), o cursor e
+        // o valor da opção; e que nenhuma janela sobreposta abriu.
+        const uint32_t kPcPage = pc::ingame::PageIndex();
+        auto wait_page = [&](uint32_t want, size_t min_entries, std::vector<Entry>* out) {
+          uint32_t pg = 99;
+          std::vector<Entry> l;
+          for (int w = 0; w < 90; ++w) {
+            WaitFrames(2);
+            l = page_entries(&pg, nullptr);
+            if (pg == want && l.size() >= min_entries && ReadU8(kScreenObjAddr + 4) == 6) break;
+          }
+          if (out) *out = l;
+          return pg == want && l.size() >= min_entries;
+        };
+        auto starts = [](const std::string& s, const std::string& p) {
+          return s.compare(0, p.size(), p) == 0;
+        };
+        // Passo curto na página 7 (o direcional age na borda; 8 + 12 quadros bastam, como na
+        // sonda --probe-pcpages): o auto-teste inteiro tem de caber em 80 s.
+        auto fast_to = [&](uint32_t target) {
+          for (int i = 0; i < 30; ++i) {
+            uint32_t cur = 99;
+            page_entries(nullptr, &cur);
+            if (cur == target) return true;
+            const uint16_t b = cur < target ? input::kDpadDown : input::kDpadUp;
+            input::SetButton(b, true);
+            WaitFrames(8);
+            input::SetButton(b, false);
+            WaitFrames(12);
+          }
+          uint32_t cur = 99;
+          page_entries(nullptr, &cur);
+          return cur == target;
+        };
+        const std::string kGraphics = "GR\xC1" "FICOS";
+        const std::string kGameSec = "JOGO";
+        const std::string kFpsRow = "CONTADOR DE FPS : ";
+        std::vector<Entry> root, game;
+        bool in_root = false, root_ok = false, in_game = false, toggled = false,
+             restored = false, back_root = false, back_help = false;
+        int fps_row = -1;
+        std::string label_on, label_off;
+        const bool fps_before = pc::Get().show_fps;
         if (at_pc) {
           Tap(input::kA, 12);
-          for (int w = 0; w < 60 && !opened; ++w) {
-            WaitFrames(2);
-            opened = pc::menu::IsOpen();
-          }
+          in_root = wait_page(kPcPage, 5, &root);
+          WaitFrames(70);  // as linhas aparecem letra a letra, como nas páginas do jogo
+          root = page_entries(nullptr, nullptr);
+          root_ok = root.size() == 5 && root[0].label == kGraphics && root[1].label == kGameSec;
         }
-        const uint32_t activated = pc::state::pc_entry_activations.load() - act0;
-        WaitFrames(20);  // alguns quadros da interface com o menu já desenhado
-        rex::ui::RawImage menu_img = CaptureWindowOnScreen();
+        rex::ui::RawImage menu_img = capture();  // quadro do PRÓPRIO jogo (sem sobreposição)
         if (menu_img.width) {
           ReduceTo1920(menu_img);
           std::filesystem::path png = opts.self_test;
@@ -3781,19 +4037,141 @@ void Start(const Options& opts, rex::ui::WindowedAppContext* ui,
           png += "_pcmenu.png";
           WritePng(png, menu_img.width, menu_img.height, menu_img.data.data(), menu_img.stride);
         }
+        if (root_ok && fast_to(1)) {
+          Tap(input::kA, 12);
+          in_game = wait_page(kPcPage, 8, &game) && !game.empty() && starts(game[0].label, "60 FPS");
+          WaitFrames(20);
+          game = page_entries(nullptr, nullptr);
+          for (size_t i = 0; i < game.size(); ++i)
+            if (starts(game[i].label, kFpsRow)) fps_row = int(i);
+        }
+        if (in_game && fps_row >= 0 && fast_to(uint32_t(fps_row))) {
+          WaitFrames(10);
+          Tap(input::kDpadRight, 12);
+          WaitFrames(24);
+          std::vector<Entry> now = page_entries(nullptr, nullptr);
+          label_on = size_t(fps_row) < now.size() ? now[size_t(fps_row)].label : "";
+          toggled = pc::Get().show_fps != fps_before &&
+                    label_on == kFpsRow + (pc::Get().show_fps ? "SIM" : "N\xC3O");
+          rex::ui::RawImage jogo_img = capture();
+          if (jogo_img.width) {
+            ReduceTo1920(jogo_img);
+            std::filesystem::path png = opts.self_test;
+            png.replace_extension();
+            png += "_pcmenu_jogo.png";
+            WritePng(png, jogo_img.width, jogo_img.height, jogo_img.data.data(), jogo_img.stride);
+          }
+          Tap(input::kDpadLeft, 12);
+          WaitFrames(24);
+          now = page_entries(nullptr, nullptr);
+          label_off = size_t(fps_row) < now.size() ? now[size_t(fps_row)].label : "";
+          restored = pc::Get().show_fps == fps_before &&
+                     label_off == kFpsRow + (fps_before ? "SIM" : "N\xC3O");
+        }
+        if (in_game) {
+          Tap(input::kB, 12);
+          std::vector<Entry> r2;
+          back_root = wait_page(kPcPage, 5, &r2) && r2.size() == 5 &&
+                      ReadU8(kScreenObjAddr + mm::kScreenCursorOff) == 1;
+          WaitFrames(15);
+        }
+        if (in_root) {
+          Tap(input::kB, 12);
+          uint32_t cur = 99;
+          back_help = wait_page(mm::kHelpPageIndex, 1, nullptr);
+          WaitFrames(10);
+          page_entries(nullptr, &cur);
+          back_help = back_help && p1.size() > 0 && cur == uint32_t(p1.size() - 1);
+        }
+        // F1 durante o jogo livre: fecha a pausa (START), F1 abre a pausa já nas Configurações
+        // de PC (toque de START injetado + troca de página pelo gancho) e F1 de novo volta ao
+        // jogo. Pausa aberta = byte 0x8266EF55 == 1 (o mesmo que este teste usa acima).
+        bool f1_open = false, f1_close = false;
+        int f1_ms = -1;
+        const bool f1_tested = opts.self_test_f1;
+        if (f1_tested && back_help) {
+          Tap(input::kStart, 12);
+          // Espera por RELÓGIO o jogo voltar de fato (pausa fechada e sem cena): o F1 só injeta
+          // START no jogo livre. Na pausa o contador de quadros apresentados anda mais rápido.
+          {
+            const auto until = std::chrono::steady_clock::now() + std::chrono::seconds(6);
+            while (std::chrono::steady_clock::now() < until &&
+                   (ReadU8(0x8266EF55) != 0 || ReadU8(mechanics::kCutsceneStateAddr) != 0))
+              std::this_thread::sleep_for(std::chrono::milliseconds(30));
+            std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+          }
+          if (ReadU8(0x8266EF55) == 0) {
+            const auto f1_t0 = std::chrono::steady_clock::now();
+            pc::ingame::RequestToggle();
+            // Espera por RELÓGIO: na pausa o contador de quadros apresentados anda mais rápido que
+            // 60/s (1ª medida: a espera de 360 quadros acabou antes de a página aparecer).
+            const auto f1_deadline = std::chrono::steady_clock::now() + std::chrono::seconds(10);
+            while (!f1_open && std::chrono::steady_clock::now() < f1_deadline) {
+              std::this_thread::sleep_for(std::chrono::milliseconds(30));
+              uint32_t pg = 99;
+              const std::vector<Entry> l = page_entries(&pg, nullptr);
+              f1_open = pg == kPcPage && l.size() == 5 && ReadU8(kScreenObjAddr + 4) == 6 &&
+                        ReadU8(0x8266EF55) == 1;
+            }
+            f1_ms = int(std::chrono::duration_cast<std::chrono::milliseconds>(
+                            std::chrono::steady_clock::now() - f1_t0).count());
+            std::this_thread::sleep_for(std::chrono::milliseconds(900));  // linhas letra a letra
+            rex::ui::RawImage f1_img = capture();
+            if (f1_img.width) {
+              ReduceTo1920(f1_img);
+              std::filesystem::path png = opts.self_test;
+              png.replace_extension();
+              png += "_f1.png";
+              WritePng(png, f1_img.width, f1_img.height, f1_img.data.data(), f1_img.stride);
+            }
+            pc::ingame::RequestToggle();
+            const auto close_deadline = std::chrono::steady_clock::now() + std::chrono::seconds(6);
+            while (!f1_close && std::chrono::steady_clock::now() < close_deadline) {
+              std::this_thread::sleep_for(std::chrono::milliseconds(30));
+              f1_close = ReadU8(0x8266EF55) == 0;
+            }
+            WaitFrames(10);
+          }
+        }
+        auto utf8 = [](const std::string& latin1) {  // rótulos do jogo são Latin-1
+          std::string o;
+          for (unsigned char c : latin1) {
+            if (c < 0x80) {
+              o += char(c);
+            } else {
+              o += char(0xC0 | (c >> 6));
+              o += char(0x80 | (c & 0x3F));
+            }
+          }
+          return o;
+        };
+        label_on = utf8(label_on);
+        label_off = utf8(label_off);
+        const auto st = pc::ingame::GetStatus();
+        const bool overlay = pc::menu::IsOpen();
         const bool ok = no_leader && quit_last && pc_not_on_p0 && in_help && pc_last && kazooie &&
-                        activated > 0 && opened;
-        char pbuf[512];
+                        in_root && root_ok && in_game && toggled && restored && back_root &&
+                        back_help && (!f1_tested || (f1_open && f1_close)) && !overlay;
+        char pbuf[1000];
         std::snprintf(pbuf, sizeof pbuf,
                       "pausa com %zu entradas (CLASSIFICAÇÕES ausente=%d, SAIR DO JOGO por "
                       "último=%d); AJUDA E OPÇÕES com %zu entradas, CONFIGURAÇÕES DE PC por "
-                      "último=%d com ícone %u (Kazooie=%u); rótulo pedido %u vez(es) na "
-                      "navegação; entrada confirmada %u vez(es); menu de PC aberto=%d",
+                      "último=%d com ícone %u (Kazooie=%u); rótulo pedido %u vez(es); A abriu a "
+                      "página %u DO JOGO=%d com %zu seções (GRÁFICOS/JOGO=%d); seção JOGO=%d "
+                      "(%zu linhas); direita: '%s' (valor trocado=%d), esquerda: '%s' "
+                      "(desfeito=%d); B voltou à raiz no cursor 1=%d e a AJUDA E OPÇÕES na "
+                      "entrada de PC=%d; F1 no jogo (só com --self-test-f1: %s) abriu a pausa "
+                      "já na página de PC=%d (%d ms) e F1 de novo voltou ao jogo=%d; janela sobreposta "
+                      "aberta=%d; trocas de página=%u",
                       p0.size(), no_leader ? 1 : 0, quit_last ? 1 : 0, p1.size(), pc_last ? 1 : 0,
-                      p1.empty() ? 0u : p1.back().icon, mm::kKazooieIcon, labels - labels0,
-                      activated, opened ? 1 : 0);
+                      p1.empty() ? 0u : p1.back().icon, mm::kKazooieIcon, labels - labels0, kPcPage,
+                      in_root ? 1 : 0, root.size(), root_ok ? 1 : 0, in_game ? 1 : 0, game.size(),
+                      label_on.c_str(), toggled ? 1 : 0, label_off.c_str(), restored ? 1 : 0,
+                      back_root ? 1 : 0, back_help ? 1 : 0, f1_tested ? "testado" : "não testado",
+                      f1_open ? 1 : 0, f1_ms, f1_close ? 1 : 0,
+                      overlay ? 1 : 0, st.switches);
         push({"pcmenu", ok, pbuf});
-        if (opened) pc::state::menu_close_request.store(true);
+        if (overlay) pc::state::menu_close_request.store(true);
         WaitFrames(10);
       }
       if (hud_img.width) {

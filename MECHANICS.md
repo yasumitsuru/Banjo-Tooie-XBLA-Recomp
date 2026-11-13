@@ -764,3 +764,62 @@ O que o build faz (`pc_hooks.toml`, `pc_hooks.cpp`; valores de `mechanics.json` 
 Prova no jogo real (`--self-test`, passo `pcmenu`, `_audit/out/m00-r12/st2.json` e capturas
 `st.png`/`st2_ajuda.png`): pausa com 5 entradas, CLASSIFICAÇÕES ausente, SAIR DO JOGO por último;
 AJUDA E OPÇÕES com 4 entradas, CONFIGURAÇÕES DE PC por último com ícone 13; A abre o menu de PC.
+
+## 18. Configurações de PC DENTRO do menu do jogo (pedido de 2026-11-12)
+
+Pedido: "as opções do menu F1 ficam gravadas dentro do game e não dentro de um overlay". As opções
+que ficavam na janela ImGui sobreposta passaram para **páginas do próprio motor de menus do jogo**
+(mesma fonte, ícone, cursor, rolagem, animação letra a letra e avisos de botão). Nada do código do
+jogo foi copiado: o port chama as rotinas do jogo e escreve só os campos que elas leem.
+
+Lido no original com `native_function_pseudocode` (Ghidra, `xex_image.bin` raw-binary
+`PowerPC:BE:64:A2ALT-32addr`; "+8" = pedido 8 bytes depois do início) e bytes do `default.xex`:
+
+| O quê | Endereço | Original | Evidência |
+|---|---|---|---|
+| tela de menus (título e pausa) | `0x82648110` | `+4` estado (6 = esperando entrada), `+7` cursor, `+0x1C` direção (0 = A, 1 = B), `+0x20` ocupado, `+0x25` repetição, `+0x2C` página, `+0x48` cursor salvo por página (12), `+0x78` objeto de texto por linha (55), `+0x154` vetor de páginas | ev_2193958dda2b, ev_a87bf28d4ed9 |
+| vetor de páginas | `0x822DB640` | `li r3,528` = **12 páginas de 44 bytes**; o montador `0x822DEE60` monta 0-6 e 8-11 → **a página 7 fica livre** | bytes + `_audit/out/menu-ingame/pagebuilder.asm` |
+| zerar página | `0x822E1188` | zera +4..+0x28 e chama `0x822E5660` (globais de layout padrão) | ev_900e39c4beeb, ev_e63ae98452fe |
+| acrescentar entrada | `0x822E1230` (+8) | realoca em passos de 136; `0x822E5740` grava y/x/escala dos globais, **copia o texto (64 bytes) para entrada+0x3B** e soma o passo | ev_59661a032d6d, ev_7e25b741911f |
+| página-alvo / volta | `0x822E1380` (+8) | `+0x28` página-alvo (A), `+0x7C` ação; `+0x2C` página de volta (B) vem de `0x826A5AB8` | ev_98818e9a6417 |
+| rolagem | `0x822E11E8` | `+0x15 = 1`, janela de n linhas (COMO JOGAR usa 5) | ev_298f394171e7 |
+| entrada da tela | `0x822E2860` (estado 6) | cima/baixo, A (ação ou estado 7), B (callback +0x28, estado 7 voltando), chama a callback por quadro **página+0x24** | ev_f3b70f75e625 |
+| troca de página | `0x822E3230` (estado 8) | `tela+0x2C = entrada[cursor]+0x28` (A) ou `+0x2C` (B), cria as linhas (`0x822DBFA8`), estado 4 põe o cursor salvo | ev_dc2d33de4ecf, ev_f67a31a16373, ev_5e6e261aa510 |
+| callback da página CONFIGURAÇÕES | `0x822DC728` | só no estado 6; avisos `0x822E50C0(tela,bits)`; esquerda/direita = analógico `tela+0x1E8` além de **0,75** (`0x82005C90`) ou direcional `+0x1C4/+0x1C8`; repetição **6** quadros (`0x82005CB8`); texto novo por `0x822E13D8` + `0x8225CD08`/`0x8225C9F0` | ev_bdf7246ee0b3, ev_acaf04b63a9e, ev_45871a4a60a5, ev_db3747203830 |
+| avisos de botão | `0x822E50C8`, tabela `0x82648BD8` | bit 0 SELECIONAR, 1 VOLTAR, 4/5 ROLAR, 22 ANTERIOR, 23 PRÓXIMO, 38 TROCAR DISPOSITIVO | ev_1b1bce636168 |
+
+O que o build faz (`pc_ingame_menu.cpp`, `pc_hooks.toml`, valores em `mechanics.json` → `pc.ingame_menu`):
+- `PcHook_HelpPageBuilt` (`0x822DF2D0`, agora com `r22/r23/r24/f27/f31` = y inicial/passo/x/escala/
+  atraso que o montador usa) monta a **raiz** da página 7: GRÁFICOS, JOGO, CONTROLE, TECLADO E
+  MOUSE, ÁUDIO E SAVES. CONFIGURAÇÕES DE PC (pausa, fim de AJUDA E OPÇÕES) e CONFIGURAÇÃO DA
+  RECOMPILAÇÃO (menu principal) navegam para a página 7 como entradas normais (sem ação).
+- `PcHook_MenuPageSwitch` (`0x822E3298`, `stw r11,44(r31)`): ao entrar na 7, monta a vista certa
+  (raiz ou seção) e o cursor salvo; B numa seção volta à raiz com o cursor nela; o F1 troca a
+  página-alvo por 7.
+- `PcHook_PcPageTick` (`0x822DC728`, só chamado pelo ponteiro página+0x24): a página 7 aponta para
+  ele; na 7 põe os avisos e troca o valor com esquerda/direita (mesmo limiar/repetição do jogo); na
+  2 devolve false e o original roda. A numa linha de valor = ação `0x822DEC40` → `OnSelect` (avança).
+- Seções com mais de 5 linhas rolam com 5 visíveis (como COMO JOGAR); com 6 na pausa a linha
+  esmaecida encostava nos avisos (captura `_audit/out/menu-ingame/st1`).
+- No título o texto é maior e "INVERTER ANALÓGICO X : NÃO" quebrava em duas linhas: rótulos
+  encurtados (`INVERTER ANALÓG. X`, `CÂMERA ESQ.`, `RESOL. : … (REINICIE)`), sem quebra em todas
+  as 51 linhas (sonda `--probe-pcpages`, `_audit/out/menu-ingame/pp2`).
+- F1: no menu (título/pausa) salta para a página 7; no jogo livre injeta START e salta quando a
+  pausa está no estado 6; F1 de novo fecha. A janela antiga ficou só como reserva (Shift+F1).
+- Opções aplicadas como no menu antigo; janela, cursor, cvars e arquivos na thread da interface.
+  Achado no teste: o salvamento gravava no `banjotooie.toml` do runtime opções só da sessão de
+  teste (`--log_file`, `--cache_path`, `--audio_mute`). Agora opções vindas da linha de comando
+  não são gravadas e testes automáticos não gravam esse arquivo.
+
+Prova no jogo real (dados isolados em `_audit/out/menu-ingame/`):
+- `--self-test` (st4): 10/10, `pcmenu` = A em CONFIGURAÇÕES DE PC abre a página 7 DO JOGO com as 5
+  seções; JOGO com 10 linhas; direita troca `CONTADOR DE FPS : NÃO → SIM` (valor e rótulo),
+  esquerda desfaz; B volta à raiz no cursor 1 e a AJUDA E OPÇÕES na entrada de PC; nenhuma janela
+  sobreposta. 69 s (limite 80 s).
+- `--self-test --self-test-f1` (st10f1): F1 no jogo livre abre a pausa **já na página de PC** em
+  2,3 s e F1 de novo volta ao jogo.
+- `--probe-pcpages` (pp2): no menu principal, raiz + 5 seções roladas até o fim, ANISOTROPIA
+  4X→8X→4X no cvar, B volta à entrada, F1 abre e fecha. `--probe-titlemenu` (tm1): ordem, AJUDA,
+  página de PC e saída com a confirmação original passam.
+- `--measure-secs 30` (fps30): renderização interna 3840×2160 (escala 3×3, janela 1602×901),
+  59,9 FPS em 30 s de jogo livre, tempo de quadro 16,69 ± 1,13 ms (máx. 33,7 ms, 0 repetidos).

@@ -176,10 +176,40 @@ jump_address_on_true = 0x822DF054
 # 0x822DF2D0 ("lwz r11,340(r30)") é onde os caminhos do título e da pausa se juntam antes de
 # montar a página seguinte: r30 = tela, r31 = página 1, nenhum registrador volátil vivo.
 # O gancho acrescenta CONFIGURAÇÕES DE PC no fim da página 1, só na pausa (tela+0x198 != 0).
+# Pedido de 2026-11-12 (MECHANICS.md §18): também monta a página 7 (CONFIGURAÇÕES DE PC dentro
+# do menu do jogo) com o mesmo layout da página que o jogo acabou de montar: r22 = y inicial,
+# r23 = passo, r24 = x, f27 = escala, f31 = atraso por entrada (os mesmos registradores que o
+# montador grava em 0x826A5ABC/0x826A5AA0/0x826A5AA8/0x826A5AB0/0x826A5AA4 antes de cada página).
 [[midasm_hook]]
 address = 0x822DF2D0
 name = "PcHook_HelpPageBuilt"
-registers = ["r30", "r31"]
+registers = ["r30", "r31", "r22", "r23", "r24", "f27", "f31"]
+
+# ---------------------------------------------------------------- Páginas de PC dentro do menu do jogo
+# Pedido de 2026-11-12: as opções do F1 ficam no menu do PRÓPRIO jogo, não numa janela por cima.
+# MECHANICS.md §18. O vetor de páginas da tela tem 12 (0x822DB640 aloca 528 bytes); o montador
+# 0x822DEE60 monta 0-6 e 8-11 e a 7 fica livre para as Configurações de PC.
+# 0x822E3228 = estado 8 do menu (troca de página). Bytes conferidos no default.xex:
+#   0x822E327C 816B0028 lwz r11,40(r11)  (indo: página-alvo da entrada sob o cursor)
+#   0x822E3294 816B002C lwz r11,44(r11)  (voltando com B: página de volta da entrada)
+#   0x822E3298 917F002C stw r11,44(r31)  <- gancho ANTES: r11 = página nova, tela+0x2C = antiga
+#   0x822E32BC 7FE3FB78 mr r3,r31 ... bl 0x822DBFA0 (linhas da página nova) e estado 4 (cursor)
+# O gancho monta a página 7 para a vista certa (raiz ou seção) antes de o jogo lê-la, e o F1
+# troca r11 por 7 para abrir as Configurações de PC de qualquer página do menu.
+[[midasm_hook]]
+address = 0x822E3298
+name = "PcHook_MenuPageSwitch"
+registers = ["r11", "r31"]
+
+# 0x822DC728 = callback por quadro da página CONFIGURAÇÕES do jogo (página 2: volumes com
+# esquerda/direita). Só é chamado pelo ponteiro página+0x24 (0x822E2860/0x822E23A8/0x822E3150),
+# nenhum 'bl' direto. A página 7 aponta para ele também: o gancho trata a página 7 (avisos de
+# botão, esquerda/direita trocam o valor) e devolve true; na página 2 devolve false (original).
+[[midasm_hook]]
+address = 0x822DC728
+name = "PcHook_PcPageTick"
+registers = ["r3"]
+return_on_true = true
 
 # ---------------------------------------------------------------- Textos (entrada de PC nos menus)
 # 0x822E9C28 = GetString(id) (tabela de ponteiros de X360_strings.dat em 0x826A60E8). Só para o

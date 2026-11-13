@@ -101,6 +101,17 @@ def main():
         if hooks.get(name) != int(addr, 16):
             fail("%s: endereco no pc_hooks.toml (%s) difere do decompilado (%s)" %
                  (name, hex(hooks.get(name, 0)), addr))
+    # Paginas de PC dentro do menu do jogo (pedido de 2026-11-12, MECHANICS.md secao 18).
+    ingame = pc.get("ingame_menu") or {}
+    if not ingame:
+        fail("mechanics.json: falta o bloco pc.ingame_menu (MECHANICS.md secao 18)")
+    for name, key in (("PcHook_MenuPageSwitch", "hook_page_switch"),
+                      ("PcHook_PcPageTick", "hook_page_tick")):
+        if hooks.get(name) != int(ingame[key], 16):
+            fail("%s: endereco no pc_hooks.toml (%s) difere do decompilado (%s)" %
+                 (name, hex(hooks.get(name, 0)), ingame[key]))
+    if int(ingame["pc_page_index"]) >= int(ingame["page_count"]):
+        fail("pc.ingame_menu: pc_page_index fora do vetor de paginas do jogo")
 
     # ---- header text
     lines = []
@@ -170,6 +181,23 @@ def main():
     dec("title_step_y", "passo no titulo (0x82005AB4)")
     dec("pause_start_y", "y da 1a entrada na pausa (0x82005AB8)")
     dec("pause_step_y", "passo na pausa (0x82005AC8)")
+    w("")
+    w("// ---- paginas de PC dentro do menu do jogo (MECHANICS.md secao 18) ----")
+    w("namespace ingame {")
+    notes = ingame.get("notes") or {}
+    for key in sorted(ingame):
+        v = ingame[key]
+        if key in ("why", "notes") or isinstance(v, (bool, dict, list)):
+            continue
+        note = notes.get(key, "")
+        tail = ("  // " + note) if note else ""
+        if isinstance(v, str) and v.lower().startswith("0x"):
+            w("constexpr uint32_t %-26s = %su;%s" % (_camel(key), v.lower(), tail))
+        elif isinstance(v, int):
+            w("constexpr uint32_t %-26s = %du;%s" % (_camel(key), v, tail))
+        elif isinstance(v, float):
+            w("constexpr float %-29s = %s;%s" % (_camel(key), _f32(v), tail))
+    w("}  // namespace ingame")
     w("")
     w("}  // namespace mechanics")
     w("}  // namespace pc")

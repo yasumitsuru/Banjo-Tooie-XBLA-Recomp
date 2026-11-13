@@ -23,6 +23,7 @@
 #endif
 #include <windows.h>
 
+#include "pc_ingame_menu.h"
 #include "pc_settings.h"
 #include "pc_state.h"
 #include "mechanics_values.h"
@@ -223,6 +224,9 @@ void PcHook_FrameStart() {
     pc::state::count_result.store(result, std::memory_order_relaxed);
     pc::state::count_invoked.store(req, std::memory_order_relaxed);
   }
+
+  // F1: abre as Configurações de PC dentro do menu do jogo (pc_ingame_menu.cpp).
+  pc::ingame::FrameTick();
 }
 
 void PcHook_PresentInterval(PPCRegister& r11) {
@@ -358,31 +362,54 @@ static_assert(mm::kPauseSkipTo == mm::kHookPauseSkipLeaderboards + 8,
               "0x822DF04C 'mr r3,r31' + 0x822DF050 'bl 0x822E1380' (CLASSIFICAÇÕES da pausa)");
 
 // Antes de 0x822DF2D0 (lwz r11,340(r30)), no fim da página AJUDA E OPÇÕES (r31 = página 1).
-void PcHook_HelpPageBuilt(PPCRegister& r30, PPCRegister& r31) {
-  const uint32_t screen = r30.u32;
-  const uint32_t page1 = r31.u32;
-  if (!pc::Get().pc_menu_entry || !GuestHeapPtr(screen) || !GuestHeapPtr(page1)) return;
-  if (ReadU8(screen + mm::kScreenIsPauseOff) == 0) return;  // título: entrada própria no menu
+// r22/r23/r24/f27/f31 = layout que o montador usa nesta tela (y inicial, passo, x, escala,
+// atraso por entrada); com eles a página 7 (Configurações de PC no menu do jogo) é montada igual.
+namespace {
+// Acrescenta CONFIGURAÇÕES DE PC no fim da página 1 da pausa. Desde 2026-11-12 a entrada
+// NAVEGA para a página 7 (Configurações de PC no menu do jogo, ação 0), como AJUDA E OPÇÕES
+// navega para a 1, em vez de abrir a janela sobreposta.
+bool AddPausePcEntry(uint32_t page1) {
   auto* ks = rex::system::kernel_state();
   auto* dispatcher = ks ? ks->function_dispatcher() : nullptr;
   auto* ts = rex::runtime::ThreadState::Get();
-  if (!dispatcher || !ts) return;
-  const uint32_t before = ReadU32(page1 + 4);
+  if (!dispatcher || !ts) return false;
   __try {
     PPCContext* ctx = ts->context();
     VolatileSnapshot snap{};
     SaveVolatile(*ctx, snap);
-    uint64_t args[5] = {page1, kStrPcSettings, kIconKazooie, ~0ull, kLeaderboardsAction};
+    uint64_t args[5] = {page1, kStrPcSettings, kIconKazooie, pc::ingame::PageIndex(), 0};
     dispatcher->Execute(ts, kAddMenuEntry, args, 5);
     RestoreVolatile(*ctx, snap);
   } __except (EXCEPTION_EXECUTE_HANDLER) {
-    REXLOG_ERROR("pausa: falha ao acrescentar CONFIGURAÇÕES DE PC em AJUDA E OPÇÕES");
-    return;
+    return false;
   }
-  pc::state::pause_entry_added.fetch_add(1, std::memory_order_relaxed);
-  pc::state::pause_entry_count.store(ReadU32(page1 + 4), std::memory_order_relaxed);
-  REXLOG_INFO("pausa: CONFIGURAÇÕES DE PC acrescentada em AJUDA E OPÇÕES ({} -> {} entradas)",
-              before, ReadU32(page1 + 4));
+  return true;
+}
+}  // namespace
+
+void PcHook_HelpPageBuilt(PPCRegister& r30, PPCRegister& r31, PPCRegister& r22, PPCRegister& r23,
+                          PPCRegister& r24, PPCRegister& f27, PPCRegister& f31) {
+  const uint32_t screen = r30.u32;
+  const uint32_t page1 = r31.u32;
+  if (!pc::Get().pc_menu_entry || !GuestHeapPtr(screen) || !GuestHeapPtr(page1)) return;
+  // Só na pausa: no título a entrada própria fica no menu principal (PcHook_TitleExitEntry).
+  if (ReadU8(screen + mm::kScreenIsPauseOff) != 0) {
+    const uint32_t before = ReadU32(page1 + 4);
+    if (AddPausePcEntry(page1)) {
+      pc::state::pause_entry_added.fetch_add(1, std::memory_order_relaxed);
+      pc::state::pause_entry_count.store(ReadU32(page1 + 4), std::memory_order_relaxed);
+      REXLOG_INFO("pausa: CONFIGURAÇÕES DE PC acrescentada em AJUDA E OPÇÕES ({} -> {} entradas)",
+                  before, ReadU32(page1 + 4));
+    } else {
+      REXLOG_ERROR("pausa: falha ao acrescentar CONFIGURAÇÕES DE PC em AJUDA E OPÇÕES");
+    }
+  }
+  // Raiz das Configurações de PC na página 7 (título e pausa). Vem DEPOIS da entrada da página 1,
+  // porque montar a página 7 zera os globais de layout que a entrada nova ainda usa; o montador
+  // grava todos de novo no preâmbulo da página seguinte (11).
+  pc::ingame::OnPagesBuilt(screen, static_cast<int32_t>(r22.u32), static_cast<int32_t>(r23.u32),
+                           static_cast<int32_t>(r24.u32), static_cast<float>(f27.f64),
+                           static_cast<float>(f31.f64));
 }
 
 // ---------------------------------------------------------------- textos do jogo
@@ -458,10 +485,10 @@ static_assert(mm::kTitleSkipTo == mm::kHookTitleSkipLeaderboards + 8,
               "0x822DF0A0 'mr r3,r31' + 0x822DF0A4 'bl 0x822E1380' (CLASSIFICAÇÕES)");
 
 // Depois de 0x822DF110 ("li r4,5", só o caminho do título passa aqui; r31 = página 0):
-//  1) registra "CONFIGURAÇÃO DA RECOMPILAÇÃO" com a ação de CLASSIFICAÇÕES (0x822DEC40) e
-//     página-alvo -1, que PcHook_LeaderboardsSelect transforma em "abrir o menu de PC" (o do
-//     F1); r4/r6/r7 já estão carregados para a saída, por isso os voláteis são salvos e
-//     restaurados em volta da chamada (como em PcHook_HelpPageBuilt);
+//  1) registra "CONFIGURAÇÃO DA RECOMPILAÇÃO" com página-alvo 7 e sem ação: o próprio menu do
+//     jogo navega para as Configurações de PC (pc_ingame_menu.cpp, pedido de 2026-11-12); r4/r6/r7
+//     já estão carregados para a saída, por isso os voláteis são salvos e restaurados em volta
+//     da chamada (como em PcHook_HelpPageBuilt);
 //  2) troca o texto de VOLTAR À BIBLIOTECA DE JOGOS por SAIR PARA O DESKTOP (id novo; o id 5
 //     dos textos não muda, e o jogo também tem o id 0x112 com o mesmo texto em outra tela).
 void PcHook_TitleExitEntry(PPCRegister& r4, PPCRegister& r31) {
@@ -477,8 +504,9 @@ void PcHook_TitleExitEntry(PPCRegister& r4, PPCRegister& r31) {
         PPCContext* ctx = ts->context();
         VolatileSnapshot snap{};
         SaveVolatile(*ctx, snap);
-        uint64_t args[5] = {page0, pc::state::kTitleRecompEntryStringId, kIconKazooie, ~0ull,
-                            kLeaderboardsAction};
+        // Navega para a página 7 (Configurações de PC no menu do jogo), sem ação própria.
+        uint64_t args[5] = {page0, pc::state::kTitleRecompEntryStringId, kIconKazooie,
+                            pc::ingame::PageIndex(), 0};
         dispatcher->Execute(ts, kAddMenuEntry, args, 5);
         RestoreVolatile(*ctx, snap);
         pc::state::title_recomp_entry_built.fetch_add(1, std::memory_order_relaxed);
@@ -543,6 +571,8 @@ bool PcHook_LeaderboardsSelect(PPCRegister& r3) {
   const uint32_t pages = ReadU32(screen + 0x154);
   const uint32_t page = ReadU32(screen + 0x2C);
   if (!GuestHeapPtr(pages) || page > 16) return false;
+  // Linhas das Configurações de PC no menu do jogo (página 7): A troca o valor da linha.
+  if (page == pc::ingame::PageIndex()) return pc::ingame::OnSelect(screen);
   const uint32_t entries = ReadU32(pages + page * 0x2C);
   const uint32_t count = ReadU32(pages + page * 0x2C + 4);
   const uint32_t cursor = ReadU8(screen + mm::kScreenCursorOff);

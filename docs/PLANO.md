@@ -93,6 +93,7 @@ isolados dentro de `app/`; os saves reais da pessoa não foram tocados.
 | Gamepad | **PARCIAL** | controle virtual (SDL) conduz o jogo real; controle físico XInput não testado aqui (a pessoa relata que funciona, `DECISOES.md` nº 1) |
 | Saves | **IMPLEMENTADO** (gravar + backup) / **PARCIAL** (carregar) | o jogo gravou `savegame.dat` + backups no perfil isolado; carregar esse save ainda não é testado automaticamente |
 | QoL | **IMPLEMENTADO** (conjunto inicial) | menu de PC (60 FPS/cenas, velocidade de diálogo, início rápido, contador de FPS, pausa ao perder foco, backups, câmera/controle) |
+| Configurações de PC **dentro do menu do jogo** (pedido de 2026-11-12) | **IMPLEMENTADO** | página 7 do próprio menu (raiz + 5 seções, 51 opções), F1 abre no título, na pausa e no jogo livre; janela sobreposta só como reserva (Shift+F1). Provas: `--self-test` 10/10, `--self-test-f1`, `--probe-pcpages`, `--probe-titlemenu` (`MECHANICS.md` §18) |
 | Testes automáticos | **PARCIALMENTE VERIFICADOS** | M00 `PASS_FINAL`; rebuild M03 e auto-teste 10/10 aprovados. As verificações de M00 36/36 originais e SDK 18/18 pertencem ao checkpoint pré-M03; ver histórico e relatórios |
 
 ## Próximos passos, em ordem
@@ -253,3 +254,18 @@ agora fecha o jogo). Detalhes técnicos em `MECHANICS.md` §14. Saídas em `_aud
 Registros locais em `.understory/queue/pending/m00-rodada8-verificacao-2026-11-11.json` e
 `m00-rodada9-revalidacao-2026-11-11.json` (estado **SYNC_PENDING**; o servidor Understory não está
 disponível nesta sessão, então nada foi publicado).
+
+## Configurações de PC dentro do menu do jogo (pedido de 2026-11-12, noite)
+
+- Feito: as opções do F1 saíram da janela sobreposta e viraram páginas do próprio menu do jogo
+  (fonte, ícone, cursor, rolagem e avisos de botão do jogo). Detalhes e endereços: `MECHANICS.md` §18.
+- Provas no jogo real: auto-teste 10/10 em 69 s (limite 80 s); F1 no jogo livre abre a pausa já na
+  página de PC (2,3 s) e fecha; no menu principal as 51 linhas cabem sem quebrar.
+- Corrigido junto: testes automáticos gravavam no `out/native/banjotooie.toml` opções só da sessão
+  (`log_file`, `cache_path`, `audio_mute`). O arquivo foi restaurado sem essas 3 linhas (cópias em
+  `_audit/out/menu-ingame/banjotooie.toml.*`); se o jogo estava mudo de propósito antes, basta
+  ligar SILENCIAR TUDO de novo.
+- Recado da pessoa (4K/60 interno): validado só o objetivo principal — renderização interna
+  3840×2160 (escala 3×3) a 59,9 FPS em 30 s de jogo livre, tempo de quadro 16,69 ± 1,13 ms. A
+  matriz 1080p/1440p/4K × Janela/Sem bordas/Tela cheia (M03) continua **PENDENTE (0/9)**.
+- Checkpoint antes da mudança: `refs/checkpoints/f1-dentro-do-jogo-antes-20261112`.

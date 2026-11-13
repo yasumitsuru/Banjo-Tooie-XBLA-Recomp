@@ -275,6 +275,8 @@ void RequestTap(uint16_t button) {
   g_tap_left.store(10);
 }
 
+bool TapPending() { return g_tap_left.load() > 0; }
+
 void Install(rex::system::IInputSystem* system) {
   static bool installed = false;
   if (installed || !system) return;

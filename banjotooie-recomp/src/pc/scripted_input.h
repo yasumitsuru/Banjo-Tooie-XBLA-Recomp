@@ -40,6 +40,8 @@ bool CaptureEnabled();
 
 // Injeta um toque de botão por alguns quadros (ex.: pausar ao perder o foco).
 void RequestTap(uint16_t button);
+// Ainda há um toque pendente (o driver ainda o entrega ao jogo).
+bool TapPending();
 
 // Cria o driver para ser adicionado ao InputSystem do runtime.
 void Install(rex::system::IInputSystem* system);

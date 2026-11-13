@@ -5,6 +5,7 @@
 #include <cstdint>
 #include <filesystem>
 #include <memory>
+#include <string>
 #include <vector>
 
 namespace rex::ui {
@@ -84,5 +85,29 @@ int CurrentTab();                                   // aba selecionada no menu d
 // Coloca o foco de navegação no primeiro controle da aba Jogo ("60 FPS") no próximo quadro,
 // para a sonda medir direcional + A de ponta a ponta a partir de um ponto conhecido.
 void SetGamepadTestFocus(bool set);
+
+// ---------------------------------------------------------------- opções dentro do jogo
+// Pedido de 2026-11-12: as opções do F1 ficam nas páginas do PRÓPRIO menu do jogo
+// (pc_ingame_menu.cpp, MECHANICS.md §18), não numa janela sobreposta. Este é o modelo dessas
+// páginas: as mesmas opções e os mesmos efeitos do menu antigo. Textos em UTF-8, em maiúsculas
+// (a fonte dos menus do jogo só tem maiúsculas e não tem '%'). Chamadas na THREAD DO JOGO; o
+// que só pode rodar na thread da interface (janela, cursor, cvars do runtime, arquivos) é
+// enfileirado e aplicado no próximo quadro da interface, e o texto já mostra o valor novo.
+namespace options {
+int SectionCount();
+std::string SectionTitle(int section);
+int RowCount(int section);
+std::string RowText(int section, int row);
+// true = linha de valor (esquerda/direita mudam o valor; A avança); false = linha de ação (A).
+bool RowIsValue(int section, int row);
+// dir: -1 esquerda, +1 direita, 0 botão A. Devolve true se algum texto mudou.
+bool RowInput(int section, int row, int dir);
+// O cursor saiu da linha ou da página: cancela confirmações pela metade.
+void RowLeft();
+// Muda quando algo terminou fora da thread do jogo (tecla capturada, backup restaurado).
+uint32_t Generation();
+// Esperando a tecla nova de um atalho do teclado (o jogo não recebe entrada nesse tempo).
+bool CaptureActive();
+}  // namespace options
 
 }  // namespace pc::menu

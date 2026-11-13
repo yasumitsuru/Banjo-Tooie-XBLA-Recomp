@@ -25,6 +25,7 @@ set(BANJOTOOIE_SOURCES
     src/pc/pc_hooks.cpp
     src/pc/pc_automation.cpp
     src/pc/pc_menu.cpp
+    src/pc/pc_ingame_menu.cpp
     src/pc/pc_saves.cpp
     src/pc/pc_progress.cpp
     src/pc/scripted_input.cpp

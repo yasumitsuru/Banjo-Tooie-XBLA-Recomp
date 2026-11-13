@@ -7,6 +7,7 @@
 #define NOMINMAX
 #endif
 #include <windows.h>
+#include <shellapi.h>
 
 #include <imgui.h>
 #include <imgui_internal.h>
@@ -20,13 +21,19 @@
 #include <rex/ui/window.h>
 
 #include <algorithm>
+#include <atomic>
 #include <chrono>
+#include <cmath>
 #include <cstdio>
+#include <functional>
+#include <map>
 #include <mutex>
 #include <optional>
 #include <string>
 #include <vector>
 
+#include "pc_automation.h"
+#include "pc_ingame_menu.h"
 #include "pc_progress.h"
 #include "pc_saves.h"
 #include "pc_settings.h"
@@ -40,10 +47,49 @@ namespace {
 
 std::filesystem::path g_runtime_config;
 
+// Opções passadas na LINHA DE COMANDO valem só para aquela execução (pastas e log de um teste,
+// --audio_mute do auto-teste, o --cache_path que o lançador do Craft acrescenta...). Guardadas
+// na partida: nome -> valor naquele momento; e as linhas que o arquivo tinha para elas.
+std::map<std::string, std::string> g_cmdline_cvars;
+std::map<std::string, std::string> g_file_lines_at_start;
+
+void CaptureSessionCvars() {
+  int argc = 0;
+  LPWSTR* argv = CommandLineToArgvW(GetCommandLineW(), &argc);
+  for (int i = 1; argv && i < argc; ++i) {
+    const std::wstring a = argv[i];
+    if (a.size() < 3 || a[0] != L'-' || a[1] != L'-') continue;
+    std::string name;
+    for (size_t k = 2; k < a.size() && a[k] != L'='; ++k)
+      name += a[k] < 0x80 ? char(a[k]) : '?';
+    const std::string value = rex::cvar::GetFlagByName(name);
+    if (!value.empty()) g_cmdline_cvars[name] = value;
+  }
+  if (argv) LocalFree(argv);
+  FILE* f = nullptr;
+  if (g_runtime_config.empty() || _wfopen_s(&f, g_runtime_config.c_str(), L"rb") != 0 || !f) return;
+  std::string text;
+  char buf[4096];
+  for (size_t n; (n = std::fread(buf, 1, sizeof buf, f)) > 0;) text.append(buf, n);
+  std::fclose(f);
+  size_t pos = 0;
+  while (pos < text.size()) {
+    size_t end = text.find('\n', pos);
+    if (end == std::string::npos) end = text.size();
+    std::string line = text.substr(pos, end - pos);
+    pos = end + 1;
+    if (!line.empty() && line.back() == '\r') line.pop_back();
+    if (line.empty() || line[0] == '#') continue;
+    g_file_lines_at_start[line.substr(0, line.find(' '))] = line;
+  }
+}
+
 // Grava banjotooie.toml só com as opções que o jogador escolhe. rex::cvar::SaveConfig gravaria
 // todo valor diferente do padrão, inclusive os da sessão: pastas passadas na linha de comando
 // (--user_data_root de um teste) e o tamanho de janela calculado a cada início — e o próximo
 // início leria a pasta de teste e uma janela velha. Gravação atômica (temporário + troca).
+// Opção vinda da linha de comando e não mudada depois: fica a linha que o arquivo já tinha (ou
+// nenhuma). Um teste com --audio_mute não deixa o jogo mudo para sempre (achado em 2026-11-12).
 void SaveRuntimeConfig() {
   if (g_runtime_config.empty()) return;
   static const char* const kSessionOnly[] = {"user_data_root", "game_data_root", "window_width",
@@ -60,7 +106,14 @@ void SaveRuntimeConfig() {
     const std::string key = line.substr(0, line.find(' '));
     bool skip = false;
     for (const char* s : kSessionOnly) skip = skip || key == s;
-    if (!skip) out += line + "\n";
+    if (skip) continue;
+    const auto cmd = g_cmdline_cvars.find(key);
+    if (cmd != g_cmdline_cvars.end() && rex::cvar::GetFlagByName(key) == cmd->second) {
+      const auto old = g_file_lines_at_start.find(key);
+      if (old != g_file_lines_at_start.end()) out += old->second + "\n";
+      continue;
+    }
+    out += line + "\n";
   }
   std::error_code ec;
   const auto tmp = std::filesystem::path(g_runtime_config).concat(L".tmp");
@@ -326,9 +379,122 @@ void ApplyResolutionCvars(Resolution r) {
 
 void SaveAll() {
   bool ok = pc::Save();
-  SaveRuntimeConfig();
+  // Testes automáticos (--self-test, sondas) não tocam o arquivo do runtime ao lado do jogo; as
+  // opções de PC deles vão para a pasta de dados do teste (pc_settings.toml).
+  if (!pc::automation::IsRunning()) SaveRuntimeConfig();
   g_status = ok ? "Configurações salvas." : "Falha ao salvar as configurações.";
 }
+
+// ----------------------------------------------------------------- tarefas da thread da interface
+// As páginas de PC dentro do jogo rodam na thread do jogo; janela, cursor, cvars do runtime e
+// arquivos são aplicados aqui, no início do próximo quadro da interface (PcSettingsDialog).
+std::mutex g_ui_mu;
+std::vector<std::function<void()>> g_ui_tasks;
+std::map<std::string, std::string> g_cvar_pending;  // valor pedido e ainda não aplicado
+
+void PostUi(std::function<void()> task) {
+  std::lock_guard<std::mutex> lk(g_ui_mu);
+  g_ui_tasks.push_back(std::move(task));
+}
+
+void DrainUi() {
+  std::vector<std::function<void()>> tasks;
+  {
+    std::lock_guard<std::mutex> lk(g_ui_mu);
+    tasks.swap(g_ui_tasks);
+  }
+  for (auto& t : tasks) t();
+}
+
+// Valor de um cvar contando o pedido ainda na fila (o texto da página mostra o valor novo já).
+std::string CvarNow(const char* name) {
+  {
+    std::lock_guard<std::mutex> lk(g_ui_mu);
+    auto it = g_cvar_pending.find(name);
+    if (it != g_cvar_pending.end()) return it->second;
+  }
+  return CvarStr(name);
+}
+
+void SetCvarAsync(const char* name, const std::string& value) {
+  const std::string key = name;
+  {
+    std::lock_guard<std::mutex> lk(g_ui_mu);
+    g_cvar_pending[key] = value;
+  }
+  PostUi([key, value] {
+    SetCvar(key.c_str(), value);
+    std::lock_guard<std::mutex> lk(g_ui_mu);
+    auto it = g_cvar_pending.find(key);
+    if (it != g_cvar_pending.end() && it->second == value) g_cvar_pending.erase(it);
+  });
+}
+
+std::atomic<bool> g_save_queued{false};
+void RequestSave() {
+  if (g_save_queued.exchange(true)) return;
+  PostUi([] {
+    g_save_queued.store(false);
+    SaveAll();
+  });
+}
+
+// Valores com que o programa começou (resolução e MSAA só mudam ao reiniciar).
+Resolution g_startup_resolution = Resolution::R1440p;
+bool g_startup_msaa = false;
+
+// Algo terminou fora da thread do jogo e as linhas da página precisam ser reescritas.
+std::atomic<uint32_t> g_options_generation{1};
+
+// ----------------------------------------------------------------- atalho novo pela página do jogo
+// A na linha de um atalho começa a captura: espera soltar tudo (o próprio A/Enter que pediu
+// a captura não vale), aceita a próxima tecla com a janela do jogo em primeiro plano e desiste
+// em 10 s. O jogo não recebe entrada durante a captura nem 300 ms depois.
+std::atomic<int> g_ig_capture{-1};  // índice em kKeyActions, -1 = nenhuma
+int g_ig_phase = 0;                 // 0 = esperando soltar, 1 = esperando a tecla
+std::chrono::steady_clock::time_point g_ig_deadline{};
+
+bool IsMouseVk(int vk) {
+  return vk == VK_LBUTTON || vk == VK_RBUTTON || vk == VK_MBUTTON || vk == VK_XBUTTON1 ||
+         vk == VK_XBUTTON2;
+}
+
+void PollIngameCapture() {
+  const int action = g_ig_capture.load();
+  if (action < 0) return;
+  const auto now = std::chrono::steady_clock::now();
+  if (now > g_ig_deadline) {
+    g_ig_capture.store(-1);
+    g_unblock_at = now + std::chrono::milliseconds(300);
+    g_options_generation.fetch_add(1);
+    return;
+  }
+  HWND hwnd = g_window ? reinterpret_cast<HWND>(g_window->GetNativeWindowHandle()) : nullptr;
+  if (!hwnd || GetForegroundWindow() != hwnd) return;  // teclas de outros programas não valem
+  int down = 0;
+  for (int vk = 1; vk < 256 && !down; ++vk)
+    if (!IsMouseVk(vk) && (GetAsyncKeyState(vk) & 0x8000)) down = vk;
+  if (g_ig_phase == 0) {
+    if (!down) g_ig_phase = 1;
+    return;
+  }
+  if (!down) return;
+  const std::string name = rex::ui::VirtualKeyToString(static_cast<rex::ui::VirtualKey>(down));
+  if (name.empty()) return;
+  AssignKey(kKeyActions[action], name);
+  g_ig_capture.store(-1);
+  g_unblock_at = now + std::chrono::milliseconds(300);
+  g_options_generation.fetch_add(1);
+}
+
+void StartIngameCapture(int action) {
+  g_ig_phase = 0;
+  g_ig_deadline = std::chrono::steady_clock::now() + std::chrono::seconds(10);
+  g_ig_capture.store(action);
+}
+
+// Restaurar backup pela página do jogo: 0 = parado, 1 = esperando confirmar, 2/3 = resultado.
+std::atomic<int> g_restore_state{0};
 
 // ----------------------------------------------------------------- modo de exibição
 LONG_PTR g_saved_style = 0;
@@ -583,7 +749,10 @@ class PcSettingsDialog : public rex::ui::ImGuiDialog {
 
  protected:
   void OnDraw(ImGuiIO& io) override {
-    // Aberto pela entrada "CONFIGURAÇÕES DE PC" dos menus do jogo (pedido pelo gancho).
+    // Pedidos das páginas de PC dentro do jogo (thread do jogo) aplicados aqui, na da interface.
+    DrainUi();
+    PollIngameCapture();
+    // Menu antigo (sobreposto): só como reserva (Shift+F1, --open-pc-menu e sondas antigas).
     if (pc::state::menu_open_request.exchange(false) && !g_menu_open) {
       g_menu_open = true;
       pc::input::SetCaptureEnabled(false);
@@ -914,16 +1083,23 @@ std::unique_ptr<CollectibleOverlay> g_collectibles;
 void Create(rex::ui::ImGuiDrawer* drawer, rex::ui::Window* window,
             const std::filesystem::path& runtime_config) {
   g_runtime_config = runtime_config;
+  CaptureSessionCvars();
   g_window = window;
+  g_startup_resolution = pc::Get().resolution;
+  g_startup_msaa = CvarBool("native_2x_msaa");
   g_fps = std::make_unique<FpsOverlay>(drawer);
   g_collectibles = std::make_unique<CollectibleOverlay>(drawer);
   g_dialog = std::make_unique<PcSettingsDialog>(drawer);
+  // F1 abre as páginas "CONFIGURAÇÕES DE PC" dentro do menu do próprio jogo (pedido de
+  // 2026-11-12). O menu sobreposto antigo ficou só como reserva, em Shift+F1.
   rex::ui::RegisterBind("bind_pc_settings", "F1", "Configurações de PC", [] {
     if (g_menu_open) {
       CloseMenu();
-    } else {
+    } else if (GetKeyState(VK_SHIFT) & 0x8000) {
       g_menu_open = true;
       pc::input::SetCaptureEnabled(false);
+    } else {
+      pc::ingame::RequestToggle();
     }
   });
 }
@@ -940,7 +1116,8 @@ void Open() { g_menu_open = true; }
 void SetInputSystem(rex::input::InputSystem* system) { g_input_system = system; }
 
 bool BlocksGameInput() {
-  return g_menu_open || std::chrono::steady_clock::now() < g_unblock_at;
+  return g_menu_open || g_ig_capture.load() >= 0 ||
+         std::chrono::steady_clock::now() < g_unblock_at;
 }
 bool IsOpen() { return g_menu_open; }
 
@@ -1006,5 +1183,346 @@ bool SetResolutionForAutomation(Resolution resolution) {
   SaveRuntimeConfig();
   return saved;
 }
+
+// ---------------------------------------------------------------- opções dentro do jogo
+namespace options {
+namespace {
+
+std::string YesNo(bool b) { return b ? "SIM" : "NÃO"; }
+
+// Número com vírgula (PT-BR), 2 casas.
+std::string Num2(float v) {
+  char b[24];
+  std::snprintf(b, sizeof b, "%.2f", double(v));
+  for (char* p = b; *p; ++p)
+    if (*p == '.') *p = ',';
+  return b;
+}
+
+std::string Upper(std::string s) {
+  for (char& c : s)
+    if (c >= 'a' && c <= 'z') c = char(c - 'a' + 'A');
+  return s;
+}
+
+int Wrap(int v, int n, int dir) { return ((v + (dir < 0 ? -1 : 1)) % n + n) % n; }
+
+// Passo fixo com limites; arredonda ao passo para não acumular erro de ponto flutuante.
+float StepF(float v, float lo, float hi, float step, int dir) {
+  const float n = std::round(v / step) + (dir < 0 ? -1.0f : 1.0f);
+  return std::clamp(n * step, lo, hi);
+}
+
+// Linha da página: texto atual e o que esquerda/direita (dir ±1) ou A (dir 0) fazem.
+struct Row {
+  std::function<std::string()> text;
+  std::function<bool(int)> input;  // devolve true se mudou
+  bool value = true;
+};
+
+Row Bool(const char* label, bool Settings::*field, std::function<void()> after = {}) {
+  return {[label, field] { return std::string(label) + " : " + YesNo(pc::Get().*field); },
+          [field, after](int) {
+            pc::Get().*field = !(pc::Get().*field);
+            if (after) after();
+            RequestSave();
+            return true;
+          }};
+}
+
+Row Float(const char* label, float Settings::*field, float lo, float hi, float step,
+          std::function<void()> after = {}) {
+  return {[label, field] { return std::string(label) + " : " + Num2(pc::Get().*field); },
+          [field, lo, hi, step, after](int dir) {
+            const float old = pc::Get().*field;
+            const float v = StepF(old, lo, hi, step, dir == 0 ? 1 : dir);
+            if (v == old) return false;
+            pc::Get().*field = v;
+            if (after) after();
+            RequestSave();
+            return true;
+          }};
+}
+
+// Cvar com uma lista fixa de valores (o texto mostrado em names[i]).
+Row CvarList(const char* label, const char* cvar, std::vector<std::string> values,
+             std::vector<std::string> names, bool restart_hint = false) {
+  auto index = [cvar, values] {
+    const std::string cur = CvarNow(cvar);
+    for (size_t i = 0; i < values.size(); ++i)
+      if (values[i] == cur) return int(i);
+    return 0;
+  };
+  return {[label, names, index, restart_hint, cvar] {
+            std::string t = std::string(label) + " : " + names[size_t(index())];
+            if (restart_hint && (CvarNow(cvar) == "true") != g_startup_msaa) t += " (REINICIE)";
+            return t;
+          },
+          [cvar, values, index](int dir) {
+            const int i = Wrap(index(), int(values.size()), dir);
+            SetCvarAsync(cvar, values[size_t(i)]);
+            RequestSave();
+            return true;
+          }};
+}
+
+void ApplyRuntimeLater() { PostUi([] { pc::ApplyRuntimeOptions(); }); }
+
+std::vector<Row> BuildGraphics() {
+  std::vector<Row> r;
+  r.push_back({[] {
+                 const auto res = pc::Get().resolution;
+                 std::string t = std::string("RESOLUÇÃO : ") +
+                                 (res == Resolution::R1080p   ? "1080P"
+                                  : res == Resolution::R1440p ? "1440P"
+                                                              : "4K");
+                 // Pendente até reiniciar: rótulo curto para caber numa linha no título
+                 // (texto maior; "INVERTER ANALÓGICO X : NÃO", 26 letras largas, já quebra).
+                 if (res != g_startup_resolution) t = "RESOL." + t.substr(t.find(" :")) + " (REINICIE)";
+                 return t;
+               },
+               [](int dir) {
+                 auto& s = pc::Get();
+                 s.resolution = Resolution(Wrap(int(s.resolution), 3, dir));
+                 s.resolution_auto = false;
+                 const Resolution res = s.resolution;
+                 PostUi([res] { ApplyResolutionCvars(res); });
+                 g_restart_needed = true;
+                 RequestSave();
+                 return true;
+               }});
+  r.push_back({[] {
+                 const auto m = pc::Get().display_mode;
+                 return std::string("MODO : ") + (m == DisplayMode::Janela      ? "JANELA"
+                                                  : m == DisplayMode::SemBordas ? "SEM BORDAS"
+                                                                                : "TELA CHEIA");
+               },
+               [](int dir) {
+                 auto& s = pc::Get();
+                 s.display_mode = DisplayMode(Wrap(int(s.display_mode), 3, dir));
+                 const DisplayMode m = s.display_mode;
+                 PostUi([m] { ApplyDisplayModeNow(g_window, m); });
+                 RequestSave();
+                 return true;
+               }});
+  r.push_back(CvarList("VSYNC", "vsync", {"true", "false"}, {"SIM", "NÃO"}));
+  r.push_back(CvarList("ANTISSERRILHADO", "swap_post_effect", {"none", "fxaa", "fxaa_extreme"},
+                       {"NENHUM", "FXAA", "FXAA FORTE"}));
+  r.push_back(CvarList("MSAA 2X", "native_2x_msaa", {"false", "true"}, {"NÃO", "SIM"}, true));
+  r.push_back(CvarList("ANISOTROPIA", "anisotropic_override", {"-1", "0", "2", "3", "4", "5"},
+                       {"DO JOGO", "DESLIGADA", "2X", "4X", "8X", "16X"}));
+  r.push_back(CvarList("ESCALONAMENTO", "present_effect", {"bilinear", "cas", "fsr"},
+                       {"BILINEAR", "AMD CAS", "AMD FSR"}));
+  return r;
+}
+
+std::vector<Row> BuildGame() {
+  std::vector<Row> r;
+  r.push_back(Bool("60 FPS", &Settings::fps60));
+  r.push_back(Bool("RITMO FIXO EM 60", &Settings::lock60));
+  r.push_back(Bool("CENAS A 60 FPS", &Settings::scenes60));
+  r.push_back({[] {
+                 const auto d = pc::Get().draw_distance;
+                 return std::string("DISTÂNCIA : ") + (d == DrawDistance::Longe   ? "LONGE"
+                                                       : d == DrawDistance::Total ? "TOTAL"
+                                                                                  : "ORIGINAL");
+               },
+               [](int dir) {
+                 auto& s = pc::Get();
+                 s.draw_distance = DrawDistance(Wrap(int(s.draw_distance), 3, dir));
+                 RequestSave();
+                 return true;
+               }});
+  r.push_back({[] {
+                 static const char* const kNames[] = {"ORIGINAL", "RÁPIDOS", "MUITO RÁPIDOS",
+                                                      "INSTANTÂNEOS"};
+                 return std::string("DIÁLOGOS : ") +
+                        kNames[std::clamp(pc::Get().dialog_speed, 0, 3)];
+               },
+               [](int dir) {
+                 auto& s = pc::Get();
+                 s.dialog_speed = Wrap(std::clamp(s.dialog_speed, 0, 3), 4, dir);
+                 RequestSave();
+                 return true;
+               }});
+  r.push_back(Bool("CONTADOR DE FPS", &Settings::show_fps));
+  r.push_back(Bool("DESEMPENHO NA TELA", &Settings::show_perf_stats));
+  r.push_back(Bool("RASTREADOR DE ITENS", &Settings::show_collectibles));
+  r.push_back(Bool("PAUSAR SEM FOCO", &Settings::pause_on_focus_loss));
+  r.push_back(Bool("INÍCIO RÁPIDO", &Settings::skip_intro_logos));
+  return r;
+}
+
+std::vector<Row> BuildController() {
+  std::vector<Row> r;
+  r.push_back(Bool("VIBRAÇÃO", &Settings::pad_vibration, ApplyRuntimeLater));
+  r.push_back(Float("ZONA MORTA", &Settings::pad_deadzone, 0.0f, 0.5f, 0.01f, ApplyRuntimeLater));
+  r.push_back(Float("ANALÓGICO DIREITO X", &Settings::pad_sens_x, 0.1f, 3.0f, 0.05f,
+                    ApplyRuntimeLater));
+  r.push_back(Float("ANALÓGICO DIREITO Y", &Settings::pad_sens_y, 0.1f, 3.0f, 0.05f,
+                    ApplyRuntimeLater));
+  r.push_back(Bool("INVERTER ANALÓG. X", &Settings::pad_invert_x, ApplyRuntimeLater));
+  r.push_back(Bool("INVERTER ANALÓG. Y", &Settings::pad_invert_y, ApplyRuntimeLater));
+  return r;
+}
+
+// Rótulos curtos dos 17 atalhos (mesma ordem de kKeyActions).
+const char* const kKeyLabels[] = {
+    "START / PAUSA",   "BOTÃO A",        "BOTÃO B",         "BOTÃO X",
+    "BOTÃO Y",         "DIRECIONAL CIMA", "DIRECIONAL BAIXO", "DIRECIONAL ESQ.",
+    "DIRECIONAL DIR.", "MOVER CIMA",     "MOVER BAIXO",     "MOVER ESQ.",
+    "MOVER DIR.",      "CÂMERA CIMA",    "CÂMERA BAIXO",    "CÂMERA ESQ.",
+    "CÂMERA DIR."};
+
+// Nome de tecla para a tela (maiúsculas; os mais comuns em PT-BR).
+std::string KeyDisplayName(const std::string& raw) {
+  const std::string up = Upper(raw);
+  if (up == "RETURN" || up == "ENTER") return "ENTER";
+  if (up == "SPACE") return "ESPAÇO";
+  if (up == "ESCAPE") return "ESC";
+  if (up.empty()) return "NENHUMA";
+  return up;
+}
+static_assert(sizeof(kKeyLabels) / sizeof(kKeyLabels[0]) ==
+              sizeof(kKeyActions) / sizeof(kKeyActions[0]));
+
+std::vector<Row> BuildKeyboardMouse() {
+  std::vector<Row> r;
+  r.push_back(Bool("CÂMERA PELO MOUSE", &Settings::mouse_look, [] {
+    const bool on = pc::Get().mouse_look;
+    PostUi([on] {
+      pc::input::SetMouseLook(on);
+      pc::input::SetCaptureEnabled(on && !g_menu_open);
+    });
+  }));
+  r.push_back(Float("MOUSE HORIZONTAL", &Settings::cam_sens_x, 0.1f, 3.0f, 0.05f));
+  r.push_back(Float("MOUSE VERTICAL", &Settings::cam_sens_y, 0.1f, 3.0f, 0.05f));
+  r.push_back(Bool("INVERTER MOUSE X", &Settings::cam_invert_x));
+  r.push_back(Bool("INVERTER MOUSE Y", &Settings::cam_invert_y));
+  r.push_back(Float("SUAVIZAÇÃO", &Settings::cam_smoothing, 0.0f, 0.9f, 0.05f));
+  const int keys = int(sizeof(kKeyActions) / sizeof(kKeyActions[0]));
+  for (int i = 0; i < keys; ++i) {
+    Row k;
+    k.value = false;
+    k.text = [i] {
+      if (g_ig_capture.load() == i) return std::string(kKeyLabels[i]) + " : APERTE A TECLA";
+      return std::string(kKeyLabels[i]) + " : " + KeyDisplayName(CurrentKeyName(kKeyActions[i]));
+    };
+    k.input = [i](int dir) {
+      if (dir != 0 || g_ig_capture.load() >= 0) return false;
+      StartIngameCapture(i);
+      return true;
+    };
+    r.push_back(std::move(k));
+  }
+  return r;
+}
+
+std::vector<Row> BuildAudioSaves() {
+  std::vector<Row> r;
+  r.push_back({[] { return "VOLUME GERAL : " + std::to_string(pc::Get().volume_master); },
+               [](int dir) {
+                 auto& s = pc::Get();
+                 const int v = std::clamp(s.volume_master + (dir < 0 ? -5 : 5), 0, 100);
+                 if (v == s.volume_master) return false;
+                 s.volume_master = v;
+                 ApplyRuntimeLater();
+                 RequestSave();
+                 return true;
+               }});
+  r.push_back(CvarList("SILENCIAR TUDO", "audio_mute", {"false", "true"}, {"NÃO", "SIM"}));
+  r.push_back(Bool("BACKUPS DO SAVE", &Settings::save_backup));
+  r.push_back({[] { return "BACKUPS MANTIDOS : " + std::to_string(pc::Get().backup_count); },
+               [](int dir) {
+                 auto& s = pc::Get();
+                 const int v = std::clamp(s.backup_count + (dir < 0 ? -1 : 1), 1, 30);
+                 if (v == s.backup_count) return false;
+                 s.backup_count = v;
+                 RequestSave();
+                 return true;
+               }});
+  Row restore;
+  restore.value = false;
+  restore.text = [] {
+    switch (g_restore_state.load()) {
+      case 1: return std::string("CONFIRMA? APERTE A");
+      case 2: return std::string("RESTAURADO - REINICIE");
+      case 3: return std::string("NENHUM BACKUP VÁLIDO");
+      default: return std::string("RESTAURAR ÚLTIMO BACKUP");
+    }
+  };
+  restore.input = [](int dir) {
+    if (dir != 0) return false;
+    if (g_restore_state.load() != 1) {
+      g_restore_state.store(1);
+      return true;
+    }
+    PostUi([] {
+      g_restore_state.store(pc::saves::RestoreLatest() ? 2 : 3);
+      g_options_generation.fetch_add(1);
+    });
+    return false;
+  };
+  r.push_back(std::move(restore));
+  return r;
+}
+
+struct Section {
+  const char* title;
+  std::vector<Row> rows;
+};
+
+std::vector<Section>& Sections() {
+  static std::vector<Section> s = {{"GRÁFICOS", BuildGraphics()},
+                                   {"JOGO", BuildGame()},
+                                   {"CONTROLE", BuildController()},
+                                   {"TECLADO E MOUSE", BuildKeyboardMouse()},
+                                   {"ÁUDIO E SAVES", BuildAudioSaves()}};
+  return s;
+}
+
+const Row* RowAt(int section, int row) {
+  auto& s = Sections();
+  if (section < 0 || section >= int(s.size())) return nullptr;
+  if (row < 0 || row >= int(s[size_t(section)].rows.size())) return nullptr;
+  return &s[size_t(section)].rows[size_t(row)];
+}
+
+}  // namespace
+
+int SectionCount() { return int(Sections().size()); }
+
+std::string SectionTitle(int section) {
+  auto& s = Sections();
+  return section >= 0 && section < int(s.size()) ? s[size_t(section)].title : "";
+}
+
+int RowCount(int section) {
+  auto& s = Sections();
+  return section >= 0 && section < int(s.size()) ? int(s[size_t(section)].rows.size()) : 0;
+}
+
+std::string RowText(int section, int row) {
+  const Row* r = RowAt(section, row);
+  return r ? r->text() : std::string();
+}
+
+bool RowIsValue(int section, int row) {
+  const Row* r = RowAt(section, row);
+  return r && r->value;
+}
+
+bool RowInput(int section, int row, int dir) {
+  const Row* r = RowAt(section, row);
+  return r && r->input(dir);
+}
+
+void RowLeft() { g_restore_state.store(0); }
+
+uint32_t Generation() { return g_options_generation.load(); }
+
+bool CaptureActive() { return g_ig_capture.load() >= 0; }
+
+}  // namespace options
 
 }  // namespace pc::menu

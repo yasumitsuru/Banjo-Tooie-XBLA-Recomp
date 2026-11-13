@@ -37,6 +37,7 @@ struct Options {
   std::filesystem::path probe_menu;  // estado vivo do menu de pausa/totais (itens, tabelas, cursor)
   std::filesystem::path probe_titlepc;  // entrada de PC do menu de TÍTULO (1 abaixo de JOGAR)
   std::filesystem::path probe_titlemenu;  // menu principal: rótulos, entrada da recompilação e SAIR PARA O DESKTOP
+  std::filesystem::path probe_pcpages;  // Configurações de PC no menu do jogo: seções, rolagem, valor, F1
   std::filesystem::path probe_menucursor;  // memória do menu de título antes/depois de baixo/cima
   std::filesystem::path probe_gamepad;  // XInput real + navegação sintética do menu de PC
   std::filesystem::path probe_dd_maps;  // mapas visitados (título/intro/jogo) e alcances originais
@@ -50,6 +51,7 @@ struct Options {
   std::filesystem::path make_advanced_save;
   std::filesystem::path probe_advanced_save;
   std::filesystem::path user_data_root;  // preenchido pelo app (pasta dos saves e backups)
+  bool self_test_f1 = false;  // --self-test-f1: o auto-teste também prova o F1 no jogo livre (até 120 s)
   int dialog_speed = -1;  // --dialog-speed N (0..3) força a velocidade só nesta execução
   std::string probe_display_set_resolution;
   int frames = 120;
@@ -63,7 +65,7 @@ struct Options {
            !probe_save.empty() || !probe_totals.empty() || !probe_quit.empty() ||
            !probe_items.empty() || !probe_scan.empty() || !probe_dialog.empty() ||
            !probe_scenes.empty() || !probe_drawdistance.empty() || !probe_menu.empty() ||
-           !probe_titlepc.empty() || !probe_titlemenu.empty() || !probe_menucursor.empty() || !probe_gamepad.empty() || !probe_dd_maps.empty() ||
+           !probe_titlepc.empty() || !probe_titlemenu.empty() || !probe_pcpages.empty() || !probe_menucursor.empty() || !probe_gamepad.empty() || !probe_dd_maps.empty() ||
            !probe_dd_worlds.empty() || !probe_testpad.empty() || !probe_save_sim.empty() ||
            !make_advanced_save.empty() || !probe_advanced_save.empty() || !probe_display.empty();
   }

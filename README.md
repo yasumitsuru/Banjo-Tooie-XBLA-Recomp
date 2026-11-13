@@ -18,7 +18,8 @@ seleção de jogo, introdução) com regressão automática (`docs/MISSAO-02-TRA
 correção foi necessária. **Camada de PC (branch `port-pc-4k60`):** 4K e 60 FPS entregues e
 medidos no jogo real (3840×2160, 60,0 quadros/s), menu de configurações de PC na pausa, controle,
 saves com backup e auto-teste `--self-test`. **Estado atual, provas e próximos passos:
-[`docs/PLANO.md`](docs/PLANO.md)** (verificação geral de 2026-11-11).
+[`docs/PLANO.md`](docs/PLANO.md)** (auditoria e plano da Missão 04 de 2026-11-13; texto da missão em
+[`docs/MISSAO-04-CORRECAO-INTEGRAL.md`](docs/MISSAO-04-CORRECAO-INTEGRAL.md)).
 
 ## Escolher a versão (PT-BR ou global em inglês)
 

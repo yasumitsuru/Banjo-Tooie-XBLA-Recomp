@@ -1,36 +1,322 @@
 # Plano do projeto — Banjo-Tooie XBLA PT-BR Recompiled
 
-**Atualizado em 2026-11-12**, incorporando o encerramento M00 e o estado da validação M03.
-Este é o plano vivo: registra o que foi verificado, o que falta e a ordem de continuação.
-A auditoria M00 tem `PASS_FINAL`; M03 segue `BLOCKED`, sem aprovação runtime da matriz de vídeo
-(0/9 combinações). Esta atualização muda somente documentação; não conclui M03.
+**Atualizado em 2026-11-13.** Este é o plano vivo: registra o que está provado, o que falta e a
+ordem de trabalho. Esta versão incorpora:
+
+- a **auditoria somente leitura de 2026-11-13** (97 funcionalidades avaliadas; resultado na
+  [matriz de estado](#matriz-de-estado-auditoria-somente-leitura-de-2026-11-13));
+- a **missão nova de 2026-11-13**, "Correção Integral, Estabilização e Validação Automatizada",
+  chamada aqui de **M04** (o texto da pessoa não traz número). Texto completo:
+  [`MISSAO-04-CORRECAO-INTEGRAL.md`](MISSAO-04-CORRECAO-INTEGRAL.md).
+
+Nada da M04 foi executado ainda: esta atualização só organiza o trabalho.
 
 ## Em poucas palavras
 
-- O port nativo do Windows foi auditado em M00 (`PASS_FINAL`). Há captura guest em 3840×2160 e
-  medições curtas de 59,4 FPS/5 s (M00) e 60,0 FPS/5 s (rebuild M03); isso **não comprova 60 FPS
-  sustentados em todo o jogo**. A verificação PT-BR segue parcial.
-- M03 implementa ajustes à janela, sonda e runner da matriz de vídeo. No `rebuild_check` desta
-  atualização passaram build, captura guest 4K e core loop do auto-teste; o relatório M03 anterior
-  registra self-test 10/10. O gate Sol3 aprovou somente revisão estática.
-- M03 continua **BLOCKED**: 0/9 combinações 1080p/1440p/4K × Janela/SemBordas/TelaCheia foram
-  validadas no binário final. Faltam também reabertura/persistência, dimensões físicas, entrada
-  após as trocas e captura/apresentação confiável. Consulte a atualização M03 abaixo.
-- A organização da pausa foi ajustada: CLASSIFICAÇÕES saiu da pausa e CONFIGURAÇÕES DE PC fica
-  dentro de AJUDA E OPÇÕES; a pausa termina em SAIR DO JOGO. A entrada não está mais na 7ª posição.
+- **Pronto e provado (24 de 97):**
+  - port nativo D3D12, sem emulador;
+  - abertura até o jogo livre;
+  - menu principal e pausa, com CONFIGURAÇÕES DE PC dentro de AJUDA E OPÇÕES;
+  - 4K interno (3840×2160) a 60 FPS no início de Spiral Mountain, medido por até 30 s;
+  - tradução íntegra: 36/36 arquivos iguais à linha de base em 2026-11-13 e 15 telas PT-BR
+    conferidas;
+  - saves: gravação, carga e backup, uma pasta por conta em Documentos\My Games, testes
+    separados dos saves da pessoa.
+- **Com defeito (3):**
+  - save inválido apagado sem cópia ao restaurar (C-75);
+  - detecção automática de resolução pega o monitor errado (C-29);
+  - CONQUISTAS chama uma função do Xbox que não existe no PC (C-6).
+- **O resto** está distribuído nas etapas da M04 abaixo: 34 sem validação, 8 parciais,
+  13 não implementados e 15 bloqueados ou não verificáveis.
+- **M03** (matriz 3 resoluções × 3 modos, hoje 0/9) deixa de ser missão separada. Entra na
+  etapa D da M04, com os mesmos critérios.
+- **Maior risco técnico:** o 60 FPS segue o método do patch Xenia (a lógica roda a 60 com 17
+  constantes trocadas). Nada mediu ainda se física, cronômetros e minijogos ficaram na velocidade
+  original.
 
-## Linha de base local (último estado Git comprovado)
+## Missão ativa — M04: correção integral, estabilização e validação automatizada
 
-| Item | Estado registrado |
+### Regras que valem em toda a M04
+
+1. **Só a versão PT-BR** (`W:\Decomp\Banjo 3\Banjo Tooie BR`). A global
+   (`Banjo-Tooie (World) (XBLA)`) só entra para conferir que o código compartilhado não regrediu.
+2. **Tradução preservada:** nada de reconstruir nem trocar textos. Os 36 arquivos são conferidos
+   contra `_audit/mission00/assets/inventory.json` no início e no fim de cada etapa.
+3. **Saves da pessoa intocáveis:** `Documentos\My Games\Banjo-Tooie XBLA` e as cópias antigas em
+   `out\craft-runtime\user` e `Documentos\banjotooie`. Todo teste usa pasta isolada. Antes e
+   depois de cada bateria, a pasta da pessoa é fotografada (lista de arquivos + SHA-256).
+4. **Edição de saves autorizada, só em cópias de teste:** mundos, habilidades, colecionáveis,
+   saves de início/meio/fim/quase 100% e corrupção simulada. Cada save de teste guarda a origem e
+   a transformação feita. Saves da internet só de origem verificável; preferir os gerados pelo
+   próprio projeto.
+5. **Menu fixo:** START → AJUDA E OPÇÕES → CONFIGURAÇÕES DE PC, posição aprovada pela pessoa.
+   Não mover nem redesenhar.
+6. **Fora da missão:** DLSS, DLAA, geração de quadros e ultrawide.
+7. **Prova antes de "pronto":**
+   - build não é prova;
+   - controle virtual não prova controle físico;
+   - as tolerâncias de cada teste ficam justificadas no próprio resultado;
+   - requisito sem hardware ou sem cenário fica BLOQUEADO, nunca "concluído".
+8. **Git:** checkpoint (`refs/checkpoints/m04-<etapa>`) antes de cada etapa e commit local por
+   correção. Nada remoto sem pedido da pessoa.
+9. **Verificação do Craft** (`--self-test`, limite de 80 s): continua passando em toda etapa.
+   As baterias longas ficam em sondas e scripts próprios.
+
+### Pastas da M04
+
+| O quê | Onde |
 |---|---|
-| Raiz Git do produto | `W:\Decomp\Banjo 3\app`; branch `port-pc-4k60` |
-| Baseline aprovado M00 | HEAD `2ccad376fda092ef4550abbcb066d5c8ec4ad7df`; `master` estava 18 commits atrás. Referência: `_audit/mission00/REPORT.md`, snapshot anterior à M03. |
-| SDK no baseline M00 | `rexglue-sdk` em `23633e1a3077593de25e2f1b768b1ac63d804a9a`; outputs `18/18` foram verificados/restaurados antes da M03. |
-| Estado depois do baseline | M03 alterou seis arquivos de produto e não criou commit. O plano atualizado também ficará como mudança local. |
-| Estado Git atual | Não revalidado nesta atualização: `exec_command` falhou antes de iniciar. O relatório M03 registra remote local vazio; nenhuma operação remota foi feita aqui. |
-| Dados fora do Git | Preservar os originais do jogo, binários/capturas proprietários e `.understory*`; não alegar hashes novos dos originais após os builds M03. |
+| Jogo PT-BR (alvo) | `W:\Decomp\Banjo 3\Banjo Tooie BR` |
+| Saves e opções da pessoa (nunca usar em testes) | `Documentos\My Games\Banjo-Tooie XBLA` |
+| Verificações do Craft | `out\craft-check\user` (esvaziada a cada execução) |
+| Saves de teste e resultados da M04 | `_audit\out\m04\<etapa>\` (fora do Git: contém dados do jogo) |
+| Jogo / lançador do Craft / seletor de versão | `out\native\banjotooie.exe` / `Build\banjotooie.exe` / `Seletor\BanjoTooie_Seletor.exe` |
+
+### Etapas, em ordem de dependência
+
+Os códigos C-nn são os da [matriz de estado](#matriz-de-estado-auditoria-somente-leitura-de-2026-11-13).
+Uma etapa só avança para o que depende dela depois que suas mudanças críticas estiverem provadas.
+
+#### Etapa A — Preparação
+
+| Passo | Pronto quando |
+|---|---|
+| Checkpoint Git (inclui o submódulo `rexglue-sdk`) | ref `refs/checkpoints/m04-inicio` criado e `git status` registrado |
+| Linha de base dos 36 arquivos PT-BR | 36/36 iguais ao inventário |
+| Foto da pasta de saves da pessoa | lista + SHA-256 guardadas em `_audit\out\m04\A\` |
+| Ambiente de testes isolado | toda sonda roda com `--user_data_root` dentro de `_audit\out\m04\` ou pelo lançador (pasta de verificação) |
+| Confirmar o alvo PT-BR | o relatório de boot mostra a pasta `Banjo Tooie BR` e o texto 0 = "JOGAR" |
+
+#### Etapa B — Segurança dos saves
+
+| ID | O que fazer | Pronto quando |
+|---|---|---|
+| C-75 | guardar sempre uma cópia `corrupt-…`, byte a byte, antes de sobrescrever um save inválido | teste negativo com save truncado mostra a cópia e o backup restaurado |
+| C-74 | descobrir no XEX como o jogo valida o save (soma, cabeçalho, campos) e usar a mesma regra | rejeita todos os saves alterados de propósito; aceita todos os reais e de teste |
+| C-72 | retenção que nunca deixa só backups inválidos: manter sempre os últimos válidos pela regra nova | teste com mais gravações que o limite, incluindo inválidas |
+| C-76 | proteger a gravação do jogo (escrever em temporário e trocar, ou detectar save parcial na partida) | teste que mata o processo durante a gravação e recupera o save |
+| C-73 | restauração pelo menu e na partida | `backups.log` e save restaurado igual ao backup |
+| C-77 | escolher um backup anterior (não só o último) na página de PC | escolha testada pelo controle virtual |
+| — | conflito com sincronização de arquivos (OneDrive) | teste com arquivo bloqueado ou temporário da sincronização não perde o save |
+| C-78, C-79 | isolamento e saves por conta continuam valendo | foto da pasta da pessoa igual antes e depois da etapa; 2ª conta do Windows: ver bloqueios |
+
+#### Etapa C — Infraestrutura de testes e diagnóstico
+
+| ID | O que fazer | Pronto quando |
+|---|---|---|
+| C-10 | log de sessão completo (proposta na seção [Sistema de log completo](#sistema-de-log-completo-item-2-pedido-de-2026-11-11-ainda-não-implementado)): versão do build, API gráfica, GPU, mapas, saves, erros, desempenho | sonda confere cabeçalho, eventos e bloco de desempenho; teste negativo |
+| C-95, C-70 | saves de teste editados (início, meio, fim, quase 100%), cada um com origem e transformação registradas | `--make-advanced-save` + `--probe-advanced-save` passam neste build com os 4 estágios |
+| C-94 | viagem automática a todos os mundos e áreas relevantes (rotina de viagem do jogo, `0x82248810`) | sonda chega a cada mapa da lista e registra o jogo livre |
+| C-97 | bateria por mundo reaproveitando as sondas existentes (`--probe-*` em `pc_automation.cpp`) | um comando roda a bateria e grava JSON + capturas por cenário |
+| C-7 | executor de sessão longa (≥ 1 h): FPS, tempo de quadro, memória, CPU/GPU, travamentos, exceções | relatório de uma sessão de 1 h |
+
+#### Etapa D — Estabilização (60 FPS, vídeo, distância de desenho)
+
+| ID | O que fazer | Pronto quando |
+|---|---|---|
+| C-32 | comparar 30 × 60 FPS com a mesma entrada: andar, pular, nadar, voar, colisões, câmera, animações | diferenças dentro de tolerância justificada em pelo menos 3 mundos; corrigir constantes ou ganchos onde não bater |
+| C-36 | cronômetros, minijogos, chefes, inimigos | tempos iguais aos de 30 FPS |
+| C-33 | cenas a 30 com tela a 60 em todo o jogo, e transições entre mundos | duração das cenas igual à original |
+| C-35 | sincronia de áudio e vídeo | defasagem medida abaixo do limite |
+| C-31 | 60 FPS sustentado por mundo e nas cenas, a 4K | p95 do tempo de quadro dentro do limite em cada mundo |
+| C-34 | separar lógica e render só se C-32/C-36 mostrarem necessidade | decisão registrada com as medidas |
+| C-22 | 1080p hoje renderiza a 1280×720: achar solução sem perder qualidade (ex.: escala 2× reduzida para 1080p) | medida mostra imagem interna de pelo menos 1080 linhas e saída 1920×1080 |
+| C-23, C-21, C-24, C-27 | matriz automática 3 resoluções × 3 modos, com reabertura e persistência (critérios da M03, histórico abaixo) | 9/9, com interno, framebuffer, apresentação, janela e monitor medidos separadamente |
+| C-25 | janela sem bordas ocupando o monitor escolhido inteiro | cliente = monitor em cada resolução |
+| C-26 | regra para janela maior que a área útil (4K num monitor 4K) | regra documentada e medida |
+| C-29 | detectar o monitor certo; vários monitores; escala DPI | teste com 2 monitores (se houver) e DPI 100% e 150% |
+| C-28 | VSync sem tearing, incluindo monitores que não são de 60 Hz | confirmação visual da pessoa + medida |
+| C-42–C-45 | distância de desenho: entrar nos mundos, câmera em pontos fixos, 3 perfis, capturas, objetos sumindo, pop-in, transparências, FPS, persistência; Total = maior alcance seguro validado; rever o perfil "Longe" (2× o original, criado pelo projeto) | sonda por mundo ESTÁVEL nos 3 perfis neste build |
+| C-46–C-48, C-50 | FXAA, MSAA 2×, anisotropia: prova visual e de desempenho | capturas comparadas; valores sobrevivem ao reinício |
+
+#### Etapa E — Funcionalidades
+
+| ID | O que fazer | Pronto quando |
+|---|---|---|
+| C-38, C-52–C-56 | controle físico: botões, direcional, analógicos, gatilhos, vibração, zona morta, sensibilidade, inversão, reconexão e desconexão, menus | sonda com controle real conectado; sem controle = BLOQUEADO |
+| C-57–C-61 | remapeamento completo: teclado (com gatilhos, LB/RB, Back, L3/R3), mouse e controle; aviso de conflito; restaurar padrões | cada ação remapeada vale no jogo e persiste |
+| C-65–C-67 | áudio: geral, silenciar, música e efeitos. Investigar antes os do menu original (textos 10 e 11) para não duplicar; sem cortes | nível medido por canal; persistência |
+| C-62–C-64 | câmera: sensibilidade, inversão e suavização (mouse e controle), nos modos de câmera do jogo | rotação medida por ajuste; nos valores padrão = original |
+| C-82, C-81, C-83 | opções num só lugar por conta, sem valor duplicado; recuperação pelo `.bak`; migração; restaurar padrões | teste com arquivo inválido, versão antiga e duas contas |
+| C-84, C-85, C-86 | início rápido; pular cenas já vistas sem perder eventos | testes sem softlock com os saves de teste |
+| C-91 | pausa ao minimizar ou perder o foco, e retomada (hoje o observador fica desligado nos testes automáticos) | sonda de foco passa |
+| C-92, C-93 | contador de FPS e estatísticas desenhados; custo medido | captura + medida |
+| C-90 | rastreador comparado automaticamente com a tela Totais do jogo | 0 diferenças nos saves de teste |
+| C-6 | CONQUISTAS sem chamada vazia: tratamento próprio de PC, resto do menu preservado | nenhuma linha de stub no log; demais entradas iguais |
+| C-13–C-17, C-19, C-87, C-88 | tradução e interface: diálogos de todos os mundos, HUD, mensagens, acentos raros, texturas, legibilidade em 1080/1440/4K, velocidade dos diálogos, trava de idioma | capturas com regressão por mundo; nenhuma frase em inglês ou cortada |
+
+#### Etapa F — Homologação
+
+| Passo | Pronto quando |
+|---|---|
+| Regressão completa: auto-teste, smoke, tradução, teste negativo, sondas, bateria por mundo | todos PASS, ou com bloqueio justificado |
+| PT-BR | 36/36 + telas iguais à linha de base |
+| Saves de início, meio, fim e quase 100% | carregam, gravam e fazem backup |
+| Sessão longa (≥ 1 h) | sem queda e sem crescimento anormal de recursos |
+| Relatório final (seção 21 da missão) | em `docs/`, com o JSON das execuções e a lista de commits e checkpoints |
+
+### Bloqueios conhecidos (dependem de algo fora do código)
+
+| Item | Depende de |
+|---|---|
+| Controle físico (C-38, C-52–C-56) | a pessoa conectar o controle durante as sondas |
+| Vários monitores e escala DPI (C-29, parte de C-23) | um segundo monitor; trocar a escala DPI do Windows só com autorização |
+| Saves por conta numa 2ª conta do Windows (C-79) | criar ou usar outra conta do Windows: mudança de sistema, pedir antes |
+| Confirmação visual de tearing (C-28) | o olho da pessoa |
+| Saves avançados da internet | só se os editados pelo projeto não bastarem, e só de origem verificável |
+
+### Fora do escopo da M04
+
+- **Versão global como alvo.** Os textos de PC que aparecem em PT-BR na global (C-18) ficam como
+  estão; ela só não pode regredir.
+- **AMD CAS/FSR (C-49).** Opcional, só se resolver o 1080p (C-22) sem dependência nova
+  injustificada.
+- **Remapear botões do mouse (C-58).** Entra junto com C-57–C-61 se houver ação útil; não é
+  bloqueante.
+- **DLSS, DLAA, geração de quadros e ultrawide.**
+
+## Matriz de estado (auditoria somente leitura de 2026-11-13)
+
+Legenda dos estados:
+
+| Sigla | Estado |
+|---|---|
+| **OK** | concluído e validado |
+| **NV** | implementado, mas não validado |
+| **PARCIAL** | parcialmente implementado |
+| **NÃO IMPL.** | não implementado |
+| **DEFEITO** | com defeito |
+| **BLOQ.** | bloqueado |
+| **NÃO VERIF.** | não verificável |
+
+A coluna Etapa diz onde a M04 resolve o item. "manter" = já provado; só não pode regredir.
+
+**Total:** 24 OK, 34 NV, 8 PARCIAL, 13 NÃO IMPL., 3 DEFEITO, 1 BLOQ., 14 NÃO VERIF.
+
+**Limite das evidências:** as provas de distância de desenho, controle e save avançado que
+existem vêm do projeto vizinho `W:\Decomp\Banjo` (build de 08–09/11) e não valem para este build.
+Os testes deste build cobrem só título, introdução e o início de Spiral Mountain (mapa 0xA1).
+
+| # | Funcionalidade | Estado | Etapa |
+|---|---|---|---|
+| 1 | Executável nativo Win11 x64, sem emulador | OK | manter |
+| 2 | Renderizador D3D12 | OK | manter |
+| 3 | Inicialização até o jogo livre | OK | manter |
+| 4 | Menu principal (CONFIGURAÇÃO DA RECOMPILAÇÃO, SAIR PARA O DESKTOP com confirmação) | OK | manter |
+| 5 | Encerramento limpo (64/64) | OK | manter (repetir em F) |
+| 6 | CONQUISTAS (stub do Xbox) | DEFEITO | E |
+| 7 | Estabilidade em sessões longas | NÃO VERIF. | C/F |
+| 8 | Versão global no mesmo port | OK | só regressão |
+| 9 | Seletor PT-BR/Global | OK | manter |
+| 10 | Sistema de log completo | NÃO IMPL. | C |
+| 11 | Integridade dos arquivos PT-BR (36/36) | OK | A e F |
+| 12 | PT-BR em abertura, menus, seleção, introdução, pausa (15 telas) | OK | manter |
+| 13 | Diálogos das fases | NV | E |
+| 14 | HUD | NV | E |
+| 15 | Glifos raros (Û, Â, º) | NV | E |
+| 16 | Textos em texturas | NÃO VERIF. | E |
+| 17 | Mensagens do sistema | NV | E |
+| 18 | Textos de PC no idioma do jogo (global) | PARCIAL | fora do escopo |
+| 19 | Trava de idioma (`user_language`) | NÃO IMPL. | E |
+| 20 | 4K interno 3840×2160 | OK | manter |
+| 21 | 1440p interno | NV | D |
+| 22 | 1080p (hoje interno 1280×720) | PARCIAL | D |
+| 23 | Matriz 3 resoluções × 3 modos (M03) | BLOQ. | D |
+| 24 | Troca de modo sem queda | NV | D |
+| 25 | Sem bordas (hoje só a área útil) | PARCIAL | D |
+| 26 | Janela em 4K num monitor 4K | PARCIAL | D |
+| 27 | Proporção em monitor que não é 16:9 | NÃO VERIF. | D |
+| 28 | VSync sem tearing | NV | D |
+| 29 | Detecção automática da resolução | DEFEITO | D |
+| 30 | 60 FPS no início de Spiral Mountain | OK | manter |
+| 31 | 60 FPS sustentado (mundos, cenas, horas) | NÃO VERIF. | D |
+| 32 | Física e velocidade iguais às de 30 FPS | NV | D |
+| 33 | Cenas a 30 com tela a 60 | NV | D |
+| 34 | Separação lógica / render / tempo | NÃO IMPL. | D (decisão) |
+| 35 | Sincronia de áudio e vídeo | NÃO VERIF. | D |
+| 36 | Cronômetros, minijogos, eventos por quadro | NÃO VERIF. | D |
+| 37 | CONFIGURAÇÕES DE PC na pausa nativa (START → AJUDA E OPÇÕES) | OK | manter |
+| 38 | Abrir com START num controle físico | NV | E |
+| 39 | Entradas originais da pausa | OK | manter |
+| 40 | Navegação e retorno (B, F1) | OK | manter |
+| 41 | Categorias (5 seções, 51 linhas) | OK | manter |
+| 42 | Distância de desenho: perfis e limites por mapa | NV | D |
+| 43 | Distância de desenho: pop-in e geometria por mundo | NÃO VERIF. | D |
+| 44 | Distância de desenho: custo em FPS a 4K | NÃO VERIF. | D |
+| 45 | Distância de desenho: persistência | NV | D |
+| 46 | FXAA | NV | D |
+| 47 | MSAA 2× | NV | D |
+| 48 | Anisotropia | NV | D |
+| 49 | AMD CAS/FSR | NÃO IMPL. | opcional |
+| 50 | Persistência das opções gráficas | NV | D/E |
+| 51 | Detecção de controle físico (SDL, logs de 11–12/11) | OK | manter |
+| 52 | Uso do controle físico | NV | E |
+| 53 | Zona morta | NV | E |
+| 54 | Vibração | NV | E |
+| 55 | Reconexão e desconexão | NV | E |
+| 56 | Sensibilidade e inversão do analógico direito | NV | E |
+| 57 | Remapeamento de teclado (17 ações) | PARCIAL | E |
+| 58 | Remapear botões do mouse | NÃO IMPL. | E (não bloqueante) |
+| 59 | Remapear botões do controle | NÃO IMPL. | E |
+| 60 | Aviso de conflito entre teclas | NÃO IMPL. | E |
+| 61 | Restaurar controles padrão | NÃO IMPL. | E |
+| 62 | Câmera por mouse/teclado | NV | E |
+| 63 | Suavização da câmera no controle | NÃO IMPL. | E |
+| 64 | Câmera nos modos de câmera do jogo | NÃO VERIF. | E |
+| 65 | Volume geral e SILENCIAR TUDO | NV | E |
+| 66 | Música e efeitos separados | NÃO IMPL. | E |
+| 67 | Áudio: distorção e cenas | NÃO VERIF. | E |
+| 68 | Gravação do save | OK | manter |
+| 69 | Carregar save existente | OK | manter |
+| 70 | Saves com progresso diferente | NÃO VERIF. | C |
+| 71 | Backups automáticos | OK | manter |
+| 72 | Retenção dos backups | NV | B |
+| 73 | Restaurar backup | NV | B |
+| 74 | Proteção contra save corrompido | PARCIAL | B |
+| 75 | Guardar o save inválido antes de restaurar | DEFEITO | B |
+| 76 | Gravação interrompida | NÃO IMPL. | B |
+| 77 | Escolher um backup anterior | PARCIAL | B |
+| 78 | Saves de teste separados dos da pessoa | OK | manter |
+| 79 | Save por conta em Documentos\My Games | OK (conta atual) | B (2ª conta) |
+| 80 | `pc_settings.toml` próprio, gravação atômica + `.bak` | OK | manter |
+| 81 | Arquivo de opções ausente ou inválido | NV | E |
+| 82 | Opções divididas entre conta e máquina | PARCIAL | E |
+| 83 | Migração de versão do arquivo de opções | NV | E |
+| 84 | Início rápido | NV | E |
+| 85 | Pular cenas já vistas | NÃO IMPL. | E |
+| 86 | Softlocks ao pular | NÃO VERIF. | E |
+| 87 | Legibilidade em 1080p, 1440p e 4K | NÃO VERIF. | E |
+| 88 | Velocidade dos diálogos | NV | E |
+| 89 | Rótulos de PC cabem nas telas do jogo | OK | manter |
+| 90 | Rastreador de colecionáveis | NV | E |
+| 91 | Pausa ao minimizar ou perder o foco | NV | E |
+| 92 | Contador de FPS e estatísticas | NV | E |
+| 93 | Impacto do monitoramento no desempenho | NÃO VERIF. | E |
+| 94 | Viagem automática a mapas | NV | C |
+| 95 | Save avançado de teste | NV | C |
+| 96 | Testes automáticos existentes | OK | manter |
+| 97 | Testes que faltam (30×60, controle físico, mundos, vídeo, áudio, câmera, saves, cenas, longa duração) | NÃO IMPL. | C/F |
+
+## Linha de base local (início da M04)
+
+| Item | Estado |
+|---|---|
+| Raiz Git | `W:\Decomp\Banjo 3\app`, branch `port-pc-4k60` |
+| Último commit de produto antes da M04 | `b3f46f0` (saves em Documentos\My Games; verificações isoladas) |
+| `master` | 23 commits atrás de `port-pc-4k60`; integrar só com OK da pessoa |
+| Submódulo `rexglue-sdk` | `88a105a` (`host_vsync`) |
+| Arquivos do jogo PT-BR | 36/36 iguais a `_audit/mission00/assets/inventory.json` (recalculado em 2026-11-13) |
+| Fora do Git | originais do jogo, capturas, `_audit/out/`, `.understory*`, `docs/evidencias/m00-atual-20261110/` |
+
+As tabelas antigas "Matriz de requisitos" e "Próximos passos" (até 2026-11-12) foram substituídas
+pela matriz acima e pelas etapas da M04; a versão anterior está no Git (`b3f46f0:docs/PLANO.md`).
+
+# Histórico (rodadas anteriores à M04)
 
 ## Atualização de 2026-11-12 — M00 e M03
+
+> Desde 2026-11-13 a M03 faz parte da etapa D da M04 (itens C-21 a C-29), com os mesmos critérios
+> listados abaixo.
 
 - **M00: `PASS_FINAL`**, revisão independente da auditoria e do baseline, não da M03. A revisão confirmou build fresco de 723/723 ações e auto-teste 10/10 com janela visível; captura guest 4K e amostra de 59,4 FPS por 5 s. Isso não comprova 60 FPS sustentados. Os originais 36/36 e os outputs do SDK 18/18 foram conferidos no checkpoint pré-M03; não são hashes novos após os builds M03. Evidência: [relatório M00](../_audit/mission00/REPORT.md).
 - **M03: `BLOCKED`, sem `PASS_FINAL` runtime.** Foram alteradas cinco fontes C++ e criado `tools/test_display_modes.py`: janela pós-HWND, aplicação/restauração de modos, sonda `--probe-display`, dimensões separadas, JSON/saídas de falha e runner que exige nove estados iniciais únicos mais nove reaberturas. A escala interna exige reinício; valor salvo não prova aplicação no processo atual.
@@ -77,45 +363,9 @@ isolados dentro de `app/`; os saves reais da pessoa não foram tocados.
 | Checagem oficial do Craft | `rebuild_check` | **PASS 5/5**: build, imagem 3840×2160, auto-teste, 24 valores de mecânica com fonte, créditos |
 | Arquivos do jogo (depois) | `verify_baseline.py` + passos 6 dos testes | **PASS 36/36** em todas as conferências |
 
-## Matriz de requisitos
-
-| Requisito | Estado | Prova / o que falta |
-|---|---|---|
-| Port nativo Windows 11 x64 | **IMPLEMENTADO** | exe nativo, sem emulador; build reprodutível (agora também em UTF-8) |
-| 4K (3840×2160) | **IMPLEMENTADO no framebuffer/guest** | captura M00 e rebuild M03 em 3840×2160; isso não valida cliente físico ou Janela 4K, que seguem na matriz M03 pendente |
-| 60 FPS | **PARCIAL** | M00 mediu 59,4 FPS por 5 s e o rebuild M03 60 FPS por 5 s; falta duração longa e cobertura de cenas/mundos. Cenas e abertura seguem a 30 como no original (`scenes60=false`) |
-| Menu START (menu do próprio jogo) | **IMPLEMENTADO no caminho testado** | pausa com 5 entradas, sem CLASSIFICAÇÕES e terminando em SAIR DO JOGO; CONFIGURAÇÕES DE PC está dentro de AJUDA E OPÇÕES, por último e com ícone do Kazooie; não aparece como 7ª entrada sob o HUD (`MECHANICS.md` §17) |
-| Menu principal da camada de PC (pedido de 2026-11-11) | **IMPLEMENTADO** | JOGAR, CONQUISTAS, AJUDA E OPÇÕES, **CONFIGURAÇÃO DA RECOMPILAÇÃO** (abre o menu do F1), **SAIR PARA O DESKTOP** (confirmação "VOCÊ TEM CERTEZA?" como no original; SIM fecha o programa); CLASSIFICAÇÕES saiu do título. Sonda `--probe-titlemenu` no jogo real: ordem, entrar/voltar em AJUDA, menu de PC aberto e fechado, saída com código 0 (`MECHANICS.md` §14) |
-| Vídeo 1080p/1440p/4K × Janela/SemBordas/TelaCheia (M03) | **BLOCKED — 0/9** | Build/captura guest/self-test aprovados; sonda e runner finais ainda não executados. Ver matriz e lista de verificações acima e [relatório M03](../_audit/mission03/REPORT.md) |
-| Sistema de log completo | **PENDENTE** (pedido de 2026-11-11) | item 2 abaixo; segue no backlog após a M03 ativa |
-| PT-BR | **PARCIAL** | abertura, menus, seleção, introdução, pausa, submenus, mensagem do sistema e fala do Bottles conferidos (15/15); HUD e diálogos das fases ainda não vistos |
-| Draw distance | **PARCIAL** | 3 perfis (Original/Longe/Total) no código e sondas `--probe-dd*`; comparação visual e custo em FPS não medidos nesta rodada |
-| Gamepad | **PARCIAL** | controle virtual (SDL) conduz o jogo real; controle físico XInput não testado aqui (a pessoa relata que funciona, `DECISOES.md` nº 1) |
-| Saves | **IMPLEMENTADO** (gravar + backup) / **PARCIAL** (carregar) | o jogo gravou `savegame.dat` + backups no perfil isolado; carregar esse save ainda não é testado automaticamente |
-| QoL | **IMPLEMENTADO** (conjunto inicial) | menu de PC (60 FPS/cenas, velocidade de diálogo, início rápido, contador de FPS, pausa ao perder foco, backups, câmera/controle) |
-| Configurações de PC **dentro do menu do jogo** (pedido de 2026-11-12) | **IMPLEMENTADO** | página 7 do próprio menu (raiz + 5 seções, 51 opções), F1 abre no título, na pausa e no jogo livre; janela sobreposta só como reserva (Shift+F1). Provas: `--self-test` 10/10, `--self-test-f1`, `--probe-pcpages`, `--probe-titlemenu` (`MECHANICS.md` §18) |
-| Testes automáticos | **PARCIALMENTE VERIFICADOS** | M00 `PASS_FINAL`; rebuild M03 e auto-teste 10/10 aprovados. As verificações de M00 36/36 originais e SDK 18/18 pertencem ao checkpoint pré-M03; ver histórico e relatórios |
-
-## Próximos passos, em ordem
-
-| # | Passo | Por que nesta ordem | Estado |
-|---|---|---|---|
-| 0 — missão ativa | **Concluir a validação runtime M03** | É a única missão ativa; exige 9 estados únicos + 9 reaberturas, persistência, dimensões físicas, entrada e captura válidas, sem relaxar critérios | **BLOCKED** até haver executor autorizado; M03 `PASS_FINAL` ainda não existe |
-| — | Fechar a reforma do menu de pausa (codegen + rebuild + auto-teste) | era o item 1 da auditoria de 2026-11-11 | **FEITO** (`3aa27aa`, auto-teste 10/10, gancho conferido no original) |
-| — | Regressão completa depois da camada de PC | era o item 6 da auditoria | **FEITO** (smoke 8/8, PT-BR PASS, negativo 22/22) |
-| 1 | **Corrigir a sobreposição** da entrada "CONFIGURAÇÕES DE PC" com o contador de Jiggies na pausa | resolvido de outro jeito pelo pedido de 2026-11-12: CLASSIFICAÇÕES saiu da pausa e CONFIGURAÇÕES DE PC foi para dentro de AJUDA E OPÇÕES, então a pausa tem 5 entradas e termina em SAIR DO JOGO, longe do contador (`MECHANICS.md` §17) | **FEITO** |
-| — | **Menu principal**: CLASSIFICAÇÕES sai, CONFIGURAÇÃO DA RECOMPILAÇÃO acima de SAIR PARA O DESKTOP (que fecha o jogo) | pedido da pessoa (2026-11-11) | **FEITO** (sonda `--probe-titlemenu` PASS, regressão PT-BR PASS 15/15, `rebuild_check` 5/5, 36/36) |
-| 2 | **Sistema de log completo** (pedido de 2026-11-11, detalhes na seção "Sistema de log completo" abaixo) | base para depurar e implementar tudo o que vem depois (carga de save, distância de desenho, controle físico) e para achar a causa do defeito intermitente de desligamento (item 2b); vem logo depois do item 1, que é pequeno e já tem a causa lida | PENDENTE |
-| 2b | **Desligamento intermitente do runtime** (queda 0xC0000005 ou travamento ao fechar) | causa achada em 2026-11-12: ao fechar, `TerminateTitle` mata as threads do jogo em pontos aleatórios; se uma estava dentro da atualização do relógio do console (`UpdateGuestClock`, trava `tick_mutex_`), a trava ficava quebrada (queda na thread de temporizadores ou travamento em `GraphicsSystem::Shutdown`). Relógio refeito sem trava + thread de vblank sai do laço quando o desligamento é pedido (submódulo `rexglue-sdk`) | **FEITO** (antes: 1 queda em 16 fechamentos; 1ª tentativa: 4 travamentos em 83; depois: **64/64** limpos) |
-| 3 | **Carregar save automaticamente** (`--make-advanced-save` + `--probe-advanced-save` em perfil de teste) | fecha o requisito "saves" (hoje só a gravação tem prova); protege os saves da pessoa antes de qualquer outra mudança no jogo | PENDENTE |
-| 4 | **Draw distance**: capturas dos 3 perfis (`--probe-drawdistance`, `--probe-dd-worlds`) e custo em FPS a 4K | já implementado, falta a prova visual e o efeito nos 60 FPS | PENDENTE |
-| 5 | **PT-BR no HUD e nos diálogos das fases** (continuação da Missão 02) | cobertura de texto ainda parcial; usa a mesma regressão já ajustada | PENDENTE |
-| 6 | **Controle físico (XInput)**: `--probe-gamepad` / `--probe-testpad` com um controle conectado | depende de a pessoa conectar um controle; até lá vale o relato dela | BLOQUEADO (precisa do controle conectado) |
-| 7 | **Auto-detecção de resolução**: numa execução anterior escolheu 1080p porque o Windows reportou a tela Intel (2560×1080) | QoL; não impede 4K (o menu de PC fixa a resolução) | PENDENTE |
-| 8 | **Levar `port-pc-4k60` para `master`** (local) depois dos itens 1–3 | no baseline M00, `master` estava 18 commits atrás; o estado atual não foi revalidado. Integrar só com a camada de PC provada e com OK da pessoa | PENDENTE (decisão da pessoa) |
-| 9 | **Conferir a atualidade das bases** (iron-jay, rexglue-sdk, XenonRecomp, MC_LA_Recompiled) | a comparação usa o retrato local de 2026-11-09; consultar remotos só com autorização | PENDENTE |
-
 ## Sistema de log completo (item 2, pedido de 2026-11-11; ainda não implementado)
+
+> Continua valendo: é a proposta que a M04 usa na etapa C (item C-10).
 
 Objetivo da pessoa: um registro "o mais completo possível" do jogo, para depurar problemas e
 apoiar implementações futuras.
@@ -313,7 +563,8 @@ Logs lidos: `out/native/logs/banjotooie_281..293.log`, `banjotooie_boot.json`,
   a que desliga, se perdeu quando o programa encerrou).
 - **Correção:** com `--self-test`, `--screenshot`, `--probe-*` ou `--make-advanced-save`, o lançador
   usa `out\craft-check\user`, esvaziada no início (cada verificação começa de um jogo novo);
-  jogar normalmente e o seletor continuam em `out\craft-runtime`. Os testes esperam (até 2 s) a fila
+  jogar normalmente e o seletor continuavam em `out\craft-runtime` (no mesmo dia passaram para
+  Documentos\My Games; ver a seção seguinte). Os testes esperam (até 2 s) a fila
   de gravação das opções antes de encerrar (`pc::menu::PendingUiWork`).
 - **Dados da pessoa restaurados:** `savegame.dat` voltou ao backup das 09:21:57 (o último gravado
   por ela; depois disso só as verificações gravaram) e `pc_settings.toml` ao anterior
@@ -343,4 +594,3 @@ Logs lidos: `out/native/logs/banjotooie_281..293.log`, `banjotooie_boot.json`,
 - **Fica para a pessoa:** a pasta antiga `Documentos\banjotooie` (testes de 09-10/11) não foi usada nem
   apagada; o arquivo de opções do runtime (`out\native\banjotooie.toml`: atalhos e alguns ajustes
   de vídeo) continua ao lado do jogo, igual para todas as contas.
-

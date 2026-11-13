@@ -16,6 +16,11 @@ namespace rex::input {
 class InputSystem;
 }  // namespace rex::input
 
+namespace pc {
+enum class DisplayMode : int;
+enum class Resolution : int;
+}  // namespace pc
+
 namespace pc::menu {
 
 // Cria o menu e o contador de FPS, registra a tecla F1. 'runtime_config' é o arquivo de
@@ -33,6 +38,11 @@ bool BlocksGameInput();
 
 // Aplica o modo de exibição salvo (janela / sem bordas / tela cheia) depois que a janela existe.
 void ApplyDisplayMode(rex::ui::Window* window);
+// Sonda M03: mesma transição Win32 da UI, chamada pela automação na thread de UI.
+bool ApplyDisplayModeForAutomation(rex::ui::Window* window, DisplayMode mode,
+                                   bool persist_settings);
+// Sonda M03: percorre a seleção existente e grava a resolução para o próximo processo.
+bool SetResolutionForAutomation(Resolution resolution);
 
 // ---------------------------------------------------------------- diagnóstico de gamepad
 // Estado de um controle XInput (mesmo layout do XINPUT_GAMEPAD, sem o número do pacote).

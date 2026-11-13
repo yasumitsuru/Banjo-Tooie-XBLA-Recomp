@@ -9,20 +9,24 @@
 #include <windows.h>
 #include <shellapi.h>
 
+#include <rex/cvar.h>
 #include <rex/input/input_system.h>
 #include <rex/input/test_gamepad.h>
 #include <rex/system/kernel_state.h>
 #include <rex/system/xmemory.h>
 #include <rex/ui/presenter.h>
+#include <rex/ui/window.h>
 #include <rex/ui/windowed_app_context.h>
 
 #include <algorithm>
+#include <array>
 #include <atomic>
 #include <chrono>
 #include <cmath>
 #include <cstdio>
 #include <cstring>
 #include <fstream>
+#include <iomanip>
 #include <iterator>
 #include <mutex>
 #include <sstream>
@@ -171,8 +175,35 @@ HWND FindGameWindow() {
   return hwnd;
 }
 
-rex::ui::RawImage CaptureWindowOnScreen() {
+class PhysicalDpiScope {
+ public:
+  explicit PhysicalDpiScope(bool enable = true) {
+    if (!enable) return;
+    module_ = GetModuleHandleW(L"user32.dll");
+    set_context_ = module_ ? reinterpret_cast<SetContextFn>(
+                                  GetProcAddress(module_, "SetThreadDpiAwarenessContext"))
+                           : nullptr;
+    if (set_context_) {
+      previous_ = set_context_(reinterpret_cast<HANDLE>(static_cast<intptr_t>(-4)));
+      active_ = previous_ != nullptr;
+    }
+  }
+  ~PhysicalDpiScope() {
+    if (active_) set_context_(previous_);
+  }
+  bool active() const { return active_; }
+
+ private:
+  using SetContextFn = HANDLE(WINAPI*)(HANDLE);
+  HMODULE module_ = nullptr;
+  SetContextFn set_context_ = nullptr;
+  HANDLE previous_ = nullptr;
+  bool active_ = false;
+};
+
+rex::ui::RawImage CaptureWindowOnScreen(bool physical_client = false) {
   rex::ui::RawImage img;
+  PhysicalDpiScope dpi_scope(physical_client);
   // Tamanho lógico da janela (o mesmo DPI do processo): PrintWindow desenha a janela nesse
   // tamanho; pedir o tamanho físico deixaria a imagem num canto de um quadro maior.
   HWND hwnd = FindGameWindow();
@@ -237,6 +268,136 @@ bool LooksBlank(const rex::ui::RawImage& img) {
     }
   }
   return differing * 200 < samples;  // < 0.5% diferente
+}
+
+struct WindowMetrics {
+  bool valid = false;
+  bool visible = false;
+  bool minimized = false;
+  bool physical_coordinates = false;
+  bool fullscreen = false;
+  UINT dpi = 0;
+  LONG_PTR style = 0;
+  LONG_PTR ex_style = 0;
+  RECT client{};
+  RECT outer{};
+  RECT monitor{};
+  RECT work{};
+  std::string monitor_device;
+};
+
+std::string WideToUtf8(const wchar_t* value) {
+  if (!value || !*value) return {};
+  const int size = WideCharToMultiByte(CP_UTF8, 0, value, -1, nullptr, 0, nullptr, nullptr);
+  if (size <= 1) return {};
+  std::string result(size_t(size), '\0');
+  WideCharToMultiByte(CP_UTF8, 0, value, -1, result.data(), size, nullptr, nullptr);
+  result.pop_back();
+  return result;
+}
+
+WindowMetrics InspectWindow(HWND hwnd, bool fullscreen) {
+  WindowMetrics metrics;
+  if (!hwnd || !IsWindow(hwnd)) return metrics;
+  PhysicalDpiScope dpi_scope;
+  metrics.valid = GetClientRect(hwnd, &metrics.client) && GetWindowRect(hwnd, &metrics.outer);
+  metrics.visible = IsWindowVisible(hwnd) != FALSE;
+  metrics.minimized = IsIconic(hwnd) != FALSE;
+  metrics.fullscreen = fullscreen;
+  metrics.physical_coordinates = dpi_scope.active();
+  metrics.style = GetWindowLongPtrW(hwnd, GWL_STYLE);
+  metrics.ex_style = GetWindowLongPtrW(hwnd, GWL_EXSTYLE);
+  if (HMODULE user32 = GetModuleHandleW(L"user32.dll")) {
+    using GetDpiFn = UINT(WINAPI*)(HWND);
+    auto get_dpi = reinterpret_cast<GetDpiFn>(GetProcAddress(user32, "GetDpiForWindow"));
+    if (get_dpi) metrics.dpi = get_dpi(hwnd);
+  }
+  const HMONITOR monitor = MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST);
+  MONITORINFOEXW info{};
+  info.cbSize = sizeof(info);
+  if (monitor && GetMonitorInfoW(monitor, &info)) {
+    metrics.monitor = info.rcMonitor;
+    metrics.work = info.rcWork;
+    metrics.monitor_device = WideToUtf8(info.szDevice);
+  } else {
+    metrics.valid = false;
+  }
+  return metrics;
+}
+
+bool RectNear(const RECT& a, const RECT& b, LONG tolerance = 1) {
+  return std::abs(a.left - b.left) <= tolerance && std::abs(a.top - b.top) <= tolerance &&
+         std::abs(a.right - b.right) <= tolerance && std::abs(a.bottom - b.bottom) <= tolerance;
+}
+
+bool ModeMatches(DisplayMode mode, const WindowMetrics& metrics) {
+  if (!metrics.valid || !metrics.physical_coordinates || !metrics.visible || metrics.minimized)
+    return false;
+  switch (mode) {
+    case DisplayMode::Janela:
+      return !metrics.fullscreen && (metrics.style & WS_CAPTION) != 0;
+    case DisplayMode::SemBordas:
+      return !metrics.fullscreen && (metrics.style & WS_CAPTION) == 0 &&
+             RectNear(metrics.outer, metrics.work);
+    case DisplayMode::TelaCheia:
+      return metrics.fullscreen && (metrics.style & WS_CAPTION) == 0 &&
+             RectNear(metrics.outer, metrics.monitor);
+  }
+  return false;
+}
+
+std::string RectJson(const RECT& rect) {
+  std::ostringstream out;
+  out << "{\"left\":" << rect.left << ",\"top\":" << rect.top << ",\"right\":"
+      << rect.right << ",\"bottom\":" << rect.bottom << ",\"width\":"
+      << rect.right - rect.left << ",\"height\":" << rect.bottom - rect.top << "}";
+  return out.str();
+}
+
+struct ImageCorrelation {
+  bool content_match = false;
+  double mean_abs_diff = 0;
+  double similar_samples = 0;
+};
+
+ImageCorrelation CompareGuestAndWindow(const rex::ui::RawImage& guest,
+                                       const rex::ui::RawImage& window) {
+  ImageCorrelation result;
+  if (!guest.width || !guest.height || !window.width || !window.height) return result;
+  constexpr uint32_t kSamplesX = 64;
+  constexpr uint32_t kSamplesY = 36;
+  constexpr double kAspect = 16.0 / 9.0;
+  const double window_aspect = double(window.width) / window.height;
+  double viewport_x = 0, viewport_y = 0;
+  double viewport_w = window.width, viewport_h = window.height;
+  if (window_aspect > kAspect) {
+    viewport_w = window.height * kAspect;
+    viewport_x = (window.width - viewport_w) / 2.0;
+  } else if (window_aspect < kAspect) {
+    viewport_h = window.width / kAspect;
+    viewport_y = (window.height - viewport_h) / 2.0;
+  }
+  uint64_t diff_sum = 0, similar = 0, samples = 0;
+  for (uint32_t y = 2; y + 2 < kSamplesY; ++y) {
+    for (uint32_t x = 2; x + 2 < kSamplesX; ++x) {
+      const uint32_t gx = std::min(guest.width - 1, x * guest.width / kSamplesX);
+      const uint32_t gy = std::min(guest.height - 1, y * guest.height / kSamplesY);
+      const uint32_t wx = std::min(window.width - 1, uint32_t(viewport_x + (x + 0.5) * viewport_w / kSamplesX));
+      const uint32_t wy = std::min(window.height - 1, uint32_t(viewport_y + (y + 0.5) * viewport_h / kSamplesY));
+      const uint8_t* gp = guest.data.data() + size_t(gy) * guest.stride + size_t(gx) * 4;
+      const uint8_t* wp = window.data.data() + size_t(wy) * window.stride + size_t(wx) * 4;
+      const uint32_t diff = uint32_t(std::abs(int(gp[0]) - int(wp[0])) +
+                                     std::abs(int(gp[1]) - int(wp[1])) +
+                                     std::abs(int(gp[2]) - int(wp[2]))) / 3;
+      diff_sum += diff;
+      if (diff <= 56) ++similar;
+      ++samples;
+    }
+  }
+  result.mean_abs_diff = samples ? double(diff_sum) / samples : 255.0;
+  result.similar_samples = samples ? double(similar) / samples : 0.0;
+  result.content_match = result.mean_abs_diff <= 72.0 && result.similar_samples >= 0.20;
+  return result;
 }
 
 // Compara duas capturas do mesmo tamanho: quantos pixels mudaram (além de um limiar),
@@ -707,6 +868,16 @@ Options ParseCommandLine() {
     else if (a == L"--probe-dd-maps") o.probe_dd_maps = argv[++i];
     else if (a == L"--probe-dd-worlds") o.probe_dd_worlds = argv[++i];
     else if (a == L"--probe-testpad") o.probe_testpad = argv[++i];
+    else if (a == L"--probe-display") o.probe_display = argv[++i];
+    else if (a == L"--probe-display-set-resolution") {
+      const std::wstring value = argv[++i];
+      o.probe_display_set_resolution = value == L"1080p" ? "1080p"
+                                       : value == L"1440p" ? "1440p"
+                                       : value == L"4k" ? "4k" : "invalid";
+    }
+    else if (a == L"--probe-display-transitions") o.probe_display_transitions = true;
+    else if (a == L"--probe-display-transition-input") o.probe_display_transition_input = true;
+    else if (a == L"--probe-display-no-capture") o.probe_display_no_capture = true;
     else if (a == L"--probe-save-sim") o.probe_save_sim = argv[++i];
     else if (a == L"--make-advanced-save") o.make_advanced_save = argv[++i];
     else if (a == L"--probe-advanced-save") o.probe_advanced_save = argv[++i];
@@ -722,6 +893,7 @@ bool IsRunning() { return g_automation_running.load(); }
 
 void Start(const Options& opts, rex::ui::WindowedAppContext* ui,
            std::function<rex::ui::Presenter*()> presenter,
+           rex::ui::Window* window,
            rex::system::IInputSystem* input_system) {
   g_automation_running.store(true);
   // a sonda de cenas compara o ritmo original: sem o "início rápido" dos logos
@@ -750,7 +922,7 @@ void Start(const Options& opts, rex::ui::WindowedAppContext* ui,
       Finish(4);
     }).detach();
   }
-  std::thread([opts, ui, presenter, input_system]() {
+  std::thread([opts, ui, presenter, window, input_system]() {
     using namespace std::chrono;
     const auto t0 = steady_clock::now();
     const auto deadline = t0 + seconds(240);
@@ -774,6 +946,308 @@ void Start(const Options& opts, rex::ui::WindowedAppContext* ui,
     };
     rex::ui::RawImage img = capture();
     const bool blank = LooksBlank(img);
+
+    if (!opts.probe_display.empty()) {
+      const DisplayMode requested_mode = pc::Get().display_mode;
+      const Resolution loaded_resolution = pc::Get().resolution;
+      const int effective_scale_x =
+          std::atoi(rex::cvar::GetFlagByName("draw_resolution_scale_x").c_str());
+      const int effective_scale_y =
+          std::atoi(rex::cvar::GetFlagByName("draw_resolution_scale_y").c_str());
+      bool resolution_saved = false;
+      Resolution selected_resolution = loaded_resolution;
+      if (!opts.probe_display_set_resolution.empty()) {
+        if (opts.probe_display_set_resolution == "1080p") selected_resolution = Resolution::R1080p;
+        else if (opts.probe_display_set_resolution == "1440p") selected_resolution = Resolution::R1440p;
+        else if (opts.probe_display_set_resolution == "4k") selected_resolution = Resolution::R2160p;
+        else selected_resolution = loaded_resolution;
+        ui->CallInUIThreadSynchronous([&]() {
+          resolution_saved = pc::menu::SetResolutionForAutomation(selected_resolution);
+        });
+      }
+      const Resolution requested_resolution = pc::Get().resolution;
+      HWND hwnd = nullptr;
+      bool sdk_fullscreen = false;
+      ui->CallInUIThreadSynchronous([&]() {
+        if (window) {
+          hwnd = reinterpret_cast<HWND>(window->GetNativeWindowHandle());
+          sdk_fullscreen = window->IsFullscreen();
+        }
+      });
+      WindowMetrics initial_window = InspectWindow(hwnd, sdk_fullscreen);
+      rex::ui::RawImage window_img = CaptureWindowOnScreen(true);
+      const bool guest_content = img.width && img.height && !blank &&
+                                 uint64_t(img.width) * 9 == uint64_t(img.height) * 16;
+      const bool window_nonblank = window_img.width && window_img.height && !LooksBlank(window_img);
+      const ImageCorrelation correlation = CompareGuestAndWindow(img, window_img);
+      const bool initial_mode_match = ModeMatches(requested_mode, initial_window);
+      std::filesystem::path guest_png = opts.probe_display;
+      guest_png.replace_extension(".guest.png");
+      std::filesystem::path window_png = opts.probe_display;
+      window_png.replace_extension(".window.png");
+      bool guest_png_written = false, window_png_written = false;
+      if (!opts.probe_display_no_capture && guest_content && window_nonblank) {
+        guest_png_written = pc::WritePng(guest_png, img.width, img.height, img.data.data(), img.stride);
+        window_png_written = pc::WritePng(window_png, window_img.width, window_img.height,
+                                          window_img.data.data(), window_img.stride);
+      }
+
+      std::ostringstream transitions_json;
+      bool transitions_ok = true;
+      bool restored = true;
+      bool input_ok = !opts.probe_display_transition_input;
+      WindowMetrics final_window = initial_window;
+      bool settings_saved = resolution_saved;
+      std::string input_json = "null";
+      if (opts.probe_display_transitions) {
+        std::array<DisplayMode, 8> sequence{};
+        if (requested_mode == DisplayMode::Janela) {
+          sequence = {DisplayMode::SemBordas, DisplayMode::TelaCheia, DisplayMode::Janela,
+                      DisplayMode::SemBordas, DisplayMode::TelaCheia, DisplayMode::SemBordas,
+                      DisplayMode::Janela, DisplayMode::Janela};
+        } else if (requested_mode == DisplayMode::SemBordas) {
+          sequence = {DisplayMode::TelaCheia, DisplayMode::Janela, DisplayMode::SemBordas,
+                      DisplayMode::TelaCheia, DisplayMode::Janela, DisplayMode::SemBordas,
+                      DisplayMode::TelaCheia, DisplayMode::SemBordas};
+        } else {
+          sequence = {DisplayMode::Janela, DisplayMode::SemBordas, DisplayMode::TelaCheia,
+                      DisplayMode::Janela, DisplayMode::SemBordas, DisplayMode::TelaCheia,
+                      DisplayMode::Janela, DisplayMode::TelaCheia};
+        }
+
+        bool navigation_reached = false;
+        struct MoveCheck { bool moved = false; double distance = 0; };
+        MoveCheck input_before, input_after;
+        auto move_player = [&]() {
+          MoveCheck result;
+          const Vec3 before = ReadPlayerPos();
+          input::Get().thumb_ly = 32767;
+          WaitFrames(90, 1200);
+          input::Get().thumb_ly = 0;
+          WaitFrames(10, 240);
+          const Vec3 after = ReadPlayerPos();
+          result.distance = Dist(&before.x, &after.x);
+          result.moved = result.distance > 20.0;
+          return result;
+        };
+        if (opts.probe_display_transition_input) {
+          input::SetActive(true);
+          const bool old_skip = pc::Get().skip_intro_logos;
+          pc::Get().skip_intro_logos = true;
+          const NavResult nav = NavigateToGameplayByState(50.0);
+          navigation_reached = nav.reached;
+          pc::Get().skip_intro_logos = old_skip;
+          if (navigation_reached) input_before = move_player();
+          std::ostringstream i;
+          i << "{\"navigation_reached\":" << (navigation_reached ? "true" : "false")
+            << ",\"navigation_trace\":\"" << JsonEscape(nav.trace) << "\",\"before\":{\"moved\":"
+            << (input_before.moved ? "true" : "false") << ",\"distance\":" << input_before.distance
+            << "}}";
+          input_json = i.str();
+        }
+
+        transitions_json << "[";
+        for (size_t index = 0; index < sequence.size(); ++index) {
+          const uint64_t frames_before = state::guest_swaps.load();
+          bool applied = false;
+          ui->CallInUIThreadSynchronous([&]() {
+            applied = pc::menu::ApplyDisplayModeForAutomation(window, sequence[index], false);
+          });
+          WaitFrames(24, 1200);
+          bool transition_fullscreen = false;
+          ui->CallInUIThreadSynchronous([&]() {
+            transition_fullscreen = window && window->IsFullscreen();
+          });
+          const WindowMetrics metrics = InspectWindow(hwnd, transition_fullscreen);
+          const uint64_t frames_after = state::guest_swaps.load();
+          const bool match = applied && ModeMatches(sequence[index], metrics);
+          transitions_ok = transitions_ok && match && frames_after > frames_before;
+          if (index) transitions_json << ",";
+          transitions_json << "{\"requested_mode\":\"" << pc::DisplayModeName(sequence[index])
+                           << "\",\"mode_match\":" << (match ? "true" : "false")
+                           << ",\"frames_advanced\":" << (frames_after - frames_before)
+                           << ",\"physical_coordinates\":"
+                           << (metrics.physical_coordinates ? "true" : "false")
+                           << ",\"fullscreen\":" << (metrics.fullscreen ? "true" : "false")
+                           << ",\"style\":\"0x" << std::hex << uint64_t(metrics.style) << std::dec
+                           << "\",\"outer_rect\":" << RectJson(metrics.outer)
+                           << ",\"client_rect\":" << RectJson(metrics.client)
+                           << ",\"monitor\":\"" << JsonEscape(metrics.monitor_device) << "\"}";
+        }
+        transitions_json << "]";
+
+        ui->CallInUIThreadSynchronous([&]() {
+          settings_saved = pc::menu::ApplyDisplayModeForAutomation(window, requested_mode, true);
+        });
+        WaitFrames(30, 1200);
+        bool final_fullscreen = false;
+        ui->CallInUIThreadSynchronous([&]() {
+          final_fullscreen = window && window->IsFullscreen();
+        });
+        final_window = InspectWindow(hwnd, final_fullscreen);
+        restored = ModeMatches(requested_mode, final_window) &&
+                   RectNear(initial_window.outer, final_window.outer) &&
+                   initial_window.style == final_window.style &&
+                   initial_window.ex_style == final_window.ex_style &&
+                   initial_window.monitor_device == final_window.monitor_device &&
+                   initial_window.dpi == final_window.dpi;
+        if (opts.probe_display_transition_input && navigation_reached) {
+          input_after = move_player();
+          input_ok = navigation_reached && input_before.moved && input_after.moved;
+          const size_t close = input_json.rfind('}');
+          std::ostringstream i;
+          i << input_json.substr(0, close)
+            << ",\"after\":{\"moved\":" << (input_after.moved ? "true" : "false")
+            << ",\"distance\":" << input_after.distance << "}}";
+          input_json = i.str();
+        }
+      } else {
+        transitions_json << "[]";
+        if (opts.probe_display_set_resolution.empty()) {
+          ui->CallInUIThreadSynchronous([&]() { settings_saved = pc::Save(); });
+        }
+      }
+
+      const int requested_scale_x =
+          std::atoi(rex::cvar::GetFlagByName("draw_resolution_scale_x").c_str());
+      const int requested_scale_y =
+          std::atoi(rex::cvar::GetFlagByName("draw_resolution_scale_y").c_str());
+      const int requested_output_width =
+          requested_resolution == Resolution::R1080p ? 1920
+          : requested_resolution == Resolution::R1440p ? 2560
+                                                        : 3840;
+      const int requested_output_height =
+          requested_resolution == Resolution::R1080p ? 1080
+          : requested_resolution == Resolution::R1440p ? 1440
+                                                        : 2160;
+      const int physical_client_width = initial_window.client.right - initial_window.client.left;
+      const int physical_client_height = initial_window.client.bottom - initial_window.client.top;
+      const int work_width = initial_window.work.right - initial_window.work.left;
+      const int work_height = initial_window.work.bottom - initial_window.work.top;
+      const int frame_width = std::max(0, int(initial_window.outer.right -
+                                            initial_window.outer.left) - physical_client_width);
+      const int frame_height = std::max(0, int(initial_window.outer.bottom -
+                                             initial_window.outer.top) - physical_client_height);
+      const int available_client_width = std::max(0, work_width - frame_width);
+      const int available_client_height = std::max(0, work_height - frame_height);
+      const bool work_area_fits_requested = available_client_width >= requested_output_width &&
+                                            available_client_height >= requested_output_height;
+      const bool client_matches_requested = physical_client_width == requested_output_width &&
+                                            physical_client_height == requested_output_height;
+      const int applied_output_width =
+          loaded_resolution == Resolution::R1080p ? 1920
+          : loaded_resolution == Resolution::R1440p ? 2560
+                                                    : 3840;
+      const int applied_output_height =
+          loaded_resolution == Resolution::R1080p ? 1080
+          : loaded_resolution == Resolution::R1440p ? 1440
+                                                    : 2160;
+      const bool work_area_fits_applied = available_client_width >= applied_output_width &&
+                                         available_client_height >= applied_output_height;
+      const bool client_matches_applied = physical_client_width == applied_output_width &&
+                                          physical_client_height == applied_output_height;
+      const bool surface_not_mismatched = requested_mode != DisplayMode::Janela ||
+                                          client_matches_applied || !work_area_fits_applied;
+      const char* surface_status = requested_mode == DisplayMode::Janela
+                                       ? client_matches_applied ? "MATCH"
+                                         : work_area_fits_applied ? "MISMATCH"
+                                                                  : "BLOCKED_WORK_AREA"
+                                   : requested_mode == DisplayMode::SemBordas ? "MONITOR_WORK_AREA"
+                                                                              : "MONITOR_NATIVE";
+      const uint64_t frames_after = state::guest_swaps.load();
+      const bool image_files_ok = opts.probe_display_no_capture ||
+                                  (guest_png_written && window_png_written);
+      const bool ok = initial_mode_match && guest_content && window_nonblank &&
+                      correlation.content_match && image_files_ok && settings_saved &&
+                      frames_after > swaps_at_n && transitions_ok && restored && input_ok &&
+                      surface_not_mismatched &&
+                      (opts.probe_display_set_resolution.empty() || resolution_saved);
+      std::ostringstream o;
+      o << std::fixed << std::setprecision(3)
+        << "{\"version\":1,\"ok\":" << (ok ? "true" : "false")
+        << ",\"requested\":{\"resolution\":\"" << pc::ResolutionName(requested_resolution)
+        << "\",\"display_mode\":\"" << pc::DisplayModeName(requested_mode) << "\"}"
+        << ",\"applied\":{\"resolution\":\"" << pc::ResolutionName(loaded_resolution)
+        << "\",\"display_mode\":\"" << pc::DisplayModeName(requested_mode) << "\"}"
+        << ",\"effective\":{\"scale_x\":" << effective_scale_x << ",\"scale_y\":"
+        << effective_scale_y << "}"
+        << ",\"resolution_change\":";
+      if (opts.probe_display_set_resolution.empty()) {
+        o << "null";
+      } else {
+        o << "{\"from\":\"" << pc::ResolutionName(loaded_resolution) << "\",\"to\":\""
+          << pc::ResolutionName(requested_resolution) << "\",\"restart_required\":"
+          << (loaded_resolution == requested_resolution ? "false" : "true")
+          << ",\"saved\":" << (resolution_saved ? "true" : "false")
+          << ",\"requested_scale_x\":" << requested_scale_x
+          << ",\"requested_scale_y\":" << requested_scale_y << "}";
+      }
+      o
+        << ",\"resolution_surface\":{\"status\":\"" << surface_status
+        << "\",\"comparison\":\"applied_resolution\",\"applied_width\":" << applied_output_width
+        << ",\"applied_height\":" << applied_output_height
+        << ",\"client_matches_applied\":" << (client_matches_applied ? "true" : "false")
+        << ",\"work_area_fits_applied\":" << (work_area_fits_applied ? "true" : "false")
+        << ",\"requested_width\":" << requested_output_width
+        << ",\"requested_height\":" << requested_output_height
+        << ",\"client_matches_requested\":" << (client_matches_requested ? "true" : "false")
+        << ",\"work_area_fits_requested\":" << (work_area_fits_requested ? "true" : "false")
+        << ",\"physical_client_width\":" << physical_client_width
+        << ",\"physical_client_height\":" << physical_client_height
+        << ",\"work_width\":" << work_width << ",\"work_height\":" << work_height
+        << ",\"frame_width\":" << frame_width << ",\"frame_height\":" << frame_height
+        << ",\"available_client_width\":" << available_client_width
+        << ",\"available_client_height\":" << available_client_height << "}"
+        << ",\"guest_framebuffer\":{\"source\":\"Presenter::CaptureGuestOutput\",\"captured\":"
+        << (img.width && img.height ? "true" : "false") << ",\"non_blank\":"
+        << (guest_content ? "true" : "false") << ",\"width\":" << img.width
+        << ",\"height\":" << img.height << ",\"aspect\":"
+        << (img.height ? double(img.width) / img.height : 0.0) << ",\"path\":\""
+        << (guest_png_written ? JsonEscape(guest_png.string()) : "") << "\"}"
+        << ",\"window\":{\"visible\":" << (initial_window.visible ? "true" : "false")
+        << ",\"minimized\":" << (initial_window.minimized ? "true" : "false")
+        << ",\"fullscreen\":" << (initial_window.fullscreen ? "true" : "false")
+        << ",\"mode_match\":" << (initial_mode_match ? "true" : "false")
+        << ",\"physical_coordinates\":"
+        << (initial_window.physical_coordinates ? "true" : "false") << ",\"dpi\":"
+        << initial_window.dpi << ",\"style\":\"0x" << std::hex
+        << uint64_t(initial_window.style) << "\",\"ex_style\":\"0x"
+        << uint64_t(initial_window.ex_style) << std::dec << "\",\"outer_rect\":"
+        << RectJson(initial_window.outer) << ",\"client_rect\":" << RectJson(initial_window.client)
+        << ",\"monitor\":{\"device\":\"" << JsonEscape(initial_window.monitor_device)
+        << "\",\"rect\":" << RectJson(initial_window.monitor)
+        << ",\"work_area\":" << RectJson(initial_window.work) << "}"
+        << ",\"capture\":{\"source\":\"Win32 PrintWindow client surface\",\"captured\":"
+        << (window_img.width && window_img.height ? "true" : "false") << ",\"non_blank\":"
+        << (window_nonblank ? "true" : "false") << ",\"content_match\":"
+        << (correlation.content_match ? "true" : "false") << ",\"mean_abs_diff\":"
+        << correlation.mean_abs_diff << ",\"similar_sample_ratio\":" << correlation.similar_samples
+        << ",\"width\":" << window_img.width << ",\"height\":" << window_img.height
+        << ",\"path\":\"" << (window_png_written ? JsonEscape(window_png.string()) : "") << "\"}}"
+        << ",\"output_backbuffer\":{\"available\":false,\"width\":null,\"height\":null}"
+        << ",\"frames\":{\"before\":" << swaps_at_n << ",\"after\":" << frames_after
+        << ",\"advanced\":" << (frames_after - swaps_at_n) << "}"
+        << ",\"settings_file\":\"" << JsonEscape(pc::Path().string())
+        << "\",\"settings_saved\":" << (settings_saved ? "true" : "false")
+        << ",\"restoration_ok\":" << (restored ? "true" : "false")
+        << ",\"restoration\":{\"initial_outer_rect\":" << RectJson(initial_window.outer)
+        << ",\"final_outer_rect\":" << RectJson(final_window.outer)
+        << ",\"initial_monitor\":\"" << JsonEscape(initial_window.monitor_device)
+        << "\",\"final_monitor\":\"" << JsonEscape(final_window.monitor_device)
+        << "\",\"initial_dpi\":" << initial_window.dpi << ",\"final_dpi\":"
+        << final_window.dpi << ",\"initial_style\":\"0x" << std::hex
+        << uint64_t(initial_window.style) << "\",\"final_style\":\"0x"
+        << uint64_t(final_window.style) << std::dec << "\",\"ok\":"
+        << (restored ? "true" : "false") << "}"
+        << ",\"transitions\":" << transitions_json.str() << ",\"input\":" << input_json << "}\n";
+      std::error_code report_ec;
+      if (opts.probe_display.has_parent_path())
+        std::filesystem::create_directories(opts.probe_display.parent_path(), report_ec);
+      std::ofstream report(opts.probe_display, std::ios::binary | std::ios::trunc);
+      report << o.str();
+      report.close();
+      Finish(!report ? 2 : ok ? 0 : 1);
+    }
 
     // 3) taxa de quadros medida no jogo livre, depois de entrar no jogo (ver auto-teste)
     double guest_fps = 0, logic_fps = 0;

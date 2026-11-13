@@ -9,6 +9,7 @@
 
 namespace rex::ui {
 class Presenter;
+class Window;
 class WindowedAppContext;
 }  // namespace rex::ui
 
@@ -42,6 +43,7 @@ struct Options {
   std::filesystem::path probe_dd_worlds;  // viagem por todos os mundos + perfis de distância
   std::filesystem::path probe_testpad;  // gamepad virtual SDL: caminho real de um controle físico
   std::filesystem::path probe_save_sim;  // "save avançado" simulado: bandeiras + tela Totais + rastreador
+  std::filesystem::path probe_display;  // estado aplicado + capturas reais da janela/framebuffer
   // Save avançado DE VERDADE (use com --user_data_root=<pasta de teste>):
   //   --make-advanced-save  jogo novo, liga todos os colecionáveis e grava por "SALVAR E SAIR"
   //   --probe-advanced-save carrega esse save do disco pelo menu (JOGO 1) e confere tudo
@@ -49,8 +51,12 @@ struct Options {
   std::filesystem::path probe_advanced_save;
   std::filesystem::path user_data_root;  // preenchido pelo app (pasta dos saves e backups)
   int dialog_speed = -1;  // --dialog-speed N (0..3) força a velocidade só nesta execução
+  std::string probe_display_set_resolution;
   int frames = 120;
   int measure_secs = 5;
+  bool probe_display_transitions = false;
+  bool probe_display_transition_input = false;
+  bool probe_display_no_capture = false;
   bool active() const {
     return !screenshot.empty() || !self_test.empty() || !probe_position.empty() ||
            !probe_game.empty() || !probe_pause.empty() || !probe_focus.empty() ||
@@ -59,7 +65,7 @@ struct Options {
            !probe_scenes.empty() || !probe_drawdistance.empty() || !probe_menu.empty() ||
            !probe_titlepc.empty() || !probe_titlemenu.empty() || !probe_menucursor.empty() || !probe_gamepad.empty() || !probe_dd_maps.empty() ||
            !probe_dd_worlds.empty() || !probe_testpad.empty() || !probe_save_sim.empty() ||
-           !make_advanced_save.empty() || !probe_advanced_save.empty();
+           !make_advanced_save.empty() || !probe_advanced_save.empty() || !probe_display.empty();
   }
 };
 
@@ -75,6 +81,7 @@ bool IsRunning();
 // (estado dos gamepads reais + vibração).
 void Start(const Options& opts, rex::ui::WindowedAppContext* ui,
            std::function<rex::ui::Presenter*()> presenter,
+           rex::ui::Window* window,
            rex::system::IInputSystem* input_system = nullptr);
 
 }  // namespace pc::automation

@@ -341,7 +341,8 @@ void BanjotooieApp::OnPreSetup(rex::RuntimeConfig& config) {
 void BanjotooieApp::OnCreateDialogs(rex::ui::ImGuiDrawer* drawer) {
   // Menu CONFIGURACOES DE PC (aberto pela entrada nos menus do jogo ou por F1).
   pc::menu::Create(drawer, window(), runtime_config_);
-  if (!automated_) pc::menu::ApplyDisplayMode(window());  // testes ficam sempre em janela
+  const bool display_probe = !pc::automation::ParseCommandLine().probe_display.empty();
+  if (!automated_ || display_probe) pc::menu::ApplyDisplayMode(window());
   if (wcsstr(GetCommandLineW(), L"--open-pc-menu")) pc::menu::Open();
   if ((REXCVAR_GET(background_window) || automated_) && window()) {
     HWND hwnd = static_cast<rex::ui::Win32Window*>(window())->hwnd();
@@ -423,7 +424,7 @@ void BanjotooieApp::OnPostLaunchModule(rex::system::XThread* thread) {
     pc::automation::Start(opts, &app_context(), [this]() -> rex::ui::Presenter* {
       auto* gs = static_cast<rex::graphics::GraphicsSystem*>(runtime()->graphics_system());
       return gs ? gs->presenter() : nullptr;
-    }, runtime()->input_system());
+    }, window(), runtime()->input_system());
   }
 }
 

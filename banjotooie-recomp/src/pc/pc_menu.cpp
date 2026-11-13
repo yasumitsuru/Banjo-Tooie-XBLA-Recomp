@@ -334,6 +334,59 @@ void SaveAll() {
 LONG_PTR g_saved_style = 0;
 RECT g_saved_rect{};
 
+// Depois de criar a janela, usa seu monitor real e uma única unidade (pixel físico).
+// O clamp anterior à criação só é uma estimativa, pois SPI_GETWORKAREA/DPI globais
+// podem ser virtualizados pelo Windows ou pertencer a outro monitor.
+bool FitInitialWindowToResolution(rex::ui::Window* window, Resolution resolution) {
+  if (!window || window->IsFullscreen()) return false;
+  HWND hwnd = reinterpret_cast<HWND>(window->GetNativeWindowHandle());
+  if (!hwnd || IsIconic(hwnd) || IsZoomed(hwnd)) return false;
+  HMODULE user32 = GetModuleHandleW(L"user32.dll");
+  using SetContextFn = HANDLE(WINAPI*)(HANDLE);
+  auto set_context = user32 ? reinterpret_cast<SetContextFn>(
+                                  GetProcAddress(user32, "SetThreadDpiAwarenessContext"))
+                            : nullptr;
+  if (!set_context) return false;
+  HANDLE previous = set_context(reinterpret_cast<HANDLE>(static_cast<intptr_t>(-4)));
+  if (!previous) return false;
+  const bool fitted = [&]() {
+    MONITORINFO monitor{sizeof(monitor)};
+    RECT outer{}, client{};
+    if (!GetMonitorInfoW(MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST), &monitor) ||
+        !GetWindowRect(hwnd, &outer) || !GetClientRect(hwnd, &client))
+      return false;
+    const int frame_width = std::max(0L, (outer.right - outer.left) -
+                                           (client.right - client.left));
+    const int frame_height = std::max(0L, (outer.bottom - outer.top) -
+                                            (client.bottom - client.top));
+    const int max_width = (monitor.rcWork.right - monitor.rcWork.left) - frame_width;
+    const int max_height = (monitor.rcWork.bottom - monitor.rcWork.top) - frame_height;
+    if (max_width <= 0 || max_height <= 0) return false;
+    int width = resolution == Resolution::R1080p ? 1920
+                : resolution == Resolution::R1440p ? 2560 : 3840;
+    int height = resolution == Resolution::R1080p ? 1080
+                 : resolution == Resolution::R1440p ? 1440 : 2160;
+    if (width > max_width) {
+      width = max_width;
+      height = width * 9 / 16;
+    }
+    if (height > max_height) {
+      height = max_height;
+      width = height * 16 / 9;
+    }
+    if (width <= 0 || height <= 0) return false;
+    const int outer_width = width + frame_width, outer_height = height + frame_height;
+    const int left = std::clamp(int(outer.left), int(monitor.rcWork.left),
+                                int(monitor.rcWork.right) - outer_width);
+    const int top = std::clamp(int(outer.top), int(monitor.rcWork.top),
+                               int(monitor.rcWork.bottom) - outer_height);
+    return SetWindowPos(hwnd, nullptr, left, top, outer_width, outer_height,
+                        SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_NOACTIVATE) != FALSE;
+  }();
+  set_context(previous);
+  return fitted;
+}
+
 void SetBorderless(HWND hwnd, bool borderless) {
   if (!hwnd) return;
   LONG_PTR style = GetWindowLongPtrW(hwnd, GWL_STYLE);
@@ -932,6 +985,26 @@ int CurrentTab() { return g_tab_current; }
 
 void SetGamepadTestFocus(bool set) { g_focus_test = set; }
 
-void ApplyDisplayMode(rex::ui::Window* window) { ApplyDisplayModeNow(window, pc::Get().display_mode); }
+void ApplyDisplayMode(rex::ui::Window* window) {
+  FitInitialWindowToResolution(window, pc::Get().resolution);
+  ApplyDisplayModeNow(window, pc::Get().display_mode);
+}
+
+bool ApplyDisplayModeForAutomation(rex::ui::Window* window, DisplayMode mode,
+                                   bool persist_settings) {
+  if (!window) return false;
+  pc::Get().display_mode = mode;
+  ApplyDisplayModeNow(window, mode);
+  return !persist_settings || pc::Save();
+}
+
+bool SetResolutionForAutomation(Resolution resolution) {
+  pc::Get().resolution = resolution;
+  pc::Get().resolution_auto = false;
+  ApplyResolutionCvars(resolution);
+  const bool saved = pc::Save();
+  SaveRuntimeConfig();
+  return saved;
+}
 
 }  // namespace pc::menu

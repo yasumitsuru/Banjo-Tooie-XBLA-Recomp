@@ -9,7 +9,8 @@ ordem de trabalho. Esta versão incorpora:
   chamada aqui de **M04** (o texto da pessoa não traz número). Texto completo:
   [`MISSAO-04-CORRECAO-INTEGRAL.md`](MISSAO-04-CORRECAO-INTEGRAL.md).
 
-Nada da M04 foi executado ainda: esta atualização só organiza o trabalho.
+**Andamento da M04 (2026-11-13):** etapas **A e B concluídas** (ver [Andamento](#andamento));
+etapas C a F pendentes.
 
 ## Em poucas palavras
 
@@ -22,7 +23,7 @@ Nada da M04 foi executado ainda: esta atualização só organiza o trabalho.
     conferidas;
   - saves: gravação, carga e backup, uma pasta por conta em Documentos\My Games, testes
     separados dos saves da pessoa.
-- **Com defeito (3):**
+- **Com defeito na auditoria (3; C-75 corrigido na etapa B):**
   - save inválido apagado sem cópia ao restaurar (C-75);
   - detecção automática de resolução pega o monitor errado (C-29);
   - CONQUISTAS chama uma função do Xbox que não existe no PC (C-6).
@@ -76,6 +77,28 @@ Nada da M04 foi executado ainda: esta atualização só organiza o trabalho.
 
 Os códigos C-nn são os da [matriz de estado](#matriz-de-estado-auditoria-somente-leitura-de-2026-11-13).
 Uma etapa só avança para o que depende dela depois que suas mudanças críticas estiverem provadas.
+
+#### Andamento
+
+| Etapa | Estado | Prova |
+|---|---|---|
+| A — Preparação | **FEITA** (2026-11-13) | checkpoint `refs/checkpoints/m04-inicio` (app `423524b`, rexglue-sdk `88a105a`); 36/36 arquivos PT-BR iguais; foto da pasta da pessoa (15 arquivos); alvo PT-BR confirmado no log ("JOGAR"). Saídas em `_audit/out/m04/A/` |
+| B — Segurança dos saves | **FEITA** (2026-11-13) | `python -I tools/test_saves.py --corpus _audit/out/m04/B/corpus-reais`: **18/18 PASS** (`_audit/out/m04/B/run-20261113-205157/resultado.json`); 207 saves reais aceitos e 14 estragados recusados pelo código do port; gravação real do jogo com o registro do runtime; pasta da pessoa igual antes e depois. Detalhes abaixo |
+| C — Infraestrutura | pendente (C-95 e C-90 já provados na etapa B) | — |
+| D, E, F | pendentes | — |
+
+**O que a etapa B mudou** (formato do save em `MECHANICS.md` §19):
+
+| ID | Antes | Agora | Prova (cenário de `tools/test_saves.py`) |
+|---|---|---|---|
+| C-74 | só tamanho e "não é tudo 0xDE" | as regras do próprio jogo (`pc_save_format.cpp`): globais com versão 9, blocos com "KHJC", seções e versão 0x1F, somas | s03–s06, s15 (207 reais aceitos, 14 estragados recusados) |
+| C-75 | save inválido era sobrescrito sem cópia | cópia exata em `backups/corrupt-*.dat` antes de qualquer restauração | s03–s06, s08 (byte a byte) |
+| — | a conferência rodava depois de o jogo começar (corrida com a leitura do jogo) | roda antes de o jogo começar (`OnPreLaunchModule`) | todos |
+| C-72 | rodízio por quantidade: arquivos inválidos empurravam os bons para fora | conta só os válidos; quando uma gravação tem menos jogos, a anterior vai para `keep-*` (fora do rodízio) | s11, s12, s13 |
+| C-76 | o runtime apagava o save e criava outro: uma queda no meio deixava sem save | o runtime guarda o conteúdo anterior em `savegame.dat.port-prev` até fechar o arquivo novo (rexglue-sdk); a abertura usa essa cópia se ela sobrou; o port escreve o save sempre por arquivo temporário + troca | s16, s17, s18 (gravação real) |
+| C-73, C-77 | só "restaurar o último" | linha RESTAURAR : <data> no menu do jogo: esquerda/direita escolhem o backup, A confirma, A restaura; o save atual é guardado antes | s14 (pela mesma linha do menu) |
+| — | save preso por outro programa na abertura era tratado como estragado e sobrescrito | espera ~2 s e, se continuar preso (ex.: OneDrive), não mexe em nada; cópias de conflito ao lado do save vão para o log | s09 |
+| C-95, C-90 | sonda de save avançado quebrada desde a reforma da pausa (contava 5 toques até SAIR DO JOGO) | a sonda acha a entrada pelo texto; save com 100% dos colecionáveis gravado pelo jogo e carregado pelo menu: **54 contagens do jogo = rastreador, 0 diferenças**, 59,6 FPS | s18 + `--probe-advanced-save` (`_audit/out/m04/B/probe-advanced/load.json`); save guardado em `_audit/out/m04/saves/` |
 
 #### Etapa A — Preparação
 
@@ -191,7 +214,8 @@ Legenda dos estados:
 
 A coluna Etapa diz onde a M04 resolve o item. "manter" = já provado; só não pode regredir.
 
-**Total:** 24 OK, 34 NV, 8 PARCIAL, 13 NÃO IMPL., 3 DEFEITO, 1 BLOQ., 14 NÃO VERIF.
+**Total na auditoria:** 24 OK, 34 NV, 8 PARCIAL, 13 NÃO IMPL., 3 DEFEITO, 1 BLOQ., 14 NÃO VERIF.
+**Total depois da etapa B (2026-11-13):** 32 OK, 30 NV, 7 PARCIAL, 12 NÃO IMPL., 2 DEFEITO, 1 BLOQ., 13 NÃO VERIF.
 
 **Limite das evidências:** as provas de distância de desenho, controle e save avançado que
 existem vêm do projeto vizinho `W:\Decomp\Banjo` (build de 08–09/11) e não valem para este build.
@@ -268,14 +292,14 @@ Os testes deste build cobrem só título, introdução e o início de Spiral Mou
 | 67 | Áudio: distorção e cenas | NÃO VERIF. | E |
 | 68 | Gravação do save | OK | manter |
 | 69 | Carregar save existente | OK | manter |
-| 70 | Saves com progresso diferente | NÃO VERIF. | C |
+| 70 | Saves com progresso diferente | PARCIAL (jogo novo, save real com 1 jogo, 100% dos colecionáveis; falta a história avançada) | C |
 | 71 | Backups automáticos | OK | manter |
-| 72 | Retenção dos backups | NV | B |
-| 73 | Restaurar backup | NV | B |
-| 74 | Proteção contra save corrompido | PARCIAL | B |
-| 75 | Guardar o save inválido antes de restaurar | DEFEITO | B |
-| 76 | Gravação interrompida | NÃO IMPL. | B |
-| 77 | Escolher um backup anterior | PARCIAL | B |
+| 72 | Retenção dos backups | OK (M04-B) | manter |
+| 73 | Restaurar backup | OK (M04-B) | manter |
+| 74 | Proteção contra save corrompido | OK (M04-B) | manter |
+| 75 | Guardar o save inválido antes de restaurar | OK (M04-B, corrigido) | manter |
+| 76 | Gravação interrompida | OK (M04-B) | manter |
+| 77 | Escolher um backup anterior | OK (M04-B) | manter |
 | 78 | Saves de teste separados dos da pessoa | OK | manter |
 | 79 | Save por conta em Documentos\My Games | OK (conta atual) | B (2ª conta) |
 | 80 | `pc_settings.toml` próprio, gravação atômica + `.bak` | OK | manter |
@@ -288,12 +312,12 @@ Os testes deste build cobrem só título, introdução e o início de Spiral Mou
 | 87 | Legibilidade em 1080p, 1440p e 4K | NÃO VERIF. | E |
 | 88 | Velocidade dos diálogos | NV | E |
 | 89 | Rótulos de PC cabem nas telas do jogo | OK | manter |
-| 90 | Rastreador de colecionáveis | NV | E |
+| 90 | Rastreador de colecionáveis | OK (M04-B: 0 diferenças com a tela Totais no save 100%) | manter (texto só PT-BR: C-18) |
 | 91 | Pausa ao minimizar ou perder o foco | NV | E |
 | 92 | Contador de FPS e estatísticas | NV | E |
 | 93 | Impacto do monitoramento no desempenho | NÃO VERIF. | E |
 | 94 | Viagem automática a mapas | NV | C |
-| 95 | Save avançado de teste | NV | C |
+| 95 | Save avançado de teste | OK (M04-B) | manter |
 | 96 | Testes automáticos existentes | OK | manter |
 | 97 | Testes que faltam (30×60, controle físico, mundos, vídeo, áudio, câmera, saves, cenas, longa duração) | NÃO IMPL. | C/F |
 

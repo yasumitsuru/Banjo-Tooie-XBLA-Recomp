@@ -838,3 +838,27 @@ Prova no jogo real (dados isolados em `_audit/out/menu-ingame/`):
 - **Valores aceitos**: as linhas de cvar filtram pela lista `.allowed()` do runtime
   (`present_effect` = só `bilinear` neste build) e mostram "(REINICIE)" pelo `lifecycle`.
 
+
+## 19. Save (`savegame.dat`) — formato e regras do próprio jogo (M04, etapa B, 2026-11-13)
+
+Lido no código gerado do `default.xex` PT-BR (comentários PPC em `generated/default/*.cpp`) e
+conferido em 211 saves reais diferentes (todos aceitos) e 14 estragados de propósito (todos
+recusados). Implementação: `src/pc/pc_save_format.cpp`.
+
+| Parte | Onde | Regra do jogo | Função |
+|---|---|---|---|
+| Dados globais, 2 cópias | `0x000` e `0x100` (256 bytes) | byte 0 = **9** e soma do bloco confere; o jogo grava as duas alternadamente (a antiga pode ter qualquer conteúdo) | leitura `0x8226A790` (`idx << 8`), versão `0x8226AFA8` |
+| 4 blocos de jogo | `0x200`, `0x400`, `0x600`, `0x800` (512 bytes) | soma confere; começa com **"KHJC"** (`0x4B484A43`); seções (tipo, tamanho, dados) com tipo < 7, terminando no tipo 0; seção 1 começa com a versão **0x1F**. Se falha, o jogo **zera o bloco na memória** (a partida some) | leitura `0x8226A730` (`(bloco+1) << 9`), seções `0x8226A558`, versão `0x8226A500`, decisão `0x82271238` |
+| Jogo apagado | primeiros 8 bytes do bloco | zerados pelo jogo | `0x8226A8C0` (escreve 8 bytes zerados) |
+| Soma | últimos 8 bytes de cada bloco | dois u32 = XOR das saídas de `0x8235D288`, que nesta versão XBLA é `li r3,0; blr`: **vale sempre 0** | cálculo `0x82264F28`, conferência `0x82265030` (erro `0x6E382`) |
+| Sobra | `0xA00`..`0xBFF` | não é lido como save (conteúdo do buffer) | — |
+
+Nos saves reais o jogo grava cada partida alternando entre dois blocos e apaga o anterior: a
+posição muda a cada gravação, a quantidade de blocos válidos não.
+
+**Como o runtime grava:** o jogo abre o save para sobrescrever; o runtime **apaga o arquivo e
+cria outro** (`VirtualFileSystem::OpenFile`, `kOverwrite`/`kSuperscede` → `Entry::Delete`) e só
+então escreve. Uma queda nesse intervalo deixaria a pessoa sem save. Desde a M04 o runtime guarda
+o conteúdo anterior em `savegame.dat.port-prev` antes de apagar/zerar/escrever
+(`host_path_entry.cpp`, `host_path_file.cpp`, cvar `host_write_journal_files`) e o apaga quando o
+arquivo novo é fechado. Na abertura seguinte, `pc_saves.cpp` usa essa cópia se ela sobrou.

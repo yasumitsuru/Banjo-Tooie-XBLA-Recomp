@@ -51,6 +51,17 @@ struct Options {
   //   --probe-advanced-save carrega esse save do disco pelo menu (JOGO 1) e confere tudo
   std::filesystem::path make_advanced_save;
   std::filesystem::path probe_advanced_save;
+  // Segurança dos saves (M04, etapa B; use com --user_data_root=<pasta de teste>):
+  //   --probe-saves <json>          o que a conferência da abertura fez, backups, estado do save
+  //   --probe-saves-feed <pasta>    grava cada .dat da pasta no save, em ordem, como o jogo faria
+  //   --probe-saves-choose <n>      linha RESTAURAR do menu: n x direita, A, A
+  //   --probe-saves-inspect <pasta> confere cada .dat da pasta (e subpastas) com as regras do jogo
+  //   --probe-saves-wait <s>        espera antes do relatório (para a vigia de backups)
+  std::filesystem::path probe_saves;
+  std::filesystem::path probe_saves_feed;
+  std::filesystem::path probe_saves_inspect;
+  int probe_saves_choose = -1;
+  int probe_saves_wait = 0;
   std::filesystem::path user_data_root;  // preenchido pelo app (pasta dos saves e backups)
   bool self_test_f1 = false;  // --self-test-f1: o auto-teste também prova o F1 no jogo livre (até 120 s)
   int dialog_speed = -1;  // --dialog-speed N (0..3) força a velocidade só nesta execução
@@ -68,7 +79,8 @@ struct Options {
            !probe_scenes.empty() || !probe_drawdistance.empty() || !probe_menu.empty() ||
            !probe_titlepc.empty() || !probe_titlemenu.empty() || !probe_pcpages.empty() || !probe_fullscreen.empty() || !probe_menucursor.empty() || !probe_gamepad.empty() || !probe_dd_maps.empty() ||
            !probe_dd_worlds.empty() || !probe_testpad.empty() || !probe_save_sim.empty() ||
-           !make_advanced_save.empty() || !probe_advanced_save.empty() || !probe_display.empty();
+           !make_advanced_save.empty() || !probe_advanced_save.empty() || !probe_display.empty() ||
+           !probe_saves.empty();
   }
 };
 

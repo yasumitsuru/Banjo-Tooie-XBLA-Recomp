@@ -38,6 +38,8 @@
 #include "pc_lang.h"
 #include "pc_menu.h"
 #include "pc_progress.h"
+#include "pc_save_format.h"
+#include "pc_saves.h"
 #include "pc_settings.h"
 #include "pc_state.h"
 #include "mechanics_values.h"
@@ -864,6 +866,188 @@ bool OpenPauseMenu() {
   return ReadU8(0x8266EF55) == 1;
 }
 
+// Põe o cursor da página atual do menu do jogo na entrada com este rótulo (Latin-1, lido em
+// entrada+0x3B), conferindo o cursor real (tela+7). Antes as sondas contavam toques fixos e
+// pararam de funcionar quando a pausa perdeu CLASSIFICAÇÕES (M04: --make-advanced-save
+// confirmava CONTINUAR JOGO em vez de SAIR DO JOGO).
+bool StepMenuCursorToLabel(const std::string& label) {
+  namespace mm = pc::mechanics;
+  auto target = [&]() -> int {
+    const uint32_t pages = ReadU32(kScreenObjAddr + 0x154);
+    const uint32_t page = ReadU32(kScreenObjAddr + 0x2C);
+    if (pages < 0x40000000u || pages >= 0xA0000000u || page >= 16) return -1;
+    const uint32_t entries = ReadU32(pages + page * 0x2C);
+    const uint32_t count = ReadU32(pages + page * 0x2C + 4);
+    if (entries < 0x40000000u || entries >= 0xA0000000u || count > 64) return -1;
+    for (uint32_t i = 0; i < count; ++i) {
+      std::string t;
+      for (uint32_t k = 0; k < mm::kEntryLabelMax; ++k) {
+        const uint8_t c = ReadU8(entries + i * mm::kEntrySize + mm::kEntryLabelOff + k);
+        if (!c) break;
+        t += char(c);
+      }
+      if (t == label) return int(i);
+    }
+    return -1;
+  };
+  const int want = target();
+  if (want < 0) return false;
+  for (int i = 0; i < 16; ++i) {
+    const int cur = ReadU8(kScreenObjAddr + mm::kScreenCursorOff);
+    if (cur == want) return true;
+    const auto button = cur < want ? input::kDpadDown : input::kDpadUp;
+    input::SetButton(button, true);
+    WaitFrames(30);
+    input::SetButton(button, false);
+    WaitFrames(25);
+  }
+  return ReadU8(kScreenObjAddr + mm::kScreenCursorOff) == want;
+}
+
+// ---------------------------------------------------------------- --probe-saves (M04, etapa B)
+std::string PathUtf8(const std::filesystem::path& p) {
+  const std::u8string s = p.u8string();
+  return std::string(reinterpret_cast<const char*>(s.data()), s.size());
+}
+
+std::vector<uint8_t> ReadBytes(const std::filesystem::path& p) {
+  std::ifstream in(p, std::ios::binary);
+  return std::vector<uint8_t>(std::istreambuf_iterator<char>(in), std::istreambuf_iterator<char>());
+}
+
+std::string Fnv64(const std::vector<uint8_t>& d) {
+  uint64_t h = 1469598103934665603ull;
+  for (uint8_t b : d) {
+    h ^= b;
+    h *= 1099511628211ull;
+  }
+  char buf[32];
+  std::snprintf(buf, sizeof buf, "%016llx", (unsigned long long)h);
+  return buf;
+}
+
+std::string InspectJson(const std::vector<uint8_t>& d) {
+  const pc::savefmt::Report r = pc::savefmt::Inspect(d);
+  std::ostringstream o;
+  o << "{\"size\":" << d.size() << ",\"usable\":" << (r.usable ? "true" : "false")
+    << ",\"blank\":" << (r.blank ? "true" : "false") << ",\"reason\":\"" << JsonEscape(r.reason)
+    << "\",\"globals\":[\"" << pc::savefmt::BlockName(r.global[0]) << "\",\""
+    << pc::savefmt::BlockName(r.global[1]) << "\"],\"slots\":[";
+  for (int i = 0; i < pc::savefmt::kSlots; ++i)
+    o << (i ? "," : "") << "\"" << pc::savefmt::BlockName(r.slot[i]) << "\"";
+  o << "],\"games\":" << r.ValidSlotCount() << ",\"fnv64\":\"" << Fnv64(d) << "\"}";
+  return o.str();
+}
+
+// Roda as partes pedidas e grava o relatório. Não espera o jogo: a conferência da abertura já
+// aconteceu antes de o jogo começar (pc::saves::Initialize em OnPreLaunchModule).
+int RunSavesProbe(const Options& opts) {
+  namespace fs = std::filesystem;
+  std::ostringstream o;
+  const pc::saves::StartupResult st = pc::saves::LastStartup();
+  o << "{\"version\":1,\"startup\":{\"action\":\"" << st.action << "\",\"reason\":\""
+    << JsonEscape(st.reason) << "\",\"interrupted\":" << (st.interrupted ? "true" : "false")
+    << ",\"save_file\":\"" << JsonEscape(PathUtf8(st.save_file))
+    << "\",\"corrupt_copy\":\"" << JsonEscape(PathUtf8(st.corrupt_copy.filename()))
+    << "\",\"restored_from\":\"" << JsonEscape(PathUtf8(st.restored_from.filename())) << "\"}";
+  // Conferência de um conjunto de saves (sem mexer neles).
+  if (!opts.probe_saves_inspect.empty()) {
+    std::vector<fs::path> files;
+    std::error_code ec;
+    for (auto it = fs::recursive_directory_iterator(opts.probe_saves_inspect, ec);
+         !ec && it != fs::recursive_directory_iterator(); it.increment(ec))
+      if (it->is_regular_file(ec) && it->path().extension() == L".dat") files.push_back(it->path());
+    std::sort(files.begin(), files.end());
+    o << ",\"inspect\":[";
+    for (size_t i = 0; i < files.size(); ++i)
+      o << (i ? "," : "") << "{\"file\":\""
+        << JsonEscape(PathUtf8(fs::relative(files[i], opts.probe_saves_inspect, ec))) << "\",\"result\":"
+        << InspectJson(ReadBytes(files[i])) << "}";
+    o << "]";
+  }
+  // Gravações simuladas: cada arquivo da pasta vira o save, como uma gravação do jogo (no próprio
+  // arquivo), com tempo para a vigia de backups ver cada uma.
+  if (!opts.probe_saves_feed.empty()) {
+    std::vector<fs::path> feed;
+    std::error_code ec;
+    for (const auto& e : fs::directory_iterator(opts.probe_saves_feed, ec))
+      if (e.is_regular_file(ec) && e.path().extension() == L".dat") feed.push_back(e.path());
+    std::sort(feed.begin(), feed.end());
+    fs::path save = pc::saves::SaveFile();
+    if (save.empty())
+      save = opts.user_data_root / L"B13EBABEBABEBABE" / L"58410955" / L"00000001" /
+             L"BanjoSave.bin" / L"savegame.dat";
+    fs::create_directories(save.parent_path(), ec);
+    o << ",\"feed\":[";
+    for (size_t i = 0; i < feed.size(); ++i) {
+      const auto data = ReadBytes(feed[i]);
+      {
+        std::ofstream out(save, std::ios::binary | std::ios::in | std::ios::out);
+        if (!out) out.open(save, std::ios::binary | std::ios::out | std::ios::trunc);
+        out.write(reinterpret_cast<const char*>(data.data()), std::streamsize(data.size()));
+      }
+      std::error_code ec2;
+      fs::resize_file(save, data.size(), ec2);
+      std::this_thread::sleep_for(std::chrono::milliseconds(5500));
+      o << (i ? "," : "") << "{\"file\":\"" << JsonEscape(PathUtf8(feed[i].filename()))
+        << "\",\"status\":\"" << JsonEscape(pc::saves::Status()) << "\"}";
+    }
+    o << "]";
+  }
+  // Linha RESTAURAR do menu do jogo (mesmo código que o controle aciona).
+  if (opts.probe_saves_choose >= 0) {
+    namespace opt = pc::menu::options;
+    int section = -1;
+    for (int s = 0; s < opt::SectionCount(); ++s)
+      if (opt::SectionTitle(s).find("SAVES") != std::string::npos) section = s;
+    const int row = section >= 0 ? opt::RowCount(section) - 1 : -1;
+    std::string before, after_moves, after_confirm, after;
+    if (row >= 0) {
+      before = opt::RowText(section, row);
+      for (int k = 0; k < opts.probe_saves_choose; ++k) opt::RowInput(section, row, +1);
+      after_moves = opt::RowText(section, row);
+      opt::RowInput(section, row, 0);
+      after_confirm = opt::RowText(section, row);
+      opt::RowInput(section, row, 0);
+      for (int k = 0; k < 100 && pc::menu::PendingUiWork(); ++k)
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
+      after = opt::RowText(section, row);
+    }
+    o << ",\"choose\":{\"section\":" << section << ",\"row\":" << row << ",\"before\":\""
+      << JsonEscape(before) << "\",\"after_moves\":\"" << JsonEscape(after_moves)
+      << "\",\"after_confirm\":\"" << JsonEscape(after_confirm) << "\",\"after\":\""
+      << JsonEscape(after) << "\"}";
+  }
+  if (opts.probe_saves_wait > 0)
+    std::this_thread::sleep_for(std::chrono::seconds(std::min(opts.probe_saves_wait, 60)));
+  // Estado final.
+  const fs::path save = pc::saves::SaveFile();
+  std::error_code ec;
+  o << ",\"status\":\"" << JsonEscape(pc::saves::Status()) << "\",\"save\":";
+  if (!save.empty() && fs::exists(save, ec))
+    o << InspectJson(ReadBytes(save));
+  else
+    o << "null";
+  o << ",\"restorable\":[";
+  const auto list = pc::saves::ListBackups();
+  for (size_t i = 0; i < list.size(); ++i)
+    o << (i ? "," : "") << "{\"name\":\"" << JsonEscape(list[i].name) << "\",\"kind\":\""
+      << list[i].kind << "\",\"stamp\":\"" << list[i].stamp << "\",\"games\":" << list[i].games
+      << "}";
+  o << "],\"backup_files\":[";
+  {
+    std::vector<std::string> names;
+    for (const auto& e : fs::directory_iterator(opts.user_data_root / L"backups", ec))
+      names.push_back(PathUtf8(e.path().filename()));
+    std::sort(names.begin(), names.end());
+    for (size_t i = 0; i < names.size(); ++i)
+      o << (i ? "," : "") << "\"" << JsonEscape(names[i]) << "\"";
+  }
+  o << "]}\n";
+  std::ofstream(opts.probe_saves, std::ios::binary | std::ios::trunc) << o.str();
+  return 0;
+}
+
 }  // namespace
 
 Options ParseCommandLine() {
@@ -916,6 +1100,11 @@ Options ParseCommandLine() {
     else if (a == L"--probe-save-sim") o.probe_save_sim = argv[++i];
     else if (a == L"--make-advanced-save") o.make_advanced_save = argv[++i];
     else if (a == L"--probe-advanced-save") o.probe_advanced_save = argv[++i];
+    else if (a == L"--probe-saves") o.probe_saves = argv[++i];
+    else if (a == L"--probe-saves-feed") o.probe_saves_feed = argv[++i];
+    else if (a == L"--probe-saves-inspect") o.probe_saves_inspect = argv[++i];
+    else if (a == L"--probe-saves-choose") o.probe_saves_choose = _wtoi(argv[++i]);
+    else if (a == L"--probe-saves-wait") o.probe_saves_wait = _wtoi(argv[++i]);
     else if (a == L"--dialog-speed") o.dialog_speed = _wtoi(argv[++i]);
   }
   if (argv) LocalFree(argv);
@@ -933,6 +1122,10 @@ void Start(const Options& opts, rex::ui::WindowedAppContext* ui,
   g_automation_running.store(true);
   // a sonda de cenas compara o ritmo original: sem o "início rápido" dos logos
   if (!opts.probe_scenes.empty()) pc::Get().skip_intro_logos = false;
+  // As sondas de save avançado só rodam em pasta de teste (--user_data_root): logos acelerados
+  // como no auto-teste (antes levavam ~50 s até o título).
+  if (!opts.make_advanced_save.empty() || !opts.probe_advanced_save.empty())
+    pc::Get().skip_intro_logos = true;
   if (!opts.self_test.empty()) {
     // Início rápido só durante o teste (os logos passam em passo 4); a escolha do jogador
     // volta logo que o teste chega ao jogo livre, antes de qualquer gravação das opções.
@@ -962,6 +1155,8 @@ void Start(const Options& opts, rex::ui::WindowedAppContext* ui,
   }
   std::thread([opts, ui, presenter, window, input_system]() {
     using namespace std::chrono;
+    // Segurança dos saves: não precisa do jogo rodando (a conferência foi antes de ele começar).
+    if (!opts.probe_saves.empty()) Finish(RunSavesProbe(opts));
     const auto t0 = steady_clock::now();
     const auto deadline = t0 + seconds(240);
     // 1) esperar o jogo apresentar ~N quadros
@@ -1759,13 +1954,11 @@ void Start(const Options& opts, rex::ui::WindowedAppContext* ui,
       const uint64_t eeprom0 = eeprom_hash();
       const uint16_t map_play = ReadU16(kMapIdAddr);
       const FileFingerprint f_pre = Fingerprint(save_file);  // o jogo novo já criou o arquivo
-      // pausa -> 6ª entrada (SAIR DO JOGO, que grava) -> confirma SIM
+      // pausa -> SAIR DO JOGO (grava; a última entrada desde 2026-11-12) -> confirma SIM
       const bool paused = OpenPauseMenu();
       WaitFrames(40);
-      for (int i = 0; i < 5; ++i) {
-        Tap(input::kDpadDown);
-        WaitFrames(30);
-      }
+      const bool on_quit = StepMenuCursorToLabel(GameText(61));
+      REXLOG_INFO("make-advanced-save: cursor em SAIR DO JOGO = {}", on_quit);
       if (rex::ui::RawImage im = capture(); im.width) {
         ReduceTo1920(im);
         WritePng(std::filesystem::path(base) += "_menu.png", im.width, im.height, im.data.data(),

@@ -511,6 +511,24 @@ void StartIngameCapture(int action) {
 
 // Restaurar backup pela página do jogo: 0 = parado, 1 = esperando confirmar, 2/3 = resultado.
 std::atomic<int> g_restore_state{0};
+// Backup escolhido na linha RESTAURAR (0 = o mais novo; esquerda/direita percorrem a lista).
+std::atomic<int> g_restore_index{0};
+
+// Lista de backups válidos para a linha RESTAURAR, relida no máximo a cada 2 s (o texto da
+// linha é pedido a cada redesenho da página).
+std::vector<pc::saves::BackupInfo> RestoreChoices(bool refresh = false) {
+  static std::mutex mu;
+  static std::vector<pc::saves::BackupInfo> cache;
+  static std::chrono::steady_clock::time_point read_at{};
+  std::lock_guard<std::mutex> lk(mu);
+  const auto now = std::chrono::steady_clock::now();
+  if (refresh || read_at == std::chrono::steady_clock::time_point{} ||
+      now - read_at > std::chrono::seconds(2)) {
+    cache = pc::saves::ListBackups();
+    read_at = now;
+  }
+  return cache;
+}
 
 // ----------------------------------------------------------------- modo de exibição
 LONG_PTR g_saved_style = 0;
@@ -1544,27 +1562,45 @@ std::vector<Row> BuildAudioSaves() {
                  RequestSave();
                  return true;
                }});
+  // RESTAURAR : <data> (M04, C-77): esquerda/direita escolhem o backup (o mais novo primeiro,
+  // incluindo os guardados antes de um jogo sumir), A pede confirmação e A de novo restaura.
+  // O save atual é guardado antes (pc_saves.cpp). Datas com ponto e dois-pontos: a fonte dos
+  // menus tem os dois.
   Row restore;
-  restore.value = false;
+  restore.value = true;
   restore.text = [] {
+    const auto list = RestoreChoices();
     switch (g_restore_state.load()) {
       case 1: return Tx({"CONFIRMA? APERTE A", "SURE? PRESS A AGAIN"});
       case 2: return Tx({"RESTAURADO - REINICIE", "RESTORED - RESTART"});
-      case 3: return Tx({"NENHUM BACKUP VÁLIDO", "NO VALID BACKUP"});
-      default: return Tx({"RESTAURAR ÚLTIMO BACKUP", "RESTORE LATEST BACKUP"});
+      case 3: return Tx({"FALHOU - VEJA O LOG", "FAILED - SEE THE LOG"});
+      default: break;
     }
+    if (list.empty()) return Tx({"NENHUM BACKUP VÁLIDO", "NO VALID BACKUP"});
+    const int i = std::clamp(g_restore_index.load(), 0, int(list.size()) - 1);
+    return Tx({"RESTAURAR : ", "RESTORE : "}) + list[size_t(i)].stamp;
   };
   restore.input = [](int dir) {
-    if (dir != 0) return false;
+    const auto list = RestoreChoices(dir != 0);
+    if (list.empty()) return false;
+    if (dir != 0) {
+      g_restore_index.store(Wrap(std::clamp(g_restore_index.load(), 0, int(list.size()) - 1),
+                                 int(list.size()), dir));
+      g_restore_state.store(0);
+      return true;
+    }
     if (g_restore_state.load() != 1) {
       g_restore_state.store(1);
       return true;
     }
-    PostUi([] {
-      g_restore_state.store(pc::saves::RestoreLatest() ? 2 : 3);
+    const auto chosen = list[size_t(std::clamp(g_restore_index.load(), 0, int(list.size()) - 1))].path;
+    g_restore_state.store(0);
+    PostUi([chosen] {
+      g_restore_state.store(pc::saves::RestoreBackup(chosen) ? 2 : 3);
+      RestoreChoices(/*refresh=*/true);
       g_options_generation.fetch_add(1);
     });
-    return false;
+    return true;
   };
   r.push_back(std::move(restore));
   return r;

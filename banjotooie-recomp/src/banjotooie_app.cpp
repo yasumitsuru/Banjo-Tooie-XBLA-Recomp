@@ -398,6 +398,9 @@ void BanjotooieApp::OnPreLaunchModule() {
   // Pacote de shaders do port (se houver): completa o cache antes de o runtime carrega-lo.
   shader_pack_copied_ =
       pc::shaders::InstallPack(rex::filesystem::GetExecutableFolder(), runtime()->cache_root());
+  // Saves (M04, etapa B): conferir e, se o jogo fosse descartar algo, restaurar ANTES de o jogo
+  // comecar. Antes isto rodava depois do inicio do jogo, em paralelo com a leitura dele.
+  pc::saves::Initialize(user_data_root_);
 }
 
 void BanjotooieApp::OnPostLaunchModule(rex::system::XThread* thread) {
@@ -450,7 +453,6 @@ void BanjotooieApp::OnPostLaunchModule(rex::system::XThread* thread) {
               pc::Get().fps60);
   pc::input::SetMouseLook(pc::Get().mouse_look);
   if (pc::Get().mouse_look) pc::input::SetCaptureEnabled(true);
-  pc::saves::Initialize(user_data_root_);
   StartFocusWatcher();
   auto opts = pc::automation::ParseCommandLine();
   if (opts.active()) {

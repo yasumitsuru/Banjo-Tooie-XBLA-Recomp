@@ -28,6 +28,7 @@ set(BANJOTOOIE_SOURCES
     src/pc/pc_ingame_menu.cpp
     src/pc/pc_lang.cpp
     src/pc/pc_saves.cpp
+    src/pc/pc_save_format.cpp
     src/pc/pc_progress.cpp
     src/pc/scripted_input.cpp
     src/pc/pc_crash.cpp

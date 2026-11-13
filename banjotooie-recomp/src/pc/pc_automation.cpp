@@ -868,6 +868,7 @@ Options ParseCommandLine() {
     else if (a == L"--probe-titlepc") o.probe_titlepc = argv[++i];
     else if (a == L"--probe-titlemenu") o.probe_titlemenu = argv[++i];
     else if (a == L"--probe-pcpages") o.probe_pcpages = argv[++i];
+    else if (a == L"--probe-fullscreen") o.probe_fullscreen = argv[++i];
     else if (a == L"--probe-menucursor") o.probe_menucursor = argv[++i];
     else if (a == L"--probe-gamepad") o.probe_gamepad = argv[++i];
     else if (a == L"--probe-dd-maps") o.probe_dd_maps = argv[++i];
@@ -2493,6 +2494,119 @@ void Start(const Options& opts, rex::ui::WindowedAppContext* ui,
         WaitFrames(10);
       }
       Finish(0);
+    }
+
+    // Tela cheia pelo menu DO JOGO durante o jogo (relato de 2026-11-12: "durante a gameplay ao
+    // configurar tela cheia o jogo crasha"; relatório crash-20261112-220036: 0xC0000005 no driver
+    // de vídeo dentro de D3D12Presenter::PaintAndPresentImpl). Do jogo livre: F1 (página de PC),
+    // GRÁFICOS, MODO e direita três vezes (SEM BORDAS, TELA CHEIA, JANELA), medindo depois de
+    // cada troca se o jogo e a tela continuam apresentando quadros e o estado real da janela.
+    // O JSON é regravado a cada passo: se o processo cair, o último passo gravado mostra onde.
+    if (!opts.probe_fullscreen.empty()) {
+      input::SetActive(true);
+      using clk = std::chrono::steady_clock;
+      std::ostringstream o;
+      o << "{\"version\":1";
+      auto flush = [&](const std::string& tail) {
+        std::ofstream(opts.probe_fullscreen, std::ios::binary | std::ios::trunc) << o.str() << tail;
+      };
+      auto pg_state = [&](uint32_t* page, uint32_t* count, uint32_t* cursor) {
+        *page = ReadU32(kScreenObjAddr + 0x2C);
+        *cursor = ReadU8(kScreenObjAddr + 7);
+        *count = 0;
+        const uint32_t pages = ReadU32(kScreenObjAddr + 0x154);
+        if (pages >= 0x40000000u && pages < 0xA0000000u && *page < 12)
+          *count = ReadU32(pages + *page * 0x2C + 4);
+        return ReadU8(kScreenObjAddr + 4);
+      };
+      auto wait_until = [&](auto pred, double secs) {
+        const auto end = clk::now() + std::chrono::milliseconds(int(secs * 1000));
+        while (clk::now() < end) {
+          if (pred()) return true;
+          std::this_thread::sleep_for(std::chrono::milliseconds(30));
+        }
+        return pred();
+      };
+      const NavResult nav = NavigateToGameplayByState(70.0);
+      for (int i = 0; i < 2; ++i) {
+        Tap(input::kB);
+        WaitFrames(35);
+      }
+      std::this_thread::sleep_for(std::chrono::milliseconds(1500));
+      o << ",\"jogo_livre\":" << (nav.reached ? 1 : 0);
+      flush("}\n");
+      const uint32_t kPc = pc::ingame::PageIndex();
+      uint32_t page = 0, count = 0, cursor = 0;
+      pc::ingame::RequestToggle();
+      const bool at_root = wait_until([&] {
+        return pg_state(&page, &count, &cursor) == 6 && page == kPc && count == 5;
+      }, 10.0);
+      std::this_thread::sleep_for(std::chrono::milliseconds(800));
+      bool at_graphics = false, at_mode = false;
+      if (at_root) {
+        Tap(input::kA, 12);
+        at_graphics = wait_until([&] {
+          return pg_state(&page, &count, &cursor) == 6 && page == kPc &&
+                 int(count) == pc::menu::options::RowCount(0) && pc::ingame::GetStatus().view == 0;
+        }, 6.0);
+        std::this_thread::sleep_for(std::chrono::milliseconds(800));
+        if (at_graphics) {
+          Tap(input::kDpadDown, 10);
+          std::this_thread::sleep_for(std::chrono::milliseconds(400));
+          pg_state(&page, &count, &cursor);
+          at_mode = cursor == 1;
+        }
+      }
+      o << ",\"pagina_pc\":" << (at_root ? 1 : 0) << ",\"graficos\":" << (at_graphics ? 1 : 0)
+        << ",\"linha_modo\":" << (at_mode ? 1 : 0) << ",\"passos\":[";
+      flush("]}\n");
+      bool all_alive = at_mode;
+      auto measure = [&](const char* name, int index) {
+        rex::ui::GetHostPresentStats(true);
+        const uint64_t g0 = state::guest_swaps.load();
+        std::this_thread::sleep_for(std::chrono::milliseconds(2500));
+        const uint64_t guest = state::guest_swaps.load() - g0;
+        const rex::ui::HostPresentStats h = rex::ui::GetHostPresentStats(true);
+        bool fs = false;
+        int cw = 0, ch = 0;
+        LONG_PTR style = 0;
+        ui->CallInUIThreadSynchronous([&]() {
+          if (!window) return;
+          fs = window->IsFullscreen();
+          HWND hwnd = reinterpret_cast<HWND>(window->GetNativeWindowHandle());
+          RECT rc{};
+          if (hwnd && GetClientRect(hwnd, &rc)) {
+            cw = rc.right - rc.left;
+            ch = rc.bottom - rc.top;
+          }
+          style = hwnd ? GetWindowLongPtrW(hwnd, GWL_STYLE) : 0;
+        });
+        const auto mode = pc::Get().display_mode;
+        const bool alive = guest > 60 && h.presents > 60;
+        all_alive = all_alive && alive;
+        char b[512];
+        std::snprintf(b, sizeof b,
+                      "%s{\"passo\":\"%s\",\"modo_salvo\":%d,\"tela_cheia\":%d,\"cliente\":\"%dx%d\","
+                      "\"estilo\":\"0x%08llX\",\"quadros_jogo_2_5s\":%llu,\"apresentacoes_2_5s\":%llu,"
+                      "\"frametime_ms\":%.2f,\"desvio_ms\":%.2f,\"vivo\":%d}",
+                      index ? "," : "", name, int(mode), fs ? 1 : 0, cw, ch,
+                      (unsigned long long)(uint64_t(style) & 0xFFFFFFFFull), (unsigned long long)guest,
+                      (unsigned long long)h.presents, h.mean_ms, h.stddev_ms, alive ? 1 : 0);
+        o << b;
+        flush("]}\n");
+      };
+      if (at_mode) {
+        measure("janela_inicial", 0);
+        const char* names[] = {"sem_bordas", "tela_cheia", "janela_de_novo"};
+        for (int i = 0; i < 3; ++i) {
+          Tap(input::kDpadRight, 10);
+          std::this_thread::sleep_for(std::chrono::milliseconds(1500));
+          measure(names[i], i + 1);
+        }
+      }
+      o << "],\"ok\":" << (all_alive ? 1 : 0) << "}\n";
+      flush("");
+      Finish(all_alive ? 0 : 7);
     }
 
     // Configurações de PC DENTRO do menu do jogo (pedido de 2026-11-12, MECHANICS.md §18), no

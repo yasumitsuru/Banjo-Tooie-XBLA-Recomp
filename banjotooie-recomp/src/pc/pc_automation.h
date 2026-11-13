@@ -37,6 +37,7 @@ struct Options {
   std::filesystem::path probe_menu;  // estado vivo do menu de pausa/totais (itens, tabelas, cursor)
   std::filesystem::path probe_titlepc;  // entrada de PC do menu de TÍTULO (1 abaixo de JOGAR)
   std::filesystem::path probe_titlemenu;  // menu principal: rótulos, entrada da recompilação e SAIR PARA O DESKTOP
+  std::filesystem::path probe_fullscreen;  // MODO pelo menu do jogo durante o jogo (queda em tela cheia)
   std::filesystem::path probe_pcpages;  // Configurações de PC no menu do jogo: seções, rolagem, valor, F1
   std::filesystem::path probe_menucursor;  // memória do menu de título antes/depois de baixo/cima
   std::filesystem::path probe_gamepad;  // XInput real + navegação sintética do menu de PC
@@ -65,7 +66,7 @@ struct Options {
            !probe_save.empty() || !probe_totals.empty() || !probe_quit.empty() ||
            !probe_items.empty() || !probe_scan.empty() || !probe_dialog.empty() ||
            !probe_scenes.empty() || !probe_drawdistance.empty() || !probe_menu.empty() ||
-           !probe_titlepc.empty() || !probe_titlemenu.empty() || !probe_pcpages.empty() || !probe_menucursor.empty() || !probe_gamepad.empty() || !probe_dd_maps.empty() ||
+           !probe_titlepc.empty() || !probe_titlemenu.empty() || !probe_pcpages.empty() || !probe_fullscreen.empty() || !probe_menucursor.empty() || !probe_gamepad.empty() || !probe_dd_maps.empty() ||
            !probe_dd_worlds.empty() || !probe_testpad.empty() || !probe_save_sim.empty() ||
            !make_advanced_save.empty() || !probe_advanced_save.empty() || !probe_display.empty();
   }

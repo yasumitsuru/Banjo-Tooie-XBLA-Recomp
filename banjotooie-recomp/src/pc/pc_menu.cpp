@@ -19,6 +19,8 @@
 #include <rex/ui/imgui_drawer.h>
 #include <rex/ui/keybinds.h>
 #include <rex/ui/window.h>
+#include <rex/ui/windowed_app_context.h>
+#include <rex/logging.h>
 
 #include <algorithm>
 #include <atomic>
@@ -387,23 +389,35 @@ void SaveAll() {
 
 // ----------------------------------------------------------------- tarefas da thread da interface
 // As páginas de PC dentro do jogo rodam na thread do jogo; janela, cursor, cvars do runtime e
-// arquivos são aplicados aqui, no início do próximo quadro da interface (PcSettingsDialog).
+// arquivos são aplicados na thread da interface, pelo LAÇO DE MENSAGENS da janela
+// (CallInUIThreadDeferred) — nunca dentro do desenho do quadro. Correção de 2026-11-12: antes a
+// fila era esvaziada em PcSettingsDialog::OnDraw, que roda dentro de
+// D3D12Presenter::PaintAndPresentImpl; trocar para sem bordas/tela cheia ali redimensionava a
+// janela no meio da pintura e o driver de vídeo caía (0xC0000005 em nvwgf2umx.dll, reproduzido
+// pela sonda --probe-fullscreen na primeira troca).
 std::mutex g_ui_mu;
 std::vector<std::function<void()>> g_ui_tasks;
 std::map<std::string, std::string> g_cvar_pending;  // valor pedido e ainda não aplicado
-
-void PostUi(std::function<void()> task) {
-  std::lock_guard<std::mutex> lk(g_ui_mu);
-  g_ui_tasks.push_back(std::move(task));
-}
+std::atomic<bool> g_ui_drain_scheduled{false};
 
 void DrainUi() {
+  g_ui_drain_scheduled.store(false);
   std::vector<std::function<void()>> tasks;
   {
     std::lock_guard<std::mutex> lk(g_ui_mu);
     tasks.swap(g_ui_tasks);
   }
   for (auto& t : tasks) t();
+}
+
+void PostUi(std::function<void()> task) {
+  {
+    std::lock_guard<std::mutex> lk(g_ui_mu);
+    g_ui_tasks.push_back(std::move(task));
+  }
+  if (!g_window || g_ui_drain_scheduled.exchange(true)) return;
+  if (!g_window->app_context().CallInUIThreadDeferred([] { DrainUi(); }))
+    g_ui_drain_scheduled.store(false);  // laço já encerrado: nada mais a aplicar
 }
 
 // Valor de um cvar contando o pedido ainda na fila (o texto da página mostra o valor novo já).
@@ -439,9 +453,10 @@ void RequestSave() {
   });
 }
 
-// Valores com que o programa começou (resolução e MSAA só mudam ao reiniciar).
+// Valores com que o programa começou (resolução, MSAA, FXAA e escala só mudam ao reiniciar).
 Resolution g_startup_resolution = Resolution::R1440p;
 bool g_startup_msaa = false;
+std::map<std::string, std::string> g_startup_cvars;
 
 // Algo terminou fora da thread do jogo e as linhas da página precisam ser reescritas.
 std::atomic<uint32_t> g_options_generation{1};
@@ -749,8 +764,8 @@ class PcSettingsDialog : public rex::ui::ImGuiDialog {
 
  protected:
   void OnDraw(ImGuiIO& io) override {
-    // Pedidos das páginas de PC dentro do jogo (thread do jogo) aplicados aqui, na da interface.
-    DrainUi();
+    // Os pedidos das páginas de PC rodam no laço de mensagens (PostUi), não aqui: este método é
+    // chamado DENTRO do desenho do quadro. A captura de tecla só lê o teclado.
     PollIngameCapture();
     // Menu antigo (sobreposto): só como reserva (Shift+F1, --open-pc-menu e sondas antigas).
     if (pc::state::menu_open_request.exchange(false) && !g_menu_open) {
@@ -855,11 +870,12 @@ class PcSettingsDialog : public rex::ui::ImGuiDialog {
     changed |= ImGui::RadioButton("Tela cheia", &mode, 2);
     if (changed) {
       s.display_mode = DisplayMode(mode);
-      ApplyDisplayModeNow(g_window, s.display_mode);
+      const DisplayMode m = s.display_mode;
+      PostUi([m] { ApplyDisplayModeNow(g_window, m); });  // fora do desenho do quadro
     }
-    bool vsync = CvarBool("vsync");
-    if (ImGui::Checkbox("VSync (ritmo de 60 Hz do console)", &vsync))
-      SetCvar("vsync", vsync ? "true" : "false");
+    bool vsync = CvarNow("host_vsync") != "false";
+    if (ImGui::Checkbox("VSync (imagem sincronizada com o monitor, sem tearing)", &vsync))
+      SetCvarAsync("host_vsync", vsync ? "true" : "false");
     ImGui::TextUnformatted("Anti-serrilhado");
     std::string pe = CvarStr("swap_post_effect");
     int aa = pe == "fxaa" ? 1 : pe == "fxaa_extreme" ? 2 : 0;
@@ -1087,6 +1103,16 @@ void Create(rex::ui::ImGuiDrawer* drawer, rex::ui::Window* window,
   g_window = window;
   g_startup_resolution = pc::Get().resolution;
   g_startup_msaa = CvarBool("native_2x_msaa");
+  for (const char* c : {"swap_post_effect", "native_2x_msaa", "present_effect",
+                        "anisotropic_override", "host_vsync", "audio_mute"})
+    g_startup_cvars[c] = CvarStr(c);
+  // 'vsync' do runtime = ritmo de 60 Hz do console; desligado, o "retraço" vira 1 ms e o jogo
+  // perde o ritmo. O menu antigo o expunha como VSync; uma escolha antiga é desfeita aqui.
+  if (!CvarBool("vsync")) {
+    SetCvar("vsync", "true");
+    REXLOG_WARN("PC: 'vsync' (ritmo de 60 Hz do console) estava desligado; religado. O VSync do "
+                "menu agora é 'host_vsync' (imagem no retraço do monitor).");
+  }
   g_fps = std::make_unique<FpsOverlay>(drawer);
   g_collectibles = std::make_unique<CollectibleOverlay>(drawer);
   g_dialog = std::make_unique<PcSettingsDialog>(drawer);
@@ -1245,25 +1271,52 @@ Row Float(const char* label, float Settings::*field, float lo, float hi, float s
 }
 
 // Cvar com uma lista fixa de valores (o texto mostrado em names[i]).
+// Cvar com uma lista fixa de valores (o texto mostrado em names[i]). Só entram os valores que
+// o runtime aceita (lista .allowed() do cvar): este build não tem o AMD FidelityFX, então
+// present_effect só aceita "bilinear" e os pedidos "cas"/"fsr" eram recusados ("not in allowed
+// values", 45 avisos nos logs de 2026-11-12) sem mudar nada. "(REINICIE)" aparece quando o
+// runtime só aplica o cvar ao reiniciar (lifecycle) e o valor difere do da partida.
 Row CvarList(const char* label, const char* cvar, std::vector<std::string> values,
              std::vector<std::string> names, bool restart_hint = false) {
+  if (const rex::cvar::FlagEntry* info = rex::cvar::GetFlagInfo(cvar)) {
+    if (info->constraints.HasAllowedValues()) {
+      std::vector<std::string> v2, n2;
+      for (size_t i = 0; i < values.size(); ++i) {
+        const auto& ok = info->constraints.allowed_values;
+        if (std::find(ok.begin(), ok.end(), values[i]) != ok.end()) {
+          v2.push_back(values[i]);
+          n2.push_back(names[i]);
+        }
+      }
+      if (!v2.empty()) {
+        values = std::move(v2);
+        names = std::move(n2);
+      }
+    }
+    restart_hint = restart_hint || info->lifecycle == rex::cvar::Lifecycle::kRequiresRestart;
+  }
   auto index = [cvar, values] {
     const std::string cur = CvarNow(cvar);
     for (size_t i = 0; i < values.size(); ++i)
       if (values[i] == cur) return int(i);
     return 0;
   };
-  return {[label, names, index, restart_hint, cvar] {
+  Row row{[label, names, index, restart_hint, cvar] {
             std::string t = std::string(label) + " : " + names[size_t(index())];
-            if (restart_hint && (CvarNow(cvar) == "true") != g_startup_msaa) t += " (REINICIE)";
+            const auto start = g_startup_cvars.find(cvar);
+            if (restart_hint && start != g_startup_cvars.end() && CvarNow(cvar) != start->second)
+              t += " (REINICIE)";
             return t;
           },
           [cvar, values, index](int dir) {
+            if (values.size() < 2) return false;
             const int i = Wrap(index(), int(values.size()), dir);
             SetCvarAsync(cvar, values[size_t(i)]);
             RequestSave();
             return true;
           }};
+  row.value = values.size() > 1;
+  return row;
 }
 
 void ApplyRuntimeLater() { PostUi([] { pc::ApplyRuntimeOptions(); }); }
@@ -1305,13 +1358,16 @@ std::vector<Row> BuildGraphics() {
                  RequestSave();
                  return true;
                }});
-  r.push_back(CvarList("VSYNC", "vsync", {"true", "false"}, {"SIM", "NÃO"}));
-  r.push_back(CvarList("ANTISSERRILHADO", "swap_post_effect", {"none", "fxaa", "fxaa_extreme"},
-                       {"NENHUM", "FXAA", "FXAA FORTE"}));
+  // VSYNC = imagem entregue no retraço do monitor (host_vsync, sem tearing). O cvar 'vsync' do
+  // runtime é o ritmo de 60 Hz do console: desligado, o jogo receberia um "retraço" a cada 1 ms
+  // (graphics_system.cpp) — fica sempre ligado (pc_menu::Create).
+  r.push_back(CvarList("VSYNC", "host_vsync", {"true", "false"}, {"SIM", "NÃO"}));
+  r.push_back(CvarList("FXAA", "swap_post_effect", {"none", "fxaa", "fxaa_extreme"},
+                       {"NÃO", "SIM", "FORTE"}));
   r.push_back(CvarList("MSAA 2X", "native_2x_msaa", {"false", "true"}, {"NÃO", "SIM"}, true));
   r.push_back(CvarList("ANISOTROPIA", "anisotropic_override", {"-1", "0", "2", "3", "4", "5"},
                        {"DO JOGO", "DESLIGADA", "2X", "4X", "8X", "16X"}));
-  r.push_back(CvarList("ESCALONAMENTO", "present_effect", {"bilinear", "cas", "fsr"},
+  r.push_back(CvarList("ESCALA", "present_effect", {"bilinear", "cas", "fsr"},
                        {"BILINEAR", "AMD CAS", "AMD FSR"}));
   return r;
 }

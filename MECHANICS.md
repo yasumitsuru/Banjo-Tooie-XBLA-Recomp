@@ -823,3 +823,18 @@ Prova no jogo real (dados isolados em `_audit/out/menu-ingame/`):
   página de PC e saída com a confirmação original passam.
 - `--measure-secs 30` (fps30): renderização interna 3840×2160 (escala 3×3, janela 1602×901),
   59,9 FPS em 30 s de jogo livre, tempo de quadro 16,69 ± 1,13 ms (máx. 33,7 ms, 0 repetidos).
+
+### 18.1 Correções de 2026-11-12 (22h): tela cheia, VSync e valores aceitos
+
+- **Queda ao trocar MODO**: `PcSettingsDialog::OnDraw` roda dentro de
+  `D3D12Presenter::PaintAndPresentImpl` (pilha do relatório: WndProc → OnPaint →
+  PaintFromUIThread → PaintAndPresent → PaintAndPresentImpl+0xE61 → D3D12Core → nvwgf2umx+0x76A0A7).
+  A fila de tarefas da interface (janela, cursor, cvars, arquivos) passou para o laço de mensagens
+  (`WindowedAppContext::CallInUIThreadDeferred`). Reproduzido antes e corrigido depois com
+  `--probe-fullscreen` (`_audit/out/fullscreen-vsync/antes|depois`).
+- **VSync**: `host_vsync` (rexglue-sdk, `d3d12_presenter.cpp`) → `Present(1, RESTART)` sem
+  `ALLOW_TEARING`; desligado volta ao `Present(0, RESTART|ALLOW_TEARING)` original. A linha VSYNC
+  do menu usa `host_vsync`; o `vsync` do runtime (ritmo do console: 60 Hz ou 1 ms) fica ligado.
+- **Valores aceitos**: as linhas de cvar filtram pela lista `.allowed()` do runtime
+  (`present_effect` = só `bilinear` neste build) e mostram "(REINICIE)" pelo `lifecycle`.
+

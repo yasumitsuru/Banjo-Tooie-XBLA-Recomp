@@ -269,3 +269,18 @@ disponível nesta sessão, então nada foi publicado).
   3840×2160 (escala 3×3) a 59,9 FPS em 30 s de jogo livre, tempo de quadro 16,69 ± 1,13 ms. A
   matriz 1080p/1440p/4K × Janela/Sem bordas/Tela cheia (M03) continua **PENDENTE (0/9)**.
 - Checkpoint antes da mudança: `refs/checkpoints/f1-dentro-do-jogo-antes-20261112`.
+
+## Tearing, queda em tela cheia e revisão dos logs (pedido de 2026-11-12, 22h)
+
+Logs lidos: `out/native/logs/banjotooie_281..293.log`, `banjotooie_boot.json`,
+`out/craft-runtime/user/crashes/crash-20261112-220036.txt` e o minidump da mesma hora.
+
+| Problema (log) | Causa | Solução | Prova |
+|---|---|---|---|
+| Queda 0xC0000005 em `nvwgf2umx.dll` ao trocar MODO (sem bordas/tela cheia) durante o jogo | a troca era aplicada DENTRO do desenho do quadro (fila esvaziada em `OnDraw`, chamado por `D3D12Presenter::PaintAndPresentImpl`); a janela mudava de tamanho no meio da pintura | a fila de tarefas da interface agora roda no laço de mensagens (`CallInUIThreadDeferred`); a janela antiga também | sonda nova `--probe-fullscreen`: ANTES caiu na 1ª troca (mesma pilha do seu relatório); DEPOIS janela → sem bordas → tela cheia → janela, sempre apresentando (~58/s), sem falha (`_audit/out/fullscreen-vsync/`) |
+| Tearing com VSYNC ligado (janela) | o apresentador D3D12 sempre usava `Present(0, ALLOW_TEARING)`; o VSYNC do runtime só controla o ritmo de 60 Hz do console | cvar novo `host_vsync` no rexglue-sdk (padrão ligado): `Present(1)` sem tearing, no retraço do monitor; a opção VSYNC do menu passa a ser ele | log: "present on the monitor vblank (sync interval 1, no tearing)"; auto-teste 59,9 FPS / 16,70 ± 1,26 ms em 20 s, 0 repetidos. A ausência visual de tearing precisa do seu olho (não há como fotografar a varredura) |
+| VSYNC = NÃO quebraria o ritmo do jogo | o cvar `vsync` desligado faz o "retraço" do console bater a cada 1 ms | `vsync` fica sempre ligado (religado na partida, com aviso no log) | código `graphics_system.cpp` |
+| `Flag 'present_effect': 'fsr'/'cas' not in allowed values` (45×) | este runtime não tem o AMD FidelityFX: só aceita `bilinear` | o menu só oferece valores aceitos pelo runtime (ESCALA : BILINEAR); FXAA e escala mostram "(REINICIE)" quando só valem ao reiniciar | `--probe-pcpages`: 0 avisos |
+| `XamShowAchievementsUI STUB` (9×) | CONQUISTAS abre o painel do Xbox, que não existe no PC | **não corrigido**: decisão da pessoa (esconder CONQUISTAS como CLASSIFICAÇÕES, ou manter) | — |
+| `gamecontrollerdb.txt` ausente (85×), `db360_TexFileList.txt` (94×), `ShaderDumpxe:` (94×), `Content 0…` (31×) | avisos inofensivos: o SDL tem mapeamentos próprios (o controle Xbox foi reconhecido); arquivo opcional (`MECHANICS.md` §2); caminho de depuração do jogo; procura de conteúdo extra | nenhuma mudança | — |
+

@@ -16,8 +16,8 @@ finalize o restante". Plano vivo: [`PLANO.md`](PLANO.md). Detalhes técnicos: `M
   falso resultado (matriz de vídeo, pausa ao minimizar, escolha de backup).
 - **Implementado:** registro de sessão (C-10), linha MONITOR, lista de CONQUISTAS do PC, sonda de
   física 30×60, sonda de sessão longa, bateria única de regressão.
-- **Matriz do plano:** 45 OK (eram 32), 0 defeitos, 0 bloqueados; 23 NV, 7 parciais,
-  10 não implementados, 12 não verificáveis.
+- **Matriz do plano:** 46 OK (eram 32), 0 defeitos, 0 bloqueados; 23 NV, 8 parciais,
+  10 não implementados, 10 não verificáveis.
 
 ## Correções
 
@@ -51,7 +51,7 @@ finalize o restante". Plano vivo: [`PLANO.md`](PLANO.md). Detalhes técnicos: `M
 | CONQUISTAS | `--probe-conquistas` | PASS título e pausa |
 | Pausa ao minimizar | `--probe-focus` | PASS |
 | Registro de sessão | sondas + teste negativo | PASS (cabeçalho, eventos, desempenho; pasta impossível: jogo 10/10) |
-| Sessão longa | `--probe-longa` 60 min | ver "Sessão longa" |
+| Sessão longa | `--probe-longa` 60 min | **PASS**: 1 h sem travamento, 184/184 viagens, 59,4 FPS, memória estável |
 
 **Mundos cobertos:** viagem e distância de desenho em 18 mapas (0x112, 0x128, 0x127, 0x136,
 0x142, 0x15D, 0x12D, 0x124, 0xD6, 0x163, 0xBB, 0x18A, 0x1A7, 0x1A8, 0x1A9, 0x100, 0xB8, 0xC7);
@@ -61,7 +61,26 @@ física em 4 (0xAF, 0x127, 0xD6, 0x1A7).
 
 ## Sessão longa
 
-(preenchido ao fim da execução de 60 minutos)
+`--probe-longa` com `--longa-minutos 60` (2026-11-14, 18:2x–19:2x;
+`_audit/out/m04/F/sessao-longa2/longa.json` + `user/logs/sessao-*.txt`): o jogo viaja pelos 18
+mapas com a rotina do próprio jogo e, em cada um, corre, pula, gira a câmera, golpeia e abre/fecha
+a pausa. Uma 1ª tentativa parou em 62 s porque a sessão do agente foi interrompida (não foi falha
+do jogo).
+
+| Medida | Resultado |
+|---|---|
+| Duração / travamentos | 3.611 s; **0 travamentos** (vigia: 15 s sem quadro novo) |
+| Viagens / pausas | **184/184** viagens; 183 pausas abertas e fechadas |
+| FPS (por minuto) | média **59,4**; mínimo 56,8; lógica 59,4/s |
+| FPS por visita (≈ 15 s de jogo) | 59–60 em 16 dos 18 mapas; mínimo 56,7 (0x128) e 54,9 (0x100, 1 visita) |
+| Tempo de quadro (122 blocos de 30 s) | p95 médio 18,6 ms; 217 quadros > 33,4 ms em 1 h (≈ 1 por carregamento de mapa; pior 1,7 s durante um carregamento) |
+| Memória do processo | 1.337 MB no início, **1.476 MB aos 5 min, 1.479 MB no fim** (+2,7 MB em 55 min: sem vazamento) |
+| Handles / CPU / vídeo | 1.039 → 1.041; CPU média 21,5%; memória de vídeo 0,48–0,76 GB |
+| Erros no log do runtime | 0 |
+
+Leitura: estável por 1 hora a 4K/60 neste PC. Os quadros longos acontecem nos carregamentos de
+mapa (tela de transição), não no jogo livre. GPU (uso %) não foi medida: o registro traz só a
+memória de vídeo (DXGI).
 
 ## Pendências (tudo o que não foi concluído ou validado)
 

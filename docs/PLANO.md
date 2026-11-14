@@ -14,7 +14,7 @@ concluída**: ver "Pendências" no relatório.
 
 ## Em poucas palavras
 
-- **Pronto e provado: 45 de 97** (eram 24 na auditoria e 32 depois da etapa B). Novos nesta
+- **Pronto e provado: 46 de 97** (eram 24 na auditoria e 32 depois da etapa B). Novos nesta
   rodada: registro de sessão (C-10); viagem aos 18 mapas e distância de desenho aplicada em todos
   (C-94, C-42); vídeo 1080p/1440p/4K × janela/sem bordas/tela cheia 9/9 com reabertura (C-21 a
   C-27); monitor certo com 3 monitores (C-29); CONQUISTAS no PC (C-6); migração das opções
@@ -27,7 +27,7 @@ concluída**: ver "Pendências" no relatório.
   andar, correr e colisões iguais; pulo +3,6%, tempo no ar +17 ms e deslize ~10% maiores a 60,
   pela integração do mesmo código a passo menor (MECHANICS.md §20). Natação, voo, cronômetros,
   minijogos, chefes e cenas seguem sem medida.
-- **O resto:** 23 sem validação, 7 parciais, 10 não implementados e 12 não verificáveis — a
+- **O resto:** 23 sem validação, 8 parciais, 10 não implementados e 10 não verificáveis — a
   maioria em controles (remapeamento, controle físico), áudio (música/efeitos), câmera e cenas.
 
 ## Missão ativa — M04: correção integral, estabilização e validação automatizada
@@ -79,7 +79,7 @@ Uma etapa só avança para o que depende dela depois que suas mudanças crítica
 |---|---|---|
 | A — Preparação | **FEITA** (2026-11-13) | checkpoint `refs/checkpoints/m04-inicio` (app `423524b`, rexglue-sdk `88a105a`); 36/36 arquivos PT-BR iguais; foto da pasta da pessoa (15 arquivos); alvo PT-BR confirmado no log ("JOGAR"). Saídas em `_audit/out/m04/A/` |
 | B — Segurança dos saves | **FEITA** (2026-11-13) | `python -I tools/test_saves.py --corpus _audit/out/m04/B/corpus-reais`: **18/18 PASS** (`_audit/out/m04/B/run-20261113-205157/resultado.json`); 207 saves reais aceitos e 14 estragados recusados pelo código do port; gravação real do jogo com o registro do runtime; pasta da pessoa igual antes e depois. Detalhes abaixo |
-| C — Infraestrutura | **QUASE TODA** (2026-11-14) | C-10 registro de sessão (cabeçalho, eventos, desempenho; teste negativo); C-94 viagem aos 18 mapas; C-97 `tools/m04/bateria.py`; C-7 sessão longa (ver relatório). Falta C-70 (saves de meio e fim da história) |
+| C — Infraestrutura | **QUASE TODA** (2026-11-14) | C-10 registro de sessão (cabeçalho, eventos, desempenho; teste negativo); C-94 viagem aos 18 mapas; C-97 `tools/m04/bateria.py`; C-7 sessão longa de 1 h sem travamento. Falta C-70 (saves de meio e fim da história) |
 | D — Estabilização | **PARCIAL** (2026-11-14) | física 30×60 71/80 medidas iguais (§20); matriz de vídeo 9/9 + reaberturas; DPI por monitor; 1080p a 2×; 3 monitores; distância de desenho 18/18 mapas. Faltam C-33/C-36/C-35 (cenas, cronômetros, sincronia de áudio), C-44 (custo por perfil), C-46–C-50 (prova visual) |
 | E — Funcionalidades | **INICIADA** (2026-11-14) | C-6 CONQUISTAS; C-82/C-83 opções de vídeo só na conta + migração; C-91 pausa ao minimizar. Faltam controles (C-38, C-52–C-61), áudio (C-65–C-67), câmera (C-62–C-64), cenas (C-84–C-86), tradução por mundo (C-13–C-19) |
 | F — Homologação | **PARCIAL** (2026-11-14) | regressão: auto-teste 10/10, PT-BR 29/29 + 15/15 telas, saves 17/17, 36/36 originais; relatório `docs/M04-RELATORIO.md` |
@@ -213,7 +213,7 @@ A coluna Etapa diz onde a M04 resolve o item. "manter" = já provado; só não p
 
 **Total na auditoria:** 24 OK, 34 NV, 8 PARCIAL, 13 NÃO IMPL., 3 DEFEITO, 1 BLOQ., 14 NÃO VERIF.
 **Total depois da etapa B (2026-11-13):** 32 OK, 30 NV, 7 PARCIAL, 12 NÃO IMPL., 2 DEFEITO, 1 BLOQ., 13 NÃO VERIF.
-**Total em 2026-11-14 (etapas C–F em andamento):** 45 OK, 23 NV, 7 PARCIAL, 10 NÃO IMPL., 0 DEFEITO, 0 BLOQ., 12 NÃO VERIF.
+**Total em 2026-11-14 (etapas C–F em andamento):** 46 OK, 23 NV, 8 PARCIAL, 10 NÃO IMPL., 0 DEFEITO, 0 BLOQ., 10 NÃO VERIF.
 
 **Limite das evidências:** as provas de distância de desenho, controle e save avançado que
 existem vêm do projeto vizinho `W:\Decomp\Banjo` (build de 08–09/11) e não valem para este build.
@@ -229,7 +229,7 @@ Os testes deste build cobrem só título, introdução e o início de Spiral Mou
 | 4 | Menu principal (CONFIGURAÇÃO DA RECOMPILAÇÃO, SAIR PARA O DESKTOP com confirmação) | OK | manter |
 | 5 | Encerramento limpo (64/64) | OK | manter (repetir em F) |
 | 6 | CONQUISTAS (stub do Xbox) | OK (M04-E: lista de conquistas do PC no menu do jogo) | manter |
-| 7 | Estabilidade em sessões longas | NÃO VERIF. | C/F |
+| 7 | Estabilidade em sessões longas | OK (M04-F: 1 h, 0 travamentos, 184/184 viagens, memória estável) | manter |
 | 8 | Versão global no mesmo port | OK | só regressão |
 | 9 | Seletor PT-BR/Global | OK | manter |
 | 10 | Sistema de log completo | OK (M04-C: registro de sessão; teste negativo com pasta impossível: jogo 10/10) | manter |
@@ -253,7 +253,7 @@ Os testes deste build cobrem só título, introdução e o início de Spiral Mou
 | 28 | VSync sem tearing | NV | D |
 | 29 | Detecção automática da resolução | OK (M04-D: monitor escolhido/cursor; 3 monitores) | manter |
 | 30 | 60 FPS no início de Spiral Mountain | OK | manter |
-| 31 | 60 FPS sustentado (mundos, cenas, horas) | NÃO VERIF. | D |
+| 31 | 60 FPS sustentado (mundos, cenas, horas) | PARCIAL (M04-F: 59,4 FPS de média em 1 h pelos 18 mapas; mínimo 54,9 numa visita; cenas não medidas à parte) | D |
 | 32 | Física e velocidade iguais às de 30 FPS | PARCIAL (M04-D: andar, correr, pulo, deslize e colisões medidos 30×60; natação/voo não) | D |
 | 33 | Cenas a 30 com tela a 60 | NV | D |
 | 34 | Separação lógica / render / tempo | NÃO IMPL. | D (decisão) |

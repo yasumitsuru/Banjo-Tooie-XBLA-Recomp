@@ -862,3 +862,89 @@ então escreve. Uma queda nesse intervalo deixaria a pessoa sem save. Desde a M0
 o conteúdo anterior em `savegame.dat.port-prev` antes de apagar/zerar/escrever
 (`host_path_entry.cpp`, `host_path_file.cpp`, cvar `host_write_journal_files`) e o apaga quando o
 arquivo novo é fechado. Na abertura seguinte, `pc_saves.cpp` usa essa cópia se ela sobrou.
+
+## 20. Física a 30 × 60 FPS medida no jogo real (M04, etapa D, 2026-11-14)
+
+**Método** (`tools/m04/fisica_30x60.py` + sonda `--probe-fisica`): o gancho de início de quadro
+(`0x8222165C`) grava, na thread do jogo, a posição do Banjo (`0x8266BB74`) a **cada atualização
+da lógica**. A mesma entrada roteirizada, com tempos de relógio (parado 1 s; andar com meio
+analógico 1,5 s; correr 2 s; pulo com A segurado 0,4 s; câmera com o analógico direito 1 s; ré
+1,2 s), roda com `fps60 = false` (passo de quadros original **2**, lógica a 30) e `fps60 = true`
+(passo 1 + as 17 constantes do §12.3), **2 vezes cada**, em 4 mapas (início de Spiral Mountain
+0xAF, 0x127, 0xD6, 0x1A7, por viagem com a rotina do jogo `0x82248810`). Antes de cada mapa o
+jogador assenta **3 s de relógio** (a 1ª versão esperava 90 *quadros*, 1,5 s a 60 e 3 s a 30 —
+corrigido). Tolerâncias, justificadas no próprio `resultado.json`: a 30 FPS o jogo lê o
+controle a cada 33,3 ms, então cada comando pode cair 1 quadro antes/depois.
+
+**Resultado** (`_audit/out/m04/D/fisica-20261114-013957/resultado.json`): **71 de 80 medidas
+iguais dentro da tolerância.**
+
+| Medida | 60 FPS | 30 FPS (original) | Leitura |
+|---|---|---|---|
+| Velocidade andando (regime) | 107–110 u/s | 109–110 u/s | igual nos 4 mapas |
+| Velocidade correndo (regime) | 450 / 333 / 522 / 489 u/s | 459 / 331 / 522 / 478 u/s | igual (≤ 2%) em 3 mapas; **2,4% maior a 60 em 0x1A7** |
+| Aceleração até 90% (correr) | 0,08–0,30 s | 0,08–0,26 s | dentro de 1 quadro de 30 FPS |
+| Altura do pulo | **168,3 u** | **162,5 u** | +5,8 u (+3,6%) = `v_subida × (1/30 − 1/60) / 2` com v ≈ 700 u/s: é a integração numérica do mesmo código a passo menor, igual ao patch 60 FPS do Xenia |
+| Tempo no ar | 0,816–0,820 s | 0,798–0,803 s | +17 ms (meio quadro de 30 FPS) |
+| Deslize ao soltar o analógico (correndo) | 67–77 u | 56–76 u | ~10% mais longo a 60: a desaceleração é exponencial por quadro (0,69 por quadro de 33 ms a 30 FPS; 0,845² = 0,72 a 60), mesma fórmula com passo menor (mais perto do contínuo, 0,73) |
+| Ré e posição final da sequência (inclui colisões no caminho) | — | — | dentro da tolerância nos 4 mapas |
+
+**Fora da tolerância (9):** deriva "parado" de 3–18 u (animação de espera depois da chegada; não
+segue comando); aceleração e altura em 0x127 (início numa rampa: Δ 8,5 u para 7,9 de tolerância);
+velocidade de corrida em 0x1A7 (2,4%); 3 medidas de "câmera" **inválidas** (o trio `0x826A0450`
+usado não é a câmera: não acompanha o jogador em outros mapas). A comparação por imagem depois do
+giro mostrou a câmera no mesmo lugar a menos de ~2° (deslocamento de ~20 px a 640 px de largura,
+dentro de 1 quadro de 30 FPS de giro).
+
+**Conclusão:** andar, correr e colisões batem com o original; pulo (+3,6%), tempo no ar (+17 ms)
+e deslize (~10%) diferem pelo passo de integração, a mesma diferença do patch 60 FPS do Xenia. Não
+foi feita correção (pediria mudar a física do jogo, e o resultado a 60 já é a mesma fórmula); o
+que não foi medido (natação, voo, cronômetros de minijogos, inimigos, chefes) segue PENDENTE no
+`docs/PLANO.md`.
+
+## 21. Registro de sessão (M04, etapa C, item C-10)
+
+`src/pc/pc_log.cpp`: um arquivo por sessão em `<dados do usuário>\logs\sessao-AAAAMMDD-HHMMSS.txt`
+(os 20 mais novos ficam; até 16 MB cada), sempre ligado. Cabeçalho com SHA-256 do exe, commit do app
+e do rexglue-sdk (CMake), Windows, CPU, memória, cada GPU com driver (DXGI), API gráfica e cvars de
+vídeo, monitores, pasta do jogo e pré-checagem, opções de PC. Depois: tudo o que o runtime registra
+(sink do spdlog, nível info; "REGISTRO DETALHADO" = debug e bloco a cada 5 s), etapas do boot e do
+desligamento (`BootReport::SetStageListener`), mudanças de mapa (`0x82673720`) e de cena
+(`0x8266EF30`), opções gravadas (o que mudou), conquistas, falhas (`pc_crash.cpp` →
+`Emergency`) e bloco de desempenho a cada 30 s: quadros/s, atualizações da lógica/s, tempo de
+quadro médio/p95/máximo, quadros > 33,4 ms, % em cena, memória privada e pico, CPU, memória de
+vídeo (DXGI) e handles. O caminho do perfil do Windows vira `%USERPROFILE%`. Menu ÁUDIO E SAVES:
+REGISTRO DETALHADO e ABRIR PASTA DOS REGISTROS.
+
+## 22. CONQUISTAS no PC (M04, item C-6)
+
+Lido no código gerado e no Ghidra (sessão Deep de 2026-11-14): a entrada CONQUISTAS (título e
+pausa, texto 2, ícone 100, página-alvo −1) tem a ação **`0x822DD628`** = `FUN_8227EED0()`
+(`0x822E5F08(0x8269EE90)`: só lê `*(0x8269EE90 + 0x14)`, o jogador ativo; ev_9fae78979f) +
+**`0x825B1F60`** (`li r4,0; b XamShowAchievementsUI`), o painel do Xbox LIVE, que no runtime é um
+stub: a entrada não fazia nada. Gancho `PcHook_AchievementsSelect` (`pc_hooks.toml`,
+`return_on_true`) abre a página 7 do menu do jogo na vista CONQUISTAS (`kAchievementsView`); B
+volta à página de origem. Lista: tabela XDBF do XEX (`kernel_state()->title_xdbf()`), 12
+conquistas, 200 pontos; a tabela do idioma 9 (português) traz o texto em inglês, então a versão
+PT-BR usa uma tradução curta do port (`pc_achievements.cpp`, termos da tradução da pessoa).
+Obtidas: o jogo chama `XGIUserWriteAchievements` (mensagem `0x000B0008`); o rexglue-sdk avisa o
+port (`SetAchievementWrittenCallback`), que guarda id e data em `<dados>\conquistas.txt`.
+
+## 23. Vídeo: DPI, modo de vídeo do console, 1080p, monitores (M04, etapa D)
+
+- **DPI por monitor** (`SetProcessDpiAwarenessContext(PER_MONITOR_AWARE_V2)` em
+  `OnConfigurePaths`): o runtime cria a superfície com `GetClientRect` (`surface_win.cpp`); sem
+  reconhecimento de DPI, num monitor 4K a 150% (o desta pessoa, AppliedDPI 144) ela tinha o tamanho
+  lógico (2560×1440) e o Windows esticava para 3840×2160.
+- **Modo de vídeo do console fixo 1280×720**: `GetConfiguredVideoModeWidth/Height`
+  (`xboxkrnl_video.cpp`) usava o tamanho da janela; com 1920×1080 o jogo passa a gerar um quadro
+  1080p. Novo cvar do rexglue-sdk `video_mode_fixed` (o port liga).
+- **1080p** = escala interna 2× (2560×1440) reduzida na apresentação (antes 1×, 1280×720
+  ampliado). 1440p = 2×, 4K = 3×.
+- **Monitor** (`pc_display.cpp`): linha MONITOR (AUTOMÁTICO = monitor do cursor na abertura);
+  resolução automática pelo monitor escolhido; janela levada para ele (primeiro a posição, depois o
+  tamanho, por causa da reescala de DPI); sem bordas = `rcMonitor` inteiro. Opções de versão < 4
+  ficam no monitor principal (comportamento anterior).
+- **Fonte única das opções de vídeo**: resolução, escala, tamanho da janela e tela cheia vêm de
+  `pc_settings.toml` e são reaplicados depois do `banjotooie.toml` do runtime, que não os grava
+  mais (antes `resolution = "4k"` do runtime vencia a escolha do menu).

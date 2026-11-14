@@ -39,6 +39,20 @@ Na primeira vez em que o jogo abre, ele copia o save das versões anteriores (pa
 `MIGRADO-PARA-MY-GAMES.txt` e não é copiado para mais nenhuma conta. As verificações do Craft usam
 outra pasta (`out\craft-check\user`) e nunca mexem no save de ninguém.
 
+## Novidades da Missão 04 (2026-11-14)
+
+- **Vídeo**: a imagem 4K agora sai em 4K de verdade mesmo com a escala do Windows (antes, num
+  monitor 4K a 150%, saía 2560×1440 esticada); 1080p desenha a 2560×1440 e reduz (mais nítido);
+  "sem bordas" cobre o monitor inteiro; a linha **MONITOR** (GRÁFICOS) escolhe em qual monitor o
+  jogo abre (AUTOMÁTICO = o monitor onde está o mouse ao abrir). Quem já tinha opções salvas
+  continua no monitor principal.
+- **CONQUISTAS** (menu principal e pausa) mostra a lista das 12 conquistas do jogo em português,
+  com as obtidas neste PC marcadas com `*`; A mostra como conseguir cada uma.
+- **Registro de sessão**: cada vez que o jogo abre, um arquivo `logs\sessao-*.txt` na pasta do
+  save (versão, placa de vídeo, mapas, desempenho, erros). ÁUDIO E SAVES → ABRIR PASTA DOS
+  REGISTROS abre a pasta. Útil para relatar problemas.
+- Testes da missão: `tools\m04\` (bateria única: `python -I tools\m04\bateria.py [--longos]`).
+
 ## Como compilar e rodar
 
 Para o checker do Craft Anything, `npm run build` executa o build C++/CMake real

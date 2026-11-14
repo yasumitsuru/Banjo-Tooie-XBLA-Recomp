@@ -1108,7 +1108,15 @@ int RunSavesProbe(const Options& opts) {
     int section = -1;
     for (int s = 0; s < opt::SectionCount(); ++s)
       if (opt::SectionTitle(s).find("SAVES") != std::string::npos) section = s;
-    const int row = section >= 0 ? opt::RowCount(section) - 1 : -1;
+    // A linha pelo texto (RESTAURAR / NENHUM BACKUP / RESTORE / NO VALID): a M04 pôs as linhas
+    // do registro de sessão depois dela, e a posição "última linha" passou a apontar outra.
+    int row = -1;
+    for (int r = 0; section >= 0 && r < opt::RowCount(section); ++r) {
+      const std::string t = opt::RowText(section, r);
+      if (t.rfind("RESTAURAR", 0) == 0 || t.rfind("NENHUM BACKUP", 0) == 0 ||
+          t.rfind("RESTORE", 0) == 0 || t.rfind("NO VALID", 0) == 0)
+        row = r;
+    }
     std::string before, after_moves, after_confirm, after;
     if (row >= 0) {
       before = opt::RowText(section, row);
@@ -1750,22 +1758,47 @@ void Start(const Options& opts, rex::ui::WindowedAppContext* ui,
     }
 
     if (!opts.probe_focus.empty()) {
+      // M04 (C-91): só a janela DO JOGO é minimizada e restaurada, sem ativar nada (a versão
+      // antiga minimizava a janela em primeiro plano, que podia ser de outro programa). O vigia
+      // de foco fica ligado nesta sonda (banjotooie_app.cpp).
       input::SetActive(true);
       NavigateToGameplay();
+      WaitStableGameplay(60, 900);
       const uint8_t before = ReadU8(0x8266EF55);
-      HWND hwnd = GetForegroundWindow();
-      if (!hwnd) hwnd = FindWindowW(L"RexWindowClass", nullptr);
+      HWND hwnd = nullptr;
+      ui->CallInUIThreadSynchronous([&]() {
+        if (window) hwnd = reinterpret_cast<HWND>(window->GetNativeWindowHandle());
+      });
       std::ostringstream o;
       o << "{\"version\":1,\"paused_before\":" << int(before);
+      uint8_t while_min = 0, after_restore = 0, after_resume = 0;
+      double moved = 0;
       if (hwnd) {
-        ShowWindow(hwnd, SW_MINIMIZE);
+        ShowWindow(hwnd, SW_SHOWMINNOACTIVE);
+        for (int i = 0; i < 40 && ReadU8(0x8266EF55) != 1; ++i)
+          std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        while_min = ReadU8(0x8266EF55);
+        ShowWindow(hwnd, SW_SHOWNOACTIVATE);
+        SetWindowPos(hwnd, HWND_BOTTOM, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
         std::this_thread::sleep_for(std::chrono::seconds(2));
-        ShowWindow(hwnd, SW_RESTORE);
-        SetForegroundWindow(hwnd);
-        std::this_thread::sleep_for(std::chrono::seconds(2));
+        after_restore = ReadU8(0x8266EF55);  // continua pausado até o jogador voltar
+        Tap(input::kStart, 12);               // retomada pelo jogador
+        WaitFrames(90);
+        after_resume = ReadU8(0x8266EF55);
+        const Vec3 p0 = ReadPlayerPos();
+        input::Get().thumb_ly = 32767;
+        WaitFrames(60);
+        input::Get().thumb_ly = 0;
+        WaitFrames(10);
+        const Vec3 p1 = ReadPlayerPos();
+        moved = std::hypot(double(p1.x - p0.x), double(p1.z - p0.z));
       }
-      const uint8_t after = ReadU8(0x8266EF55);
-      o << ",\"paused_after\":" << int(after) << ",\"hwnd\":" << (hwnd ? 1 : 0) << "}\n";
+      const bool ok = hwnd && before == 0 && while_min == 1 && after_restore == 1 &&
+                      after_resume == 0 && moved > 20;
+      o << ",\"paused_while_minimized\":" << int(while_min)
+        << ",\"paused_after_restore\":" << int(after_restore)
+        << ",\"paused_after_start\":" << int(after_resume) << ",\"moved_after_resume\":" << moved
+        << ",\"hwnd\":" << (hwnd ? 1 : 0) << ",\"ok\":" << (ok ? "true" : "false") << "}\n";
       std::ofstream(opts.probe_focus) << o.str();
       rex::ui::RawImage im = capture();
       if (im.width) {

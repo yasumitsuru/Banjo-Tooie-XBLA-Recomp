@@ -582,19 +582,35 @@ bool PauseOpen() {
 
 // Pausa (Start) ao perder o foco e libera/recaptura o mouse. Nao age em testes automaticos.
 void BanjotooieApp::StartFocusWatcher() {
-  if (focus_thread_.joinable() || !window() || automated_) return;
+  // M04 (C-91): em execução automática só a sonda --probe-focus liga o vigia.
+  if (focus_thread_.joinable() || !window() ||
+      (automated_ && pc::automation::ParseCommandLine().probe_focus.empty()))
+    return;
   HWND hwnd = static_cast<rex::ui::Win32Window*>(window())->hwnd();
   focus_running_.store(true);
   focus_thread_ = std::thread([this, hwnd]() {
     bool was_focused = true;
+    bool was_minimized = false;
+    // M04 (C-91): a sonda --probe-focus liga o vigia mesmo em execução automática.
+    const bool focus_probe = !pc::automation::ParseCommandLine().probe_focus.empty();
     while (focus_running_.load()) {
       std::this_thread::sleep_for(std::chrono::milliseconds(250));
       if (!hwnd) continue;
       const bool focused = GetForegroundWindow() == hwnd;
-      if (pc::automation::IsRunning() || pc::state::guest_swaps.load() < 60) {
+      const bool minimized = IsIconic(hwnd) != FALSE;
+      if ((pc::automation::IsRunning() && !focus_probe) || pc::state::guest_swaps.load() < 60) {
         was_focused = focused;
+        was_minimized = minimized;
         continue;
       }
+      // Minimizar também pausa, mesmo se a janela não tinha o foco (antes só a perda do foco).
+      if (minimized && !was_minimized && !focused) {
+        if (pc::Get().pause_on_focus_loss && PlayerInGame() && !PauseOpen()) {
+          pc::input::RequestTap(pc::input::kStart);
+          pc::log::Event("jogo", "janela minimizada: pausa");
+        }
+      }
+      was_minimized = minimized;
       if (was_focused && !focused) {
         if (pc::Get().mouse_look) pc::input::SetCaptureEnabled(false);
         if (pc::Get().pause_on_focus_loss && PlayerInGame() && !PauseOpen())

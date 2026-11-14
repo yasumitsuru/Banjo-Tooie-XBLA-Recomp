@@ -228,11 +228,11 @@ Os testes deste build cobrem só título, introdução e o início de Spiral Mou
 | 3 | Inicialização até o jogo livre | OK | manter |
 | 4 | Menu principal (CONFIGURAÇÃO DA RECOMPILAÇÃO, SAIR PARA O DESKTOP com confirmação) | OK | manter |
 | 5 | Encerramento limpo (64/64) | OK | manter (repetir em F) |
-| 6 | CONQUISTAS (stub do Xbox) | DEFEITO | E |
+| 6 | CONQUISTAS (stub do Xbox) | OK (M04-E: lista de conquistas do PC no menu do jogo) | manter |
 | 7 | Estabilidade em sessões longas | NÃO VERIF. | C/F |
 | 8 | Versão global no mesmo port | OK | só regressão |
 | 9 | Seletor PT-BR/Global | OK | manter |
-| 10 | Sistema de log completo | NÃO IMPL. | C |
+| 10 | Sistema de log completo | OK (M04-C: registro de sessão; falta só o teste com pasta sem permissão) | manter |
 | 11 | Integridade dos arquivos PT-BR (36/36) | OK | A e F |
 | 12 | PT-BR em abertura, menus, seleção, introdução, pausa (15 telas) | OK | manter |
 | 13 | Diálogos das fases | NV | E |
@@ -243,18 +243,18 @@ Os testes deste build cobrem só título, introdução e o início de Spiral Mou
 | 18 | Textos de PC no idioma do jogo (global) | PARCIAL | fora do escopo |
 | 19 | Trava de idioma (`user_language`) | NÃO IMPL. | E |
 | 20 | 4K interno 3840×2160 | OK | manter |
-| 21 | 1440p interno | NV | D |
-| 22 | 1080p (hoje interno 1280×720) | PARCIAL | D |
-| 23 | Matriz 3 resoluções × 3 modos (M03) | BLOQ. | D |
-| 24 | Troca de modo sem queda | NV | D |
-| 25 | Sem bordas (hoje só a área útil) | PARCIAL | D |
-| 26 | Janela em 4K num monitor 4K | PARCIAL | D |
-| 27 | Proporção em monitor que não é 16:9 | NÃO VERIF. | D |
+| 21 | 1440p interno | OK (M04-D: matriz, imagem interna 2560×1440) | manter |
+| 22 | 1080p (hoje interno 1280×720) | OK (M04-D: desenha a 2× = 2560×1440 e reduz para 1920×1080) | manter |
+| 23 | Matriz 3 resoluções × 3 modos (M03) | OK (M04-D: 9/9 estados + 9/9 reaberturas; janela 4K num monitor 4K = limite físico, C-26) | manter |
+| 24 | Troca de modo sem queda | OK (M04-D: 8 trocas por estado sem queda, 72 no total) | manter |
+| 25 | Sem bordas (hoje só a área útil) | OK (M04-D: monitor inteiro, 3 monitores) | manter |
+| 26 | Janela em 4K num monitor 4K | OK (regra: área útil em 16:9, 3612×2032 medido) | manter |
+| 27 | Proporção em monitor que não é 16:9 | OK (M04-D: ultrawide 2560×1080 sem bordas, imagem confere) | manter |
 | 28 | VSync sem tearing | NV | D |
-| 29 | Detecção automática da resolução | DEFEITO | D |
+| 29 | Detecção automática da resolução | OK (M04-D: monitor escolhido/cursor; 3 monitores) | manter |
 | 30 | 60 FPS no início de Spiral Mountain | OK | manter |
 | 31 | 60 FPS sustentado (mundos, cenas, horas) | NÃO VERIF. | D |
-| 32 | Física e velocidade iguais às de 30 FPS | NV | D |
+| 32 | Física e velocidade iguais às de 30 FPS | PARCIAL (M04-D: andar, correr, pulo, deslize e colisões medidos 30×60; natação/voo não) | D |
 | 33 | Cenas a 30 com tela a 60 | NV | D |
 | 34 | Separação lógica / render / tempo | NÃO IMPL. | D (decisão) |
 | 35 | Sincronia de áudio e vídeo | NÃO VERIF. | D |
@@ -304,8 +304,8 @@ Os testes deste build cobrem só título, introdução e o início de Spiral Mou
 | 79 | Save por conta em Documentos\My Games | OK (conta atual) | B (2ª conta) |
 | 80 | `pc_settings.toml` próprio, gravação atômica + `.bak` | OK | manter |
 | 81 | Arquivo de opções ausente ou inválido | NV | E |
-| 82 | Opções divididas entre conta e máquina | PARCIAL | E |
-| 83 | Migração de versão do arquivo de opções | NV | E |
+| 82 | Opções divididas entre conta e máquina | PARCIAL (M04-D: vídeo só na conta; FXAA/MSAA/anisotropia/VSync ainda no arquivo do runtime) | E |
+| 83 | Migração de versão do arquivo de opções | OK (M04: versão 3→4 testada com cópia das opções da pessoa) | manter |
 | 84 | Início rápido | NV | E |
 | 85 | Pular cenas já vistas | NÃO IMPL. | E |
 | 86 | Softlocks ao pular | NÃO VERIF. | E |

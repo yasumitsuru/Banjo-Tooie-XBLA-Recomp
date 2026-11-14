@@ -276,6 +276,91 @@
       "group": "menu",
       "value": 5,
       "source": "0x822DEE60: 'li r4,5' + 'bl 0x822E11E8' na pagina 10 (COMO JOGAR)"
+    },
+    {
+      "name": "velocidade andando (meio analogico), 30 e 60 FPS",
+      "group": "movimento",
+      "value": 109.5,
+      "unit": "u/s",
+      "source": "medido no jogo real: --probe-fisica, tools/m04/fisica_30x60.py (_audit/out/m04/D/fisica-20261114-013957), 2 execucoes por configuracao"
+    },
+    {
+      "name": "velocidade correndo no inicio de Spiral Mountain (0xAF) a 30 FPS",
+      "group": "movimento",
+      "value": 459,
+      "unit": "u/s",
+      "source": "medido no jogo real: --probe-fisica, tools/m04/fisica_30x60.py (_audit/out/m04/D/fisica-20261114-013957), 2 execucoes por configuracao"
+    },
+    {
+      "name": "velocidade correndo no inicio de Spiral Mountain (0xAF) a 60 FPS",
+      "group": "movimento",
+      "value": 450,
+      "unit": "u/s",
+      "source": "medido no jogo real: --probe-fisica, tools/m04/fisica_30x60.py (_audit/out/m04/D/fisica-20261114-013957), 2 execucoes por configuracao"
+    },
+    {
+      "name": "altura do pulo (A segurado 0,4 s) a 30 FPS (original)",
+      "group": "movimento",
+      "value": 162.5,
+      "unit": "u",
+      "source": "medido no jogo real: --probe-fisica, tools/m04/fisica_30x60.py (_audit/out/m04/D/fisica-20261114-013957), 2 execucoes por configuracao"
+    },
+    {
+      "name": "altura do pulo (A segurado 0,4 s) a 60 FPS",
+      "group": "movimento",
+      "value": 168.3,
+      "unit": "u",
+      "source": "medido no jogo real: --probe-fisica, tools/m04/fisica_30x60.py (_audit/out/m04/D/fisica-20261114-013957), 2 execucoes por configuracao; diferenca = v_subida x (1/30-1/60)/2 (integracao)"
+    },
+    {
+      "name": "tempo no ar do pulo a 30 FPS",
+      "group": "movimento",
+      "value": 0.8,
+      "unit": "s",
+      "source": "medido no jogo real: --probe-fisica, tools/m04/fisica_30x60.py (_audit/out/m04/D/fisica-20261114-013957), 2 execucoes por configuracao"
+    },
+    {
+      "name": "tempo no ar do pulo a 60 FPS",
+      "group": "movimento",
+      "value": 0.82,
+      "unit": "s",
+      "source": "medido no jogo real: --probe-fisica, tools/m04/fisica_30x60.py (_audit/out/m04/D/fisica-20261114-013957), 2 execucoes por configuracao"
+    },
+    {
+      "name": "fator de desaceleracao ao soltar o analogico por quadro de 33 ms (30 FPS)",
+      "group": "movimento",
+      "value": 0.69,
+      "source": "medido no jogo real: --probe-fisica, tools/m04/fisica_30x60.py (_audit/out/m04/D/fisica-20261114-013957), 2 execucoes por configuracao"
+    },
+    {
+      "name": "CONQUISTAS: acao da entrada (FUN_8227EED0 + XamShowAchievementsUI)",
+      "group": "menu",
+      "value": "0x822DD628",
+      "source": "codigo gerado (addi r7,r11,-10712 em 0x822DF054..) + Ghidra ev_4b230f9dd8 / ev_9fae78979f"
+    },
+    {
+      "name": "CONQUISTAS: quantidade e pontos (tabela XDBF do XEX)",
+      "group": "menu",
+      "value": "12 / 200",
+      "source": "kernel_state()->title_xdbf(), sonda --probe-conquistas (_audit/out/m04/E/conquistas6)"
+    },
+    {
+      "name": "modo de video do console informado ao jogo",
+      "group": "video",
+      "value": "1280x720",
+      "source": "rexglue-sdk xboxkrnl_video.cpp GetConfiguredVideoModeWidth + video_mode_fixed (M04)"
+    },
+    {
+      "name": "escala interna 1080p / 1440p / 4K",
+      "group": "video",
+      "value": "2 / 2 / 3",
+      "source": "pc_settings.cpp InternalScaleText; medido por tools/test_display_modes.py (matriz5-20261114)"
+    },
+    {
+      "name": "registro de sessao: sessoes guardadas / bloco de desempenho",
+      "group": "diagnostico",
+      "value": "20 / 30 s",
+      "source": "src/pc/pc_log.h kKeepSessions, pc_log.cpp Tick"
     }
   ],
   "pc": {

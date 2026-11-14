@@ -1,39 +1,34 @@
 # Plano do projeto — Banjo-Tooie XBLA PT-BR Recompiled
 
-**Atualizado em 2026-11-13.** Este é o plano vivo: registra o que está provado, o que falta e a
-ordem de trabalho. Esta versão incorpora:
+**Atualizado em 2026-11-14.** Este é o plano vivo: registra o que está provado, o que falta e a
+ordem de trabalho. Incorpora a **auditoria somente leitura de 2026-11-13** (97 funcionalidades,
+[matriz de estado](#matriz-de-estado-auditoria-somente-leitura-de-2026-11-13)) e a missão
+"Correção Integral, Estabilização e Validação Automatizada", chamada aqui de **M04**
+([`MISSAO-04-CORRECAO-INTEGRAL.md`](MISSAO-04-CORRECAO-INTEGRAL.md)). Relatório da rodada de
+2026-11-14: [`M04-RELATORIO.md`](M04-RELATORIO.md).
 
-- a **auditoria somente leitura de 2026-11-13** (97 funcionalidades avaliadas; resultado na
-  [matriz de estado](#matriz-de-estado-auditoria-somente-leitura-de-2026-11-13));
-- a **missão nova de 2026-11-13**, "Correção Integral, Estabilização e Validação Automatizada",
-  chamada aqui de **M04** (o texto da pessoa não traz número). Texto completo:
-  [`MISSAO-04-CORRECAO-INTEGRAL.md`](MISSAO-04-CORRECAO-INTEGRAL.md).
-
-**Andamento da M04 (2026-11-13):** etapas **A e B concluídas** (ver [Andamento](#andamento));
-etapas C a F pendentes.
+**Andamento da M04 (2026-11-14):** A e B conferidas de novo e corretas; C quase toda feita; D com
+vídeo, monitores, distância de desenho e física básica provados; E só em parte (CONQUISTAS,
+opções de vídeo, pausa ao minimizar); F com regressão e sessão longa. A missão **não está
+concluída**: ver "Pendências" no relatório.
 
 ## Em poucas palavras
 
-- **Pronto e provado (24 de 97):**
-  - port nativo D3D12, sem emulador;
-  - abertura até o jogo livre;
-  - menu principal e pausa, com CONFIGURAÇÕES DE PC dentro de AJUDA E OPÇÕES;
-  - 4K interno (3840×2160) a 60 FPS no início de Spiral Mountain, medido por até 30 s;
-  - tradução íntegra: 36/36 arquivos iguais à linha de base em 2026-11-13 e 15 telas PT-BR
-    conferidas;
-  - saves: gravação, carga e backup, uma pasta por conta em Documentos\My Games, testes
-    separados dos saves da pessoa.
-- **Com defeito na auditoria (3; C-75 corrigido na etapa B):**
-  - save inválido apagado sem cópia ao restaurar (C-75);
-  - detecção automática de resolução pega o monitor errado (C-29);
-  - CONQUISTAS chama uma função do Xbox que não existe no PC (C-6).
-- **O resto** está distribuído nas etapas da M04 abaixo: 34 sem validação, 8 parciais,
-  13 não implementados e 15 bloqueados ou não verificáveis.
-- **M03** (matriz 3 resoluções × 3 modos, hoje 0/9) deixa de ser missão separada. Entra na
-  etapa D da M04, com os mesmos critérios.
-- **Maior risco técnico:** o 60 FPS segue o método do patch Xenia (a lógica roda a 60 com 17
-  constantes trocadas). Nada mediu ainda se física, cronômetros e minijogos ficaram na velocidade
-  original.
+- **Pronto e provado: 45 de 97** (eram 24 na auditoria e 32 depois da etapa B). Novos nesta
+  rodada: registro de sessão (C-10); viagem aos 18 mapas e distância de desenho aplicada em todos
+  (C-94, C-42); vídeo 1080p/1440p/4K × janela/sem bordas/tela cheia 9/9 com reabertura (C-21 a
+  C-27); monitor certo com 3 monitores (C-29); CONQUISTAS no PC (C-6); migração das opções
+  (C-83).
+- **Achado grave corrigido:** num monitor 4K com escala do Windows a 150% (o da pessoa), o "4K"
+  saía numa superfície 2560×1440 esticada pelo Windows. Agora o processo usa DPI por monitor e o
+  modo de vídeo do console fica fixo (MECHANICS.md §23).
+- **Defeitos da auditoria:** os 3 corrigidos (C-75 na etapa B, C-29 e C-6 agora).
+- **60 FPS (maior risco):** medido no jogo real a 30 × 60 com a mesma entrada em 4 mapas:
+  andar, correr e colisões iguais; pulo +3,6%, tempo no ar +17 ms e deslize ~10% maiores a 60,
+  pela integração do mesmo código a passo menor (MECHANICS.md §20). Natação, voo, cronômetros,
+  minijogos, chefes e cenas seguem sem medida.
+- **O resto:** 23 sem validação, 7 parciais, 10 não implementados e 12 não verificáveis — a
+  maioria em controles (remapeamento, controle físico), áudio (música/efeitos), câmera e cenas.
 
 ## Missão ativa — M04: correção integral, estabilização e validação automatizada
 
@@ -84,8 +79,10 @@ Uma etapa só avança para o que depende dela depois que suas mudanças crítica
 |---|---|---|
 | A — Preparação | **FEITA** (2026-11-13) | checkpoint `refs/checkpoints/m04-inicio` (app `423524b`, rexglue-sdk `88a105a`); 36/36 arquivos PT-BR iguais; foto da pasta da pessoa (15 arquivos); alvo PT-BR confirmado no log ("JOGAR"). Saídas em `_audit/out/m04/A/` |
 | B — Segurança dos saves | **FEITA** (2026-11-13) | `python -I tools/test_saves.py --corpus _audit/out/m04/B/corpus-reais`: **18/18 PASS** (`_audit/out/m04/B/run-20261113-205157/resultado.json`); 207 saves reais aceitos e 14 estragados recusados pelo código do port; gravação real do jogo com o registro do runtime; pasta da pessoa igual antes e depois. Detalhes abaixo |
-| C — Infraestrutura | pendente (C-95 e C-90 já provados na etapa B) | — |
-| D, E, F | pendentes | — |
+| C — Infraestrutura | **QUASE TODA** (2026-11-14) | C-10 registro de sessão (cabeçalho, eventos, desempenho; teste negativo); C-94 viagem aos 18 mapas; C-97 `tools/m04/bateria.py`; C-7 sessão longa (ver relatório). Falta C-70 (saves de meio e fim da história) |
+| D — Estabilização | **PARCIAL** (2026-11-14) | física 30×60 71/80 medidas iguais (§20); matriz de vídeo 9/9 + reaberturas; DPI por monitor; 1080p a 2×; 3 monitores; distância de desenho 18/18 mapas. Faltam C-33/C-36/C-35 (cenas, cronômetros, sincronia de áudio), C-44 (custo por perfil), C-46–C-50 (prova visual) |
+| E — Funcionalidades | **INICIADA** (2026-11-14) | C-6 CONQUISTAS; C-82/C-83 opções de vídeo só na conta + migração; C-91 pausa ao minimizar. Faltam controles (C-38, C-52–C-61), áudio (C-65–C-67), câmera (C-62–C-64), cenas (C-84–C-86), tradução por mundo (C-13–C-19) |
+| F — Homologação | **PARCIAL** (2026-11-14) | regressão: auto-teste 10/10, PT-BR 29/29 + 15/15 telas, saves 17/17, 36/36 originais; relatório `docs/M04-RELATORIO.md` |
 
 **O que a etapa B mudou** (formato do save em `MECHANICS.md` §19):
 
@@ -216,9 +213,12 @@ A coluna Etapa diz onde a M04 resolve o item. "manter" = já provado; só não p
 
 **Total na auditoria:** 24 OK, 34 NV, 8 PARCIAL, 13 NÃO IMPL., 3 DEFEITO, 1 BLOQ., 14 NÃO VERIF.
 **Total depois da etapa B (2026-11-13):** 32 OK, 30 NV, 7 PARCIAL, 12 NÃO IMPL., 2 DEFEITO, 1 BLOQ., 13 NÃO VERIF.
+**Total em 2026-11-14 (etapas C–F em andamento):** 45 OK, 23 NV, 7 PARCIAL, 10 NÃO IMPL., 0 DEFEITO, 0 BLOQ., 12 NÃO VERIF.
 
 **Limite das evidências:** as provas de distância de desenho, controle e save avançado que
 existem vêm do projeto vizinho `W:\Decomp\Banjo` (build de 08–09/11) e não valem para este build.
+Em 2026-11-14 a distância de desenho, a viagem aos mapas e o save avançado (etapa B) foram
+provados **neste** build; o controle físico continua sem prova neste build.
 Os testes deste build cobrem só título, introdução e o início de Spiral Mountain (mapa 0xA1).
 
 | # | Funcionalidade | Estado | Etapa |
@@ -232,7 +232,7 @@ Os testes deste build cobrem só título, introdução e o início de Spiral Mou
 | 7 | Estabilidade em sessões longas | NÃO VERIF. | C/F |
 | 8 | Versão global no mesmo port | OK | só regressão |
 | 9 | Seletor PT-BR/Global | OK | manter |
-| 10 | Sistema de log completo | OK (M04-C: registro de sessão; falta só o teste com pasta sem permissão) | manter |
+| 10 | Sistema de log completo | OK (M04-C: registro de sessão; teste negativo com pasta impossível: jogo 10/10) | manter |
 | 11 | Integridade dos arquivos PT-BR (36/36) | OK | A e F |
 | 12 | PT-BR em abertura, menus, seleção, introdução, pausa (15 telas) | OK | manter |
 | 13 | Diálogos das fases | NV | E |
@@ -264,8 +264,8 @@ Os testes deste build cobrem só título, introdução e o início de Spiral Mou
 | 39 | Entradas originais da pausa | OK | manter |
 | 40 | Navegação e retorno (B, F1) | OK | manter |
 | 41 | Categorias (5 seções, 51 linhas) | OK | manter |
-| 42 | Distância de desenho: perfis e limites por mapa | NV | D |
-| 43 | Distância de desenho: pop-in e geometria por mundo | NÃO VERIF. | D |
+| 42 | Distância de desenho: perfis e limites por mapa | OK (M04-D: 18/18 mapas, 3 perfis aplicados e capturados neste build) | manter |
+| 43 | Distância de desenho: pop-in e geometria por mundo | NÃO VERIF. (capturas dos 3 perfis nos 18 mapas guardadas; comparação automática inconclusiva por animação) | D |
 | 44 | Distância de desenho: custo em FPS a 4K | NÃO VERIF. | D |
 | 45 | Distância de desenho: persistência | NV | D |
 | 46 | FXAA | NV | D |
@@ -313,13 +313,13 @@ Os testes deste build cobrem só título, introdução e o início de Spiral Mou
 | 88 | Velocidade dos diálogos | NV | E |
 | 89 | Rótulos de PC cabem nas telas do jogo | OK | manter |
 | 90 | Rastreador de colecionáveis | OK (M04-B: 0 diferenças com a tela Totais no save 100%) | manter (texto só PT-BR: C-18) |
-| 91 | Pausa ao minimizar ou perder o foco | NV | E |
+| 91 | Pausa ao minimizar ou perder o foco | PARCIAL (M04-E: pausa ao minimizar provada; perda de foco não testada para não tirar o foco da pessoa) | E |
 | 92 | Contador de FPS e estatísticas | NV | E |
 | 93 | Impacto do monitoramento no desempenho | NÃO VERIF. | E |
-| 94 | Viagem automática a mapas | NV | C |
+| 94 | Viagem automática a mapas | OK (M04-C: 18/18 mapas pela rotina do jogo) | manter |
 | 95 | Save avançado de teste | OK (M04-B) | manter |
 | 96 | Testes automáticos existentes | OK | manter |
-| 97 | Testes que faltam (30×60, controle físico, mundos, vídeo, áudio, câmera, saves, cenas, longa duração) | NÃO IMPL. | C/F |
+| 97 | Testes que faltam (30×60, controle físico, mundos, vídeo, áudio, câmera, saves, cenas, longa duração) | PARCIAL (M04: física 30×60, vídeo 9/9, monitores, mundos, conquistas, foco, registro, sessão longa; faltam controle físico, áudio, cenas, minijogos) | F |
 
 ## Linha de base local (início da M04)
 

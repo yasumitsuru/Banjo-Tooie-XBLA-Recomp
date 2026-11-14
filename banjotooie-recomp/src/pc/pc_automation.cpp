@@ -1324,10 +1324,25 @@ void Start(const Options& opts, rex::ui::WindowedAppContext* ui,
       });
       WindowMetrics initial_window = InspectWindow(hwnd, sdk_fullscreen);
       rex::ui::RawImage window_img = CaptureWindowOnScreen(true);
-      const bool guest_content = img.width && img.height && !blank &&
+      ImageCorrelation correlation = CompareGuestAndWindow(img, window_img);
+      // M04: a imagem do jogo e a da janela saem em instantes diferentes; durante o esmaecer
+      // dos logos elas não batem (matriz de 2026-11-14: 82 de diferença média só por isso).
+      // Se não bater, tira o par de novo, uma logo depois da outra (até 4 vezes).
+      int capture_retries = 0;
+      // (também quando a foto caiu num quadro preto entre os logos)
+      for (; capture_retries < 6 && (!correlation.content_match || LooksBlank(img));
+           ++capture_retries) {
+        std::this_thread::sleep_for(milliseconds(400));
+        rex::ui::RawImage g2 = capture();
+        rex::ui::RawImage w2 = CaptureWindowOnScreen(true);
+        if (!g2.width || !w2.width) continue;
+        correlation = CompareGuestAndWindow(g2, w2);
+        img = std::move(g2);
+        window_img = std::move(w2);
+      }
+      const bool guest_content = img.width && img.height && !LooksBlank(img) &&
                                  uint64_t(img.width) * 9 == uint64_t(img.height) * 16;
       const bool window_nonblank = window_img.width && window_img.height && !LooksBlank(window_img);
-      const ImageCorrelation correlation = CompareGuestAndWindow(img, window_img);
       const bool initial_mode_match = ModeMatches(requested_mode, initial_window);
       std::filesystem::path guest_png = opts.probe_display;
       guest_png.replace_extension(".guest.png");
@@ -1385,7 +1400,16 @@ void Start(const Options& opts, rex::ui::WindowedAppContext* ui,
           const NavResult nav = NavigateToGameplayByState(50.0);
           navigation_reached = nav.reached;
           pc::Get().skip_intro_logos = old_skip;
-          if (navigation_reached) input_before = move_player();
+          // Como NavigateToGameplay (auto-teste): 2 toques em B fecham o diálogo de abertura;
+          // sem eles o controle ainda não move o Banjo (M03: "movimento medido foi zero").
+          if (navigation_reached) {
+            for (int b = 0; b < 2; ++b) {
+              Tap(input::kB);
+              WaitFrames(35);
+            }
+            WaitStableGameplay(60, 900);
+            input_before = move_player();
+          }
           std::ostringstream i;
           i << "{\"navigation_reached\":" << (navigation_reached ? "true" : "false")
             << ",\"navigation_trace\":\"" << JsonEscape(nav.trace) << "\",\"before\":{\"moved\":"

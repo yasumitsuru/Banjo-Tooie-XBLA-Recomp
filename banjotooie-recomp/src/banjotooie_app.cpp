@@ -155,6 +155,18 @@ BanjotooieApp::~BanjotooieApp() { StopMonitor(); }
 
 void BanjotooieApp::OnConfigurePaths(rex::PathConfig& paths) {
   auto& rep = port::BootReport::Get();
+  // M04 (C-21..C-29, C-87): DPI por monitor ANTES de criar a janela. Sem isso, num monitor com
+  // escala do Windows (ex.: 4K a 150%, o desta pessoa) o runtime lia o tamanho LÓGICO da janela
+  // (GetClientRect) e apresentava numa superfície 1,5x menor (4K saía em 2560x1440 esticada pelo
+  // Windows; janela 1080p em 1280x720). Agora a superfície tem os pixels físicos da janela.
+  {
+    using SetCtxFn = BOOL(WINAPI*)(HANDLE);
+    if (auto fn = reinterpret_cast<SetCtxFn>(
+            GetProcAddress(GetModuleHandleW(L"user32.dll"), "SetProcessDpiAwarenessContext")))
+      fn(reinterpret_cast<HANDLE>(static_cast<intptr_t>(-4)));  // PER_MONITOR_AWARE_V2
+    dpi_aware_ = IsProcessDPIAware() != FALSE;
+    rep.SetInfo("dpi", dpi_aware_ ? "por monitor (pixels fisicos)" : "sem reconhecimento de DPI");
+  }
   const fs::path exe_dir = rex::filesystem::GetExecutableFolder();
   const std::string report_cvar = REXCVAR_GET(boot_report);
   rep.SetPath(report_cvar.empty() ? exe_dir / "logs" / "banjotooie_boot.json"
@@ -259,6 +271,11 @@ void BanjotooieApp::ConfigurePcLayer(rex::PathConfig& paths) {
   // M04 (C-29): o monitor em que o jogo vai abrir (o escolhido nas opções ou, no automático, o do
   // cursor). Antes a resolução automática olhava sempre o monitor PRINCIPAL, mesmo com a janela
   // aberta em outro.
+  if (had_settings && pc::MigratedFromOldMonitorRule() && pc::Get().monitor.empty()) {
+    for (const auto& m : pc::display::List())
+      if (m.primary) pc::Get().monitor = m.device;  // migração: continua no principal
+    pc::Save();
+  }
   std::string monitor_why;
   const pc::display::Monitor target = pc::display::Target(&monitor_why);
   pc::display::SetChosen(target);
@@ -316,8 +333,10 @@ void BanjotooieApp::ConfigurePcLayer(rex::PathConfig& paths) {
       }
       RegCloseKey(key);
     }
-    rex::cvar::SetFlagByName("window_width", std::to_string(pw * 96 / int(dpi)));
-    rex::cvar::SetFlagByName("window_height", std::to_string(ph * 96 / int(dpi)));
+    // Com DPI por monitor o runtime já trabalha em pixels físicos (sem divisão pela escala).
+    if (dpi_aware_) dpi = 96;
+    pc_video_cvars_["window_width"] = std::to_string(pw * 96 / int(dpi));
+    pc_video_cvars_["window_height"] = std::to_string(ph * 96 / int(dpi));
   }
   pc::ApplyRuntimeOptions();
   runtime_config_ = paths.config_path;
@@ -330,9 +349,31 @@ void BanjotooieApp::ConfigurePcLayer(rex::PathConfig& paths) {
     const auto r = pc::Get().resolution;
     const char* preset = r == pc::Resolution::R1080p ? "1080p" : r == pc::Resolution::R1440p ? "1440p" : "4k";
     const char* scale = pc::InternalScaleText(r);
-    rex::cvar::SetFlagByName("resolution", preset);
-    rex::cvar::SetFlagByName("draw_resolution_scale_x", scale);
-    rex::cvar::SetFlagByName("draw_resolution_scale_y", scale);
+    pc_video_cvars_["resolution"] = preset;
+    pc_video_cvars_["draw_resolution_scale_x"] = scale;
+    pc_video_cvars_["draw_resolution_scale_y"] = scale;
+    pc_video_cvars_["fullscreen"] =
+        pc::Get().display_mode == pc::DisplayMode::TelaCheia ? "true" : "false";
+    // M04: o modo de vídeo do console fica fixo em 1280x720 (o do jogo), não o tamanho da
+    // janela: com DPI por monitor a janela 1080p mede 1920 e o jogo passaria a desenhar um quadro
+    // 1080p (rexglue-sdk video_mode_fixed).
+    pc_video_cvars_["video_mode_fixed"] = "true";
+  }
+  ApplyPcVideoCvars(nullptr);
+}
+
+// M04 (C-82): resolucao, escala interna, tamanho da janela e tela cheia sao das Configuracoes
+// de PC da conta (pc_settings.toml). O arquivo do runtime ao lado do exe (banjotooie.toml) e lido
+// DEPOIS de OnConfigurePaths e trazia os mesmos valores de outra vez (ex.: resolution = "4k" com
+// a conta em 1080p): a escolha do menu era ignorada. Reaplicados em OnPreSetup; a divergencia
+// vai para o log.
+void BanjotooieApp::ApplyPcVideoCvars(const char* when) {
+  for (const auto& [k, v] : pc_video_cvars_) {
+    const std::string now = rex::cvar::GetFlagByName(k);
+    if (when && now != v)
+      REXLOG_WARN("[port] {}: {} = '{}' do arquivo do runtime ignorado; Configuracoes de PC: '{}'",
+                  when, k, now, v);
+    rex::cvar::SetFlagByName(k, v);
   }
 }
 
@@ -370,6 +411,7 @@ void BanjotooieApp::OnPostInitLogging() {
 
 void BanjotooieApp::OnPreSetup(rex::RuntimeConfig& config) {
   auto& rep = port::BootReport::Get();
+  ApplyPcVideoCvars("opcoes de video");  // depois do banjotooie.toml (C-82)
   // MISSAO 02: opcoes de teste conferidas antes da janela; invalida = sai com codigo 6.
   for (const auto& [when, file] : SplitPairs(REXCVAR_GET(port_test_shots))) {
     char* end = nullptr;

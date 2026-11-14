@@ -79,6 +79,8 @@ const char* DialogSpeedName(int speed);
 // Escala interna da imagem do jogo (1280x720) por resolução de saída: "2" (1080p, reduzida na
 // apresentação), "2" (1440p) ou "3" (4K). M04, C-22.
 const char* InternalScaleText(Resolution r);
+// O arquivo lido era de antes da linha MONITOR (versão < 4): abrir no principal, como antes.
+bool MigratedFromOldMonitorRule();
 float DialogSpeedFactor(int speed);  // 1, 2, 4 ou 1000 (página inteira num quadro)
 
 // Aplica as opções que vivem em cvars do runtime (gamepad e volume geral).

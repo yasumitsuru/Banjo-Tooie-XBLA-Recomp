@@ -14,6 +14,7 @@ namespace {
 Settings g_settings;
 std::filesystem::path g_path;
 std::string g_last_serialized;  // última versão gravada/lida (registro de sessão: o que mudou)
+bool g_migrated_monitor = false;  // arquivo de antes da linha MONITOR (versão < 4)
 
 bool ParseBool(const std::string& v) { return v == "true" || v == "1" || v == "sim"; }
 
@@ -162,6 +163,10 @@ bool Load() {
   if (version < 2) s.lock60 = true;
   // Versão 2: lock60 também acelerava as cenas; agora isso é scenes60 (desligado por padrão).
   if (version < 3) s.scenes60 = false;
+  // Versão 4 (M04): linha MONITOR. Quem já jogava (arquivo de versão anterior) abria sempre no
+  // monitor principal: continua assim (preenchido na abertura com o principal); o automático
+  // pelo monitor do cursor vale para quem começa agora.
+  g_migrated_monitor = version < 4;
   g_settings = s;
   g_last_serialized = Serialize(g_settings);
   return true;
@@ -170,7 +175,7 @@ bool Load() {
 std::string Serialize(const Settings& s) {
   std::ostringstream o;
   o << "# Configurações de PC — Banjo-Tooie PT-BR (independente dos saves do jogo)\n"
-    << "settings_version = 3\n"
+    << "settings_version = 4\n"
     << "[jogo]\n"
     << "fps60 = " << (s.fps60 ? "true" : "false") << "\n"
     << "lock60 = " << (s.lock60 ? "true" : "false") << "  # ritmo da tela travado em 60\n"
@@ -258,6 +263,8 @@ bool Save() {
   std::filesystem::rename(tmp, g_path, ec);
   return !ec;
 }
+
+bool MigratedFromOldMonitorRule() { return g_migrated_monitor; }
 
 const char* InternalScaleText(Resolution r) { return r == Resolution::R2160p ? "3" : "2"; }
 

@@ -98,8 +98,12 @@ void CaptureSessionCvars() {
 // nenhuma). Um teste com --audio_mute não deixa o jogo mudo para sempre (achado em 2026-11-12).
 void SaveRuntimeConfig() {
   if (g_runtime_config.empty()) return;
+  // M04 (C-82): resolução, escala interna, tamanho da janela e tela cheia ficam só nas
+  // Configurações de PC da conta (pc_settings.toml); gravados aqui eles sobrepunham a escolha.
   static const char* const kSessionOnly[] = {"user_data_root", "game_data_root", "window_width",
-                                             "window_height", "config_path"};
+                                             "window_height", "config_path", "resolution",
+                                             "draw_resolution_scale_x", "draw_resolution_scale_y",
+                                             "fullscreen"};
   std::string out = "# Auto-generated cvar configuration\n";
   const std::string all = rex::cvar::SerializeToTOML();
   size_t pos = 0;
@@ -568,6 +572,13 @@ bool FitInitialWindowToResolution(rex::ui::Window* window, Resolution resolution
       monitor.rcMonitor = chosen.rc_monitor;
       monitor.rcWork = chosen.rc_work;
       moved_to_chosen = true;
+      // Leva primeiro (só a posição): com DPI por monitor o Windows reescala a janela ao trocar
+      // para um monitor de outra escala (150% -> 100% a encolhia para 2/3). Depois mede de novo
+      // a moldura e dimensiona já no monitor certo.
+      SetWindowPos(hwnd, nullptr, chosen.rc_work.left + 8, chosen.rc_work.top + 8, 0, 0,
+                   SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_NOACTIVATE);
+      GetWindowRect(hwnd, &outer);
+      GetClientRect(hwnd, &client);
     }
     const int frame_width = std::max(0L, (outer.right - outer.left) -
                                            (client.right - client.left));

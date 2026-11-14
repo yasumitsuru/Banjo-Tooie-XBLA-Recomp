@@ -17,6 +17,7 @@
 #include <chrono>
 #include <filesystem>
 #include <memory>
+#include <map>
 #include <string>
 #include <thread>
 #include <vector>
@@ -81,7 +82,10 @@ class BanjotooieApp : public rex::ReXApp {
   std::atomic<bool> screenshot_pending_{false};
   std::atomic<bool> screenshot_done_{false};
   std::atomic<bool> exit_requested_{false};
-  std::string exit_reason_;            // motivo da saída pedida (registro de sessão)
+  std::string exit_reason_;
+  std::map<std::string, std::string> pc_video_cvars_;  // C-82: dono = pc_settings.toml
+  bool dpi_aware_ = false;  // processo com DPI por monitor (pixels físicos)
+  void ApplyPcVideoCvars(const char* when);            // motivo da saída pedida (registro de sessão)
   std::string user_data_source_;       // de onde veio a pasta de dados (registro de sessão)
   std::filesystem::path game_data_root_;
   std::chrono::steady_clock::time_point launch_time_{};

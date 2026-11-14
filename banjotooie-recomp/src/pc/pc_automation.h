@@ -51,7 +51,8 @@ struct Options {
   // comparar com tools/m04/fisica_30x60.py. --fisica-mapas "112:5,127:1" (hex mapa:entrada)
   // viaja pela rotina do jogo e repete a sequência em cada mapa (vazio = só o início do jogo).
   std::filesystem::path probe_fisica;
-  std::filesystem::path probe_conquistas;  // M04 C-6: CONQUISTAS no menu principal e na pausa
+  std::filesystem::path probe_conquistas;
+  std::filesystem::path probe_longa;  // M04 C-7: sessão longa viajando pelos mundos (--longa-minutos)  // M04 C-6: CONQUISTAS no menu principal e na pausa
   std::string fisica_mapas;
   // Save avançado DE VERDADE (use com --user_data_root=<pasta de teste>):
   //   --make-advanced-save  jogo novo, liga todos os colecionáveis e grava por "SALVAR E SAIR"
@@ -88,7 +89,7 @@ struct Options {
            !probe_dd_worlds.empty() || !probe_testpad.empty() || !probe_save_sim.empty() ||
            !make_advanced_save.empty() || !probe_advanced_save.empty() || !probe_display.empty() ||
            !probe_saves.empty() || !probe_fisica.empty() ||
-           !probe_conquistas.empty();
+           !probe_conquistas.empty() || !probe_longa.empty();
   }
 };
 

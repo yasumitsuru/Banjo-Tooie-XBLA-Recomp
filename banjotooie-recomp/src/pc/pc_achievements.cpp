@@ -77,6 +77,33 @@ void Record(uint32_t id, const char* how) {
                                   " (" + how + ")");
 }
 
+// A tabela XDBF do default.xex tem o idioma 9 (português), mas com o texto em inglês: a
+// tradução da pessoa não cobre as conquistas. Na versão PT-BR o port usa estes textos curtos
+// (cabem numa linha do menu), com os termos que a tradução da pessoa já usa (NOTAS, JINJO,
+// INIMIGOS, MINAS, LAGOA, COLISEU; OLD KING COAL, KICKBALL, BALLOON BURST, CLINKERS e
+// STOP 'N' SWOP ficam em inglês como nela). A versão global mostra o texto original do XEX.
+struct PtBr {
+  uint16_t id;
+  const char* name;
+  const char* description;
+};
+constexpr PtBr kPtBr[] = {
+    // nomes até 20 letras e descrições até ~23: o menu do jogo quebra a linha acima de ~22-24
+    // letras (captura de 2026-11-14, _audit/out/m04/E/conquistas5)
+    {52, "KLUNGO NOCAUTEADO", "DERROTE O KLUNGO."},
+    {53, "CAÇA AO TESOURO", "NOTA, OVO, PENA, JINJO."},
+    {54, "SURRA GERAL", "DERROTE 20 INIMIGOS."},
+    {55, "ALMA VELHA E ALEGRE", "VENÇA O OLD KING COAL."},
+    {56, "CHOCANDO O FUTURO", "SEPARE BANJO E KAZOOIE."},
+    {57, "FARTURA DE LULAS", "CONGELE OS POLVOS."},
+    {58, "ESTÁ VIVO!", "RESSUSCITE O SABREMAN."},
+    {59, "DEPOIS DA TEMPESTADE", "FAÇA UM ARCO-ÍRIS."},
+    {60, "MEU ARQUI-INIMIGO", "VENÇA A GRUNTY NO FIM."},
+    {61, "PONTOS VALEM PRÊMIOS", "BALLOON BURST: 60 PTS"},
+    {62, "ACHAM QUE ACABOU...", "VENÇA O KICKBALL FINAL"},
+    {63, "FOGO NELES!", "20 ULCERS, CLINKERS..."},
+};
+
 void OnWritten(uint32_t user_index, uint32_t id) {
   (void)user_index;
   Record(id, "XGIUserWriteAchievements");
@@ -108,6 +135,12 @@ std::vector<Item> List() {
     it.id = e.id;
     it.name = db.GetStringTableEntry(lang, e.label_id);
     it.description = db.GetStringTableEntry(lang, e.description_id);
+    if (!pc::lang::English())
+      for (const auto& t : kPtBr)
+        if (t.id == e.id) {
+          it.name = t.name;
+          it.description = t.description;
+        }
     it.points = e.gamerscore;
     const auto f = g_unlocked.find(e.id);
     it.unlocked = f != g_unlocked.end();

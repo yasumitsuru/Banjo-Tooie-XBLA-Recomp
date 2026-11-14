@@ -1763,17 +1763,18 @@ std::string AchText(int row) {
         pts += a.points;
       }
     }
-    return Tx({"OBTIDAS", "UNLOCKED"}) + " : " + std::to_string(got) + "/" +
-           std::to_string(list.size()) + " (" + std::to_string(pts) + "/" +
-           std::to_string(total) + Tx({" PONTOS)", " POINTS)"});
+    (void)pts;
+    (void)total;
+    return Tx({"OBTIDAS (*) : ", "UNLOCKED (*) : "}) + std::to_string(got) +
+           Tx({" DE ", " OF "}) + std::to_string(list.size());
   }
   const size_t i = size_t(row - 1);
   if (i >= list.size()) return {};
   const auto& a = list[i];
   // Linhas curtas: o título quebra acima de ~26 letras largas (port-build-traps).
-  if (g_ach_detail.load() == row) return CutU8(UpperU8(a.description), 30);
-  return CutU8(UpperU8(a.name), 20) + " : " +
-         (a.unlocked ? Tx({"OBTIDA", "DONE"}) : Tx({"FALTA", "NOT YET"}));
+  // Obtida = "* " antes do nome (a linha de resumo explica o asterisco); A mostra a descrição.
+  if (g_ach_detail.load() == row) return CutU8(UpperU8(a.description), 23);
+  return (a.unlocked ? "* " : "") + CutU8(UpperU8(a.name), 20);
 }
 
 const Row* RowAt(int section, int row) {

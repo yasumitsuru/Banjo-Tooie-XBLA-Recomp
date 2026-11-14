@@ -8,6 +8,7 @@
 #endif
 #include <windows.h>
 #include <shellapi.h>
+#include <psapi.h>
 
 #include <rex/cvar.h>
 #include <rex/input/input_system.h>
@@ -497,6 +498,7 @@ struct NavResult {
   std::string trace;
 };
 NavResult NavigateToGameplayByState(double max_secs);
+void SkipScenesToFreePlay(NavResult& r, double max_secs);
 
 // Leva do título até o jogo livre, como um jogador faria: Start, JOGAR, JOGO 1 e pulando as
 // cenas com B. Guiada pelo estado do jogo (mapa e cena), serve tanto a um jogo novo quanto a
@@ -708,6 +710,25 @@ NavResult NavigateToGameplayByState(double max_secs) {
   }
   mark("jogo");
   // 3) pula as cenas até o jogo livre
+  SkipScenesToFreePlay(r, max_secs - secs());
+  return r;
+}
+
+// Passo 3 de NavigateToGameplayByState, também usado a partir do menu principal já aberto
+// (sonda --probe-conquistas): B pula as cenas (mapas 0x14F/0x158 ou byte de cena) até o jogo
+// ficar livre por 90 quadros.
+void SkipScenesToFreePlay(NavResult& r, double max_secs) {
+  using namespace std::chrono;
+  constexpr uint16_t kTitleMap = 0x14F, kIntroMap = 0x158;
+  constexpr uint32_t kSceneAddr = 0x8266EF30;
+  const auto t0 = steady_clock::now();
+  auto secs = [&]() { return duration<double>(steady_clock::now() - t0).count(); };
+  char buf[96];
+  auto mark = [&](const char* what) {
+    std::snprintf(buf, sizeof buf, "%s%s@%.1fs(mapa 0x%X)", r.trace.empty() ? "" : " ", what, secs(),
+                  ReadU16(kMapIdAddr));
+    r.trace += buf;
+  };
   uint64_t free_since = 0;
   int skips = 0;
   uint16_t last_map = ReadU16(kMapIdAddr);
@@ -735,7 +756,6 @@ NavResult NavigateToGameplayByState(double max_secs) {
   std::snprintf(buf, sizeof buf, " %d toques em B;", skips);
   r.trace += buf;
   mark(r.reached ? "jogo livre" : "sem jogo livre");
-  return r;
 }
 
 float ReadBeF32(uint32_t addr) {
@@ -1196,6 +1216,7 @@ Options ParseCommandLine() {
     else if (a == L"--dialog-speed") o.dialog_speed = _wtoi(argv[++i]);
     else if (a == L"--probe-fisica") o.probe_fisica = argv[++i];
     else if (a == L"--probe-conquistas") o.probe_conquistas = argv[++i];
+    else if (a == L"--probe-longa") o.probe_longa = argv[++i];
     else if (a == L"--fisica-mapas") {
       const std::wstring w = argv[++i];
       o.fisica_mapas.assign(w.begin(), w.end());  // só dígitos hex, ':' e ','
@@ -3664,6 +3685,145 @@ void Start(const Options& opts, rex::ui::WindowedAppContext* ui,
       Finish(0);
     }
 
+    // Sessão longa (--probe-longa <json> [--longa-minutos N], M04 C-7): joga por N minutos
+    // (padrão 60) viajando pelos mundos com a rotina de viagem do jogo e, em cada um, corre,
+    // pula, gira a câmera e abre/fecha a pausa. A cada minuto grava FPS, atualizações da
+    // lógica, memória, handles e mapa; um travamento (sem quadro novo por 15 s) encerra e
+    // fica registrado. O registro de sessão (logs\sessao-*.txt) traz os blocos de desempenho.
+    if (!opts.probe_longa.empty()) {
+      input::SetActive(true);
+      int minutes = 60;
+      {
+        int argc = 0;
+        LPWSTR* argv = CommandLineToArgvW(GetCommandLineW(), &argc);
+        for (int i = 1; argv && i + 1 < argc; ++i)
+          if (std::wstring(argv[i]) == L"--longa-minutos") minutes = std::max(1, _wtoi(argv[i + 1]));
+        if (argv) LocalFree(argv);
+      }
+      NavigateToGameplay();
+      WaitStableGameplay(120);
+      static constexpr struct {
+        uint16_t map;
+        uint8_t entry;
+      } kMaps[] = {{0x112, 5}, {0x128, 8}, {0x127, 1}, {0x136, 0x1F}, {0x142, 1},
+                   {0x15D, 5}, {0x12D, 5}, {0x124, 8}, {0xD6, 8},    {0x163, 3},
+                   {0xBB, 4},  {0x18A, 1}, {0x1A7, 1}, {0x1A8, 1},  {0x1A9, 1},
+                   {0x100, 1}, {0xB8, 1},  {0xC7, 1}};
+      using clk = std::chrono::steady_clock;
+      const auto start = clk::now();
+      const auto end = start + std::chrono::minutes(minutes);
+      std::ostringstream samples, visits;
+      int nsamples = 0, nvisits = 0, warps_ok = 0, warps_fail = 0, pauses_ok = 0;
+      bool hang = false;
+      std::string hang_detail;
+      auto last_sample = clk::now();
+      uint64_t s_swaps = state::guest_swaps.load(), s_logic = state::logic_updates.load();
+      auto mem = []() {
+        PROCESS_MEMORY_COUNTERS_EX pm{};
+        pm.cb = sizeof(pm);
+        GetProcessMemoryInfo(GetCurrentProcess(), reinterpret_cast<PROCESS_MEMORY_COUNTERS*>(&pm),
+                             sizeof(pm));
+        return pm;
+      };
+      auto write = [&](bool finished) {
+        std::ostringstream o;
+        const double secs = std::chrono::duration<double>(clk::now() - start).count();
+        o << "{\"version\":1,\"minutes_requested\":" << minutes << ",\"seconds\":" << secs
+          << ",\"finished\":" << (finished ? 1 : 0) << ",\"hang\":" << (hang ? 1 : 0)
+          << ",\"hang_detail\":\"" << JsonEscape(hang_detail) << "\",\"warps_ok\":" << warps_ok
+          << ",\"warps_fail\":" << warps_fail << ",\"pauses_ok\":" << pauses_ok
+          << ",\"visits\":" << nvisits << ",\"samples\":[" << samples.str()
+          << "],\"visit_log\":[" << visits.str() << "]}\n";
+        std::ofstream(opts.probe_longa, std::ios::binary | std::ios::trunc) << o.str();
+      };
+      // vigia de travamento: quadros parados por 15 s
+      auto alive = [&]() {
+        const uint64_t a = state::guest_swaps.load();
+        for (int i = 0; i < 150; ++i) {
+          if (state::guest_swaps.load() != a) return true;
+          std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        }
+        return false;
+      };
+      auto sample = [&]() {
+        const auto now = clk::now();
+        const double dt = std::chrono::duration<double>(now - last_sample).count();
+        if (dt < 60.0) return;
+        const uint64_t sw = state::guest_swaps.load(), lg = state::logic_updates.load();
+        const auto pm = mem();
+        DWORD handles = 0;
+        GetProcessHandleCount(GetCurrentProcess(), &handles);
+        samples << (nsamples++ ? "," : "") << "{\"t\":"
+                << std::chrono::duration<double>(now - start).count()
+                << ",\"fps\":" << double(sw - s_swaps) / dt
+                << ",\"logic\":" << double(lg - s_logic) / dt
+                << ",\"private_mb\":" << double(pm.PrivateUsage) / 1048576.0
+                << ",\"working_set_mb\":" << double(pm.WorkingSetSize) / 1048576.0
+                << ",\"handles\":" << handles << ",\"map\":\"0x" << std::hex
+                << ReadU16(kMapIdAddr) << std::dec << "\"}";
+        last_sample = now;
+        s_swaps = sw;
+        s_logic = lg;
+        write(false);
+      };
+      auto& pad = input::Get();
+      size_t k = 0;
+      while (clk::now() < end && !hang) {
+        const auto& m = kMaps[k++ % (sizeof(kMaps) / sizeof(kMaps[0]))];
+        const bool inv = RequestWarp(m.map, m.entry);
+        const bool arrived = inv && WaitWarpArrival(m.map);
+        if (arrived) ++warps_ok;
+        else ++warps_fail;
+        if (!alive()) {
+          hang = true;
+          hang_detail = "sem quadro novo por 15 s depois da viagem ao mapa 0x" +
+                        [&] { char b[8]; std::snprintf(b, 8, "%X", m.map); return std::string(b); }();
+          break;
+        }
+        WaitStableGameplay(60, 600);
+        const uint64_t v0 = state::guest_swaps.load();
+        const auto tv = clk::now();
+        // ~15 s de jogo: corre, pula, câmera, volta, pausa e despausa
+        pad = input::PadState{};
+        pad.thumb_ly = 32767;
+        std::this_thread::sleep_for(std::chrono::milliseconds(2500));
+        pad.thumb_ly = 0;
+        Tap(input::kA, 12);
+        std::this_thread::sleep_for(std::chrono::milliseconds(1500));
+        pad.thumb_rx = 32767;
+        std::this_thread::sleep_for(std::chrono::milliseconds(1500));
+        pad.thumb_rx = 0;
+        pad.thumb_ly = -32767;
+        std::this_thread::sleep_for(std::chrono::milliseconds(2000));
+        pad.thumb_ly = 0;
+        Tap(input::kB, 8);  // golpe / fecha diálogo
+        std::this_thread::sleep_for(std::chrono::milliseconds(1500));
+        if (state::cutscene_state.load() == 0) {
+          const bool p = OpenPauseMenu();
+          if (p) {
+            ++pauses_ok;
+            std::this_thread::sleep_for(std::chrono::milliseconds(1500));
+            for (int t = 0; t < 4 && ReadU8(0x8266EF55) == 1; ++t) {
+              Tap(input::kStart, 12);
+              WaitFrames(60);
+            }
+          }
+        }
+        std::this_thread::sleep_for(std::chrono::milliseconds(2000));
+        const double vs = std::chrono::duration<double>(clk::now() - tv).count();
+        visits << (nvisits++ ? "," : "") << "{\"map\":\"0x" << std::hex << m.map << std::dec
+               << "\",\"arrived\":" << (arrived ? 1 : 0) << ",\"fps\":"
+               << double(state::guest_swaps.load() - v0) / vs << "}";
+        sample();
+        if (!alive()) {
+          hang = true;
+          hang_detail = "sem quadro novo por 15 s durante o jogo";
+        }
+      }
+      write(true);
+      Finish(hang ? 3 : 0);
+    }
+
     // Sonda das CONQUISTAS do PC (--probe-conquistas, M04 C-6): no menu principal e na pausa,
     // escolhe CONQUISTAS, confere a lista (página 7, vista de conquistas), a descrição com A,
     // uma conquista registrada como se o jogo a informasse, e que B volta ao menu de origem com
@@ -3773,8 +3933,7 @@ void Start(const Options& opts, rex::ui::WindowedAppContext* ui,
         const bool back_ok = page2 == page0 && after == before;
         const bool ok = found && on_list && list.size() == items.size() + 1 &&
                         row1_after != row1_before && recorded &&
-                        row1_unlocked.find(pc::lang::English() ? "DONE" : "OBTIDA") !=
-                            std::string::npos &&
+                        row1_unlocked.rfind("* ", 0) == 0 &&
                         back_ok && state::achievements_opened.load() == opened0 + 1;
         all_ok &= ok;
         o << ",\"" << name << "\":{\"ok\":" << (ok ? "true" : "false")
@@ -3806,10 +3965,23 @@ void Start(const Options& opts, rex::ui::WindowedAppContext* ui,
       WaitFrames(150);
       Tap(input::kA, 12);
       WaitFrames(240);
-      for (int i = 0; i < 40 && !WaitStableGameplay(90, 300); ++i)
-        if (state::cutscene_state.load() != 0) Tap(input::kB, 10);
-      WaitFrames(60);
-      const bool paused = OpenPauseMenu();
+      {
+        NavResult nr;
+        SkipScenesToFreePlay(nr, 90.0);
+        for (int i = 0; i < 2; ++i) {  // como NavigateToGameplay
+          Tap(input::kB);
+          WaitFrames(35);
+        }
+      }
+      // O jogo novo ainda passa de 0xA1 para 0xAF logo depois (sessão de 2026-11-14): a pausa
+      // só abre com o mapa parado. Tenta por até ~40 s, como o jogador faria.
+      bool paused = false;
+      for (int i = 0; i < 8 && !paused; ++i) {
+        WaitStableGameplay(120, 900);
+        std::this_thread::sleep_for(std::chrono::seconds(2));
+        paused = OpenPauseMenu();
+        if (!paused && state::cutscene_state.load() != 0) Tap(input::kB, 10);
+      }
       WaitFrames(60);
       if (paused) phase("pausa");
       else all_ok = false;

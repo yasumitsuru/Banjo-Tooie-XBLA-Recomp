@@ -57,6 +57,10 @@ class BootReport {
   void SetInfo(const std::string& key, const std::string& value);
   void SetPreflight(const PreflightResult& result);
   void Stage(const std::string& name, const std::string& detail = {});
+  // M04 (C-10): cada etapa também vai para o registro de sessão; as já registradas são
+  // repassadas na hora.
+  using StageListener = void (*)(const std::string& name, const std::string& detail, double t_ms);
+  void SetStageListener(StageListener fn);
   void SetFrames(uint64_t frames, double fps, double elapsed_s);
   void SetScreenshot(const std::string& path, uint32_t width, uint32_t height, bool ok,
                      const std::string& detail);

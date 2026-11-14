@@ -276,6 +276,16 @@ address = 0x822DDA70
 name = "PcHook_ExitCancelled"
 registers = ["r3"]
 
+# 0x822DD628 = ação de CONQUISTAS (título e pausa): FUN_8227EED0 (só lê o jogador ativo,
+# *(0x8269EE90+0x14), 0x822E5F08) + XamShowAchievementsUI (0x825B1F60), o painel do Xbox LIVE,
+# que não existe no PC. Com a camada de PC, o gancho abre a lista de conquistas do PC dentro do
+# menu do jogo (pc_achievements.h, M04 C-6) e pula o original; sem ela, segue o original.
+[[midasm_hook]]
+address = 0x822DD628
+name = "PcHook_AchievementsSelect"
+registers = ["r3"]
+return_on_true = true
+
 # 0x822DEC40 = ação de CLASSIFICAÇÕES (página-alvo 3) e também da entrada nova (página-alvo -1).
 # O original confere o perfil Xbox Live (byte 0x8269EF20) e, sem ele, abre a tela "ESTE RECURSO
 # EXIGE UM PERFIL ... XBOX LIVE" (0x822DE7E8). O gancho só age na entrada nova (abre o menu

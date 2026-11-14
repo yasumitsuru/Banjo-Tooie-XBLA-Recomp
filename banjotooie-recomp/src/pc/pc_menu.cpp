@@ -1,3 +1,6 @@
+#include "pc_achievements.h"
+#include "pc_display.h"
+#include "pc_log.h"
 #include "pc_menu.h"
 
 #ifndef WIN32_LEAN_AND_MEAN
@@ -374,7 +377,7 @@ void SetCvar(const char* name, const std::string& v) { rex::cvar::SetFlagByName(
 // a escala inteira 2x/3x renderiza em 2560x1440 / 3840x2160).
 void ApplyResolutionCvars(Resolution r) {
   const char* preset = r == Resolution::R1080p ? "1080p" : r == Resolution::R1440p ? "1440p" : "4k";
-  const int scale = r == Resolution::R2160p ? 3 : r == Resolution::R1440p ? 2 : 1;
+  const int scale = std::atoi(pc::InternalScaleText(r));  // 1080p e 1440p = 2x, 4K = 3x (C-22)
   SetCvar("resolution", preset);
   SetCvar("draw_resolution_scale_x", std::to_string(scale));
   SetCvar("draw_resolution_scale_y", std::to_string(scale));
@@ -555,6 +558,17 @@ bool FitInitialWindowToResolution(rex::ui::Window* window, Resolution resolution
     if (!GetMonitorInfoW(MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST), &monitor) ||
         !GetWindowRect(hwnd, &outer) || !GetClientRect(hwnd, &client))
       return false;
+    // M04 (C-29): a janela vai para o monitor escolhido na abertura (pc_display.h), centrada na
+    // área útil dele, se o Windows a criou em outro.
+    bool moved_to_chosen = false;
+    const pc::display::Monitor& chosen = pc::display::Chosen();
+    const pc::display::Monitor now_on = pc::display::ForWindow(hwnd);
+    if (!chosen.device.empty() && chosen.device != now_on.device &&
+        chosen.rc_work.right > chosen.rc_work.left) {
+      monitor.rcMonitor = chosen.rc_monitor;
+      monitor.rcWork = chosen.rc_work;
+      moved_to_chosen = true;
+    }
     const int frame_width = std::max(0L, (outer.right - outer.left) -
                                            (client.right - client.left));
     const int frame_height = std::max(0L, (outer.bottom - outer.top) -
@@ -576,10 +590,14 @@ bool FitInitialWindowToResolution(rex::ui::Window* window, Resolution resolution
     }
     if (width <= 0 || height <= 0) return false;
     const int outer_width = width + frame_width, outer_height = height + frame_height;
-    const int left = std::clamp(int(outer.left), int(monitor.rcWork.left),
-                                int(monitor.rcWork.right) - outer_width);
-    const int top = std::clamp(int(outer.top), int(monitor.rcWork.top),
-                               int(monitor.rcWork.bottom) - outer_height);
+    int left = std::clamp(int(outer.left), int(monitor.rcWork.left),
+                          int(monitor.rcWork.right) - outer_width);
+    int top = std::clamp(int(outer.top), int(monitor.rcWork.top),
+                         int(monitor.rcWork.bottom) - outer_height);
+    if (moved_to_chosen) {
+      left = (monitor.rcWork.left + monitor.rcWork.right - outer_width) / 2;
+      top = (monitor.rcWork.top + monitor.rcWork.bottom - outer_height) / 2;
+    }
     return SetWindowPos(hwnd, nullptr, left, top, outer_width, outer_height,
                         SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_NOACTIVATE) != FALSE;
   }();
@@ -593,23 +611,56 @@ void SetBorderless(HWND hwnd, bool borderless) {
   if (borderless) {
     if (!g_saved_style) {
       g_saved_style = style;
-      GetWindowRect(hwnd, &g_saved_rect);
+      pc::display::WithPhysicalDpi([hwnd] { return GetWindowRect(hwnd, &g_saved_rect); });
     }
     SetWindowLongPtrW(hwnd, GWL_STYLE, style & ~(WS_CAPTION | WS_THICKFRAME | WS_SYSMENU |
                                                  WS_MINIMIZEBOX | WS_MAXIMIZEBOX));
-    // ocupa a área de trabalho do monitor atual (sem cobrir a barra de tarefas)
-    MONITORINFO mi{sizeof(mi)};
-    GetMonitorInfoW(MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST), &mi);
-    const RECT& r = mi.rcWork;
-    SetWindowPos(hwnd, nullptr, r.left, r.top, r.right - r.left, r.bottom - r.top,
-                 SWP_FRAMECHANGED | SWP_NOZORDER | SWP_NOOWNERZORDER);
+    // M04 (C-25): ocupa o monitor INTEIRO em que a janela está (antes: só a área útil, sem a
+    // barra de tarefas), em pixels físicos.
+    pc::display::WithPhysicalDpi([hwnd] {
+      MONITORINFO mi{sizeof(mi)};
+      GetMonitorInfoW(MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST), &mi);
+      const RECT& r = mi.rcMonitor;
+      return SetWindowPos(hwnd, nullptr, r.left, r.top, r.right - r.left, r.bottom - r.top,
+                          SWP_FRAMECHANGED | SWP_NOZORDER | SWP_NOOWNERZORDER);
+    });
   } else if (g_saved_style) {
     SetWindowLongPtrW(hwnd, GWL_STYLE, g_saved_style);
-    SetWindowPos(hwnd, nullptr, g_saved_rect.left, g_saved_rect.top,
-                 g_saved_rect.right - g_saved_rect.left, g_saved_rect.bottom - g_saved_rect.top,
-                 SWP_FRAMECHANGED | SWP_NOZORDER | SWP_NOOWNERZORDER);
+    pc::display::WithPhysicalDpi([hwnd] {
+      return SetWindowPos(hwnd, nullptr, g_saved_rect.left, g_saved_rect.top,
+                          g_saved_rect.right - g_saved_rect.left,
+                          g_saved_rect.bottom - g_saved_rect.top,
+                          SWP_FRAMECHANGED | SWP_NOZORDER | SWP_NOOWNERZORDER);
+    });
     g_saved_style = 0;
   }
+}
+
+void ApplyDisplayModeNow(rex::ui::Window* window, DisplayMode mode);
+
+// Leva a janela para o monitor 'device' (vazio = fica onde está) e reaplica o modo atual.
+void MoveWindowToMonitor(rex::ui::Window* window, const std::string& device) {
+  if (!window || device.empty()) return;
+  HWND hwnd = reinterpret_cast<HWND>(window->GetNativeWindowHandle());
+  if (!hwnd) return;
+  pc::display::Monitor target;
+  for (const auto& m : pc::display::List())
+    if (m.device == device) target = m;
+  if (target.device.empty() || pc::display::ForWindow(hwnd).device == device) return;
+  const DisplayMode mode = pc::Get().display_mode;
+  ApplyDisplayModeNow(window, DisplayMode::Janela);  // sai de tela cheia/sem bordas antes
+  pc::display::WithPhysicalDpi([&] {
+    RECT outer{};
+    GetWindowRect(hwnd, &outer);
+    const RECT& w = target.rc_work;
+    const int ow = std::min<int>(outer.right - outer.left, w.right - w.left);
+    const int oh = std::min<int>(outer.bottom - outer.top, w.bottom - w.top);
+    return SetWindowPos(hwnd, nullptr, (w.left + w.right - ow) / 2, (w.top + w.bottom - oh) / 2,
+                        ow, oh, SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_NOACTIVATE);
+  });
+  pc::display::SetChosen(target);
+  if (mode != DisplayMode::Janela) ApplyDisplayModeNow(window, mode);
+  pc::log::Event("video", "janela levada ao monitor " + device);
 }
 
 void ApplyDisplayModeNow(rex::ui::Window* window, DisplayMode mode) {
@@ -1400,6 +1451,34 @@ std::vector<Row> BuildGraphics() {
                  RequestSave();
                  return true;
                }});
+  // MONITOR (M04, C-29): AUTOMÁTICO (o do cursor na abertura) ou um dos monitores ligados. A
+  // janela vai na hora para o monitor escolhido e o modo (janela/sem bordas/tela cheia) é
+  // reaplicado lá; a resolução automática passa a usar esse monitor na próxima abertura.
+  r.push_back({[] {
+                 const std::string& want = pc::Get().monitor;
+                 if (want.empty()) return Tx({"MONITOR", "MONITOR"}) + " : " +
+                                          Tx({"AUTOMÁTICO", "AUTOMATIC"});
+                 for (const auto& m : pc::display::List())
+                   if (m.device == want)
+                     return Tx({"MONITOR", "MONITOR"}) + " : " + std::to_string(m.number) + " - " +
+                            std::to_string(m.width) + "X" + std::to_string(m.height);
+                 return Tx({"MONITOR", "MONITOR"}) + " : " + Tx({"DESLIGADO", "DISCONNECTED"});
+               },
+               [](int dir) {
+                 const auto all = pc::display::List();
+                 std::vector<std::string> opts{""};
+                 for (const auto& m : all) opts.push_back(m.device);
+                 if (opts.size() < 2) return false;
+                 int i = 0;
+                 for (size_t k = 0; k < opts.size(); ++k)
+                   if (opts[k] == pc::Get().monitor) i = int(k);
+                 i = Wrap(i, int(opts.size()), dir == 0 ? 1 : dir);
+                 pc::Get().monitor = opts[size_t(i)];
+                 const std::string dev = opts[size_t(i)];
+                 PostUi([dev] { MoveWindowToMonitor(g_window, dev); });
+                 RequestSave();
+                 return true;
+               }});
   // VSYNC = imagem entregue no retraço do monitor (host_vsync, sem tearing). O cvar 'vsync' do
   // runtime é o ritmo de 60 Hz do console: desligado, o jogo receberia um "retraço" a cada 1 ms
   // (graphics_system.cpp) — fica sempre ligado (pc_menu::Create).
@@ -1603,6 +1682,22 @@ std::vector<Row> BuildAudioSaves() {
     return true;
   };
   r.push_back(std::move(restore));
+  // Registro de sessão (M04, C-10): nível e atalho para a pasta (logs\sessao-*.txt).
+  r.push_back(Bool({"REGISTRO DETALHADO", "DETAILED LOG"}, &Settings::log_detailed,
+                   [] { pc::log::SetDetailed(pc::Get().log_detailed); }));
+  Row folder;
+  folder.value = false;
+  folder.text = [] { return Tx({"ABRIR PASTA DOS REGISTROS", "OPEN LOG FOLDER"}); };
+  folder.input = [](int dir) {
+    if (dir != 0) return false;
+    const std::filesystem::path p = pc::log::Path().parent_path();
+    // nos testes automáticos não abre janela nenhuma (só registra)
+    if (!p.empty() && !pc::automation::IsRunning())
+      ShellExecuteW(nullptr, L"open", p.c_str(), nullptr, nullptr, SW_SHOWNORMAL);
+    pc::log::Event("menus", "abrir pasta dos registros");
+    return true;
+  };
+  r.push_back(std::move(folder));
   return r;
 }
 
@@ -1618,6 +1713,67 @@ std::vector<Section>& Sections() {
                                    {{"TECLADO E MOUSE", "KEYBOARD & MOUSE"}, BuildKeyboardMouse()},
                                    {{"ÁUDIO E SAVES", "AUDIO & SAVES"}, BuildAudioSaves()}};
   return s;
+}
+
+// ---- CONQUISTAS (vista kAchievementsView)
+std::atomic<int> g_ach_detail{-1};  // linha mostrando a descrição
+
+// Maiúsculas em UTF-8 para as letras latinas acentuadas que a fonte do jogo tem (U+00E0..U+00FE).
+std::string UpperU8(const std::string& s) {
+  std::string o = s;
+  for (size_t i = 0; i < o.size(); ++i) {
+    unsigned char c = static_cast<unsigned char>(o[i]);
+    if (c >= 'a' && c <= 'z') {
+      o[i] = char(c - 32);
+    } else if (c == 0xC3 && i + 1 < o.size()) {
+      unsigned char d = static_cast<unsigned char>(o[i + 1]);
+      if (d >= 0xA0 && d <= 0xBE && d != 0xB7) o[i + 1] = char(d - 0x20);
+      ++i;
+    }
+  }
+  return o;
+}
+
+// Corta em n letras (contando caracteres UTF-8, não bytes) e põe "..." no fim.
+std::string CutU8(const std::string& s, size_t n) {
+  size_t chars = 0, i = 0;
+  while (i < s.size()) {
+    if (chars == n) return s.substr(0, i) + "...";
+    const unsigned char c = static_cast<unsigned char>(s[i]);
+    i += c < 0x80 ? 1 : (c >> 5) == 6 ? 2 : (c >> 4) == 14 ? 3 : 4;
+    ++chars;
+  }
+  return s;
+}
+
+int AchRows() {
+  const size_t n = pc::achievements::List().size();
+  return n ? int(n) + 1 : 1;
+}
+
+std::string AchText(int row) {
+  const auto list = pc::achievements::List();
+  if (list.empty()) return Tx({"LISTA DE CONQUISTAS INDISPONÍVEL", "ACHIEVEMENT LIST UNAVAILABLE"});
+  if (row == 0) {
+    int got = 0, pts = 0, total = 0;
+    for (const auto& a : list) {
+      total += a.points;
+      if (a.unlocked) {
+        ++got;
+        pts += a.points;
+      }
+    }
+    return Tx({"OBTIDAS", "UNLOCKED"}) + " : " + std::to_string(got) + "/" +
+           std::to_string(list.size()) + " (" + std::to_string(pts) + "/" +
+           std::to_string(total) + Tx({" PONTOS)", " POINTS)"});
+  }
+  const size_t i = size_t(row - 1);
+  if (i >= list.size()) return {};
+  const auto& a = list[i];
+  // Linhas curtas: o título quebra acima de ~26 letras largas (port-build-traps).
+  if (g_ach_detail.load() == row) return CutU8(UpperU8(a.description), 30);
+  return CutU8(UpperU8(a.name), 20) + " : " +
+         (a.unlocked ? Tx({"OBTIDA", "DONE"}) : Tx({"FALTA", "NOT YET"}));
 }
 
 const Row* RowAt(int section, int row) {
@@ -1637,26 +1793,37 @@ std::string SectionTitle(int section) {
 }
 
 int RowCount(int section) {
+  if (section == kAchievementsView) return AchRows();
   auto& s = Sections();
   return section >= 0 && section < int(s.size()) ? int(s[size_t(section)].rows.size()) : 0;
 }
 
 std::string RowText(int section, int row) {
+  if (section == kAchievementsView) return AchText(row);
   const Row* r = RowAt(section, row);
   return r ? r->text() : std::string();
 }
 
 bool RowIsValue(int section, int row) {
+  if (section == kAchievementsView) return false;
   const Row* r = RowAt(section, row);
   return r && r->value;
 }
 
 bool RowInput(int section, int row, int dir) {
+  if (section == kAchievementsView) {
+    if (dir != 0 || row <= 0) return false;
+    g_ach_detail.store(g_ach_detail.load() == row ? -1 : row);  // A: descrição <-> nome
+    return true;
+  }
   const Row* r = RowAt(section, row);
   return r && r->input(dir);
 }
 
-void RowLeft() { g_restore_state.store(0); }
+void RowLeft() {
+  g_restore_state.store(0);
+  g_ach_detail.store(-1);
+}
 
 uint32_t Generation() { return g_options_generation.load(); }
 

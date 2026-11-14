@@ -16,7 +16,8 @@ from datetime import datetime, timezone
 
 APP_ROOT = Path(__file__).resolve().parents[1]
 RESOLUTIONS = {
-    "1080p": ("R1080p", 1280, 720),
+    # M04 (C-22): 1080p desenha a 2x (2560x1440) e a apresentacao reduz para 1920x1080
+    "1080p": ("R1080p", 2560, 1440),
     "1440p": ("R1440p", 2560, 1440),
     "4k": ("R2160p", 3840, 2160),
 }

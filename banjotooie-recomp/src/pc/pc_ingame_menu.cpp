@@ -107,7 +107,18 @@ std::string ToLatin1(const std::string& u8) {
       out += cp <= 0xFF ? char(cp) : '?';
       i += 2;
     } else {
-      out += '?';
+      // Pontuação tipográfica de 3 bytes (textos da tabela XDBF das CONQUISTAS): aspas e
+      // apóstrofo curvos, travessão e reticências viram os equivalentes simples da fonte.
+      const unsigned cp = (c & 0xF0) == 0xE0 && i + 2 < u8.size()
+                              ? ((c & 0x0Fu) << 12) |
+                                    ((static_cast<unsigned char>(u8[i + 1]) & 0x3Fu) << 6) |
+                                    (static_cast<unsigned char>(u8[i + 2]) & 0x3Fu)
+                              : 0;
+      if (cp == 0x2018 || cp == 0x2019) out += '\'';
+      else if (cp == 0x201C || cp == 0x201D) out += '"';
+      else if (cp == 0x2013 || cp == 0x2014) out += '-';
+      else if (cp == 0x2026) out += "...";
+      else out += '?';
       i += (c & 0xF0) == 0xE0 ? 3 : 4;
     }
   }
@@ -225,6 +236,8 @@ uint32_t g_last_cursor = 0xFF;    // cursor no último quadro tratado
 uint32_t g_seen_generation = 0;   // geração das opções já desenhada
 
 std::atomic<bool> g_toggle_request{false};
+std::atomic<int> g_open_view{kNoView};  // vista pedida por RequestOpenView (CONQUISTAS)
+bool g_direct_view = false;             // vista aberta direto: B volta à página de origem
 std::atomic<int> g_jump_armed{0};  // quadros restantes para a troca pedida pelo F1 acontecer
 int g_request_frames = 0;          // quadros restantes para atender o F1
 bool g_request_first = false;
@@ -264,7 +277,7 @@ void WriteScratch(const std::string& latin1) {
 }
 
 // Monta a página 7 com a vista pedida (raiz ou seção), pelas rotinas do próprio jogo.
-bool BuildPage(uint32_t screen, int view, uint32_t parent) {
+bool BuildPage(uint32_t screen, int view, uint32_t parent, bool direct = false) {
   const uint32_t page = PageAddr(screen);
   if (!page) return false;
   std::vector<std::string> texts;
@@ -288,7 +301,7 @@ bool BuildPage(uint32_t screen, int view, uint32_t parent) {
   W32(ig::kLayoutY, uint32_t(l.y0));
   W32(ig::kLayoutStep, uint32_t(l.step));
   W32(ig::kLayoutScale2, l.scale2_bits);
-  W32(ig::kLayoutParent, section ? ig::kPcPageIndex : parent);
+  W32(ig::kLayoutParent, section && !direct ? ig::kPcPageIndex : parent);
   for (size_t i = 0; i < texts.size() && ok; ++i) {
     WriteScratch(texts[i]);
     CallGuest(ig::kAppendEntryFn, {page, g_scratch, mm::kKazooieIcon}, &ok);
@@ -315,6 +328,7 @@ bool BuildPage(uint32_t screen, int view, uint32_t parent) {
   W32(page + ig::kPageTickOff, ig::kHookPageTick);  // 0x822DC728 -> PcHook_PcPageTick
   W32(page + ig::kPageExitOff, 0);
   g_view = view;
+  g_direct_view = direct;
   g_last_cursor = 0xFF;
   g_seen_generation = opt::Generation();
   s_view.store(view);
@@ -410,6 +424,11 @@ uint32_t PageIndex() { return ig::kPcPageIndex; }
 
 void RequestToggle() { g_toggle_request.store(true); }
 
+void RequestOpenView(int view) {
+  g_open_view.store(view);
+  g_toggle_request.store(true);
+}
+
 void OnPagesBuilt(uint32_t screen, int32_t y0, int32_t step, int32_t x, float scale,
                   float delay) {
   if (!GuestPtr(screen)) return;
@@ -450,7 +469,12 @@ void FrameTick() {
     g_request_tapped = false;
     g_request_stable = 0;
   }
-  if (g_request_frames <= 0) return;
+  if (g_request_frames <= 0) {
+    // pedido que não foi atendido não vale para o próximo F1 (mas a troca de página já pedida
+    // ainda vai acontecer nos próximos quadros: g_jump_armed)
+    if (g_jump_armed.load() == 0) g_open_view.store(kNoView);
+    return;
+  }
   --g_request_frames;
   const uint32_t screen = ig::kScreenAddr;
   const uint8_t state = R8(screen + ig::kScreenStateOff);
@@ -459,7 +483,9 @@ void FrameTick() {
   if (state == ig::kStateActive && page < ig::kPageCount) {
     if (page == ig::kPcPageIndex) {
       // F1 de novo, já nas páginas de PC: fecha (pausa -> volta ao jogo; título -> volta).
-      if (g_request_first) pc::input::RequestTap(pause ? pc::input::kStart : pc::input::kB);
+      if (g_request_first && g_open_view.load() == kNoView)
+        pc::input::RequestTap(pause ? pc::input::kStart : pc::input::kB);
+      g_open_view.store(kNoView);
       g_request_frames = 0;
       return;
     }
@@ -530,8 +556,14 @@ void PcHook_MenuPageSwitch(PPCRegister& r11, PPCRegister& r31) {
   int view = kRootView;
   uint32_t cursor = 0;
   uint32_t parent = g_root_parent;
+  bool direct = false;
   if (jump) {
     parent = old_page;
+    const int req = g_open_view.exchange(kNoView);
+    if (req != kNoView) {
+      view = req;  // CONQUISTAS: a vista direto, B volta para a página de onde veio
+      direct = true;
+    }
   } else if (old_page == ig::kPcPageIndex) {
     const uint32_t at = R8(screen + mm::kScreenCursorOff);
     if (!back && g_view == kRootView && int(at) < opt::SectionCount()) {
@@ -542,7 +574,7 @@ void PcHook_MenuPageSwitch(PPCRegister& r11, PPCRegister& r31) {
   } else {
     parent = old_page;  // entrou por AJUDA E OPÇÕES (pausa) ou pelo menu principal
   }
-  if (!BuildPage(screen, view, parent)) {
+  if (!BuildPage(screen, view, parent, direct)) {
     // Falhou: pelo F1, fica na página de onde saiu (o alvo da entrada sob o cursor poderia ser
     // -1, que fecharia o menu); pela navegação normal, segue a escolha do jogo.
     if (jump) r11.u64 = old_page;

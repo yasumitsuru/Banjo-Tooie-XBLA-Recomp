@@ -10,6 +10,7 @@
 #include <rex/system/xmemory.h>
 
 #include <algorithm>
+#include <chrono>
 #include <cstdint>
 #include <cstring>
 #include <cwchar>
@@ -25,6 +26,8 @@
 
 #include "pc_ingame_menu.h"
 #include "pc_lang.h"
+#include "pc_log.h"
+#include "pc_menu.h"
 #include "pc_settings.h"
 #include "pc_state.h"
 #include "mechanics_values.h"
@@ -163,6 +166,33 @@ void PcHook_FrameStep(PPCRegister& r9) {
 // (0x82248810: r3 = mapa, r4 = entrada) na thread do jogo, com o contexto atual, antes das
 // atualizações dos objetos. O jogo processa o pedido nos quadros seguintes.
 void PcHook_FrameStart() {
+  pc::state::logic_updates.fetch_add(1, std::memory_order_relaxed);
+  // Rastro de física (M04, etapa D): uma amostra por atualização da lógica.
+  if (pc::state::phys_trace_enabled.load(std::memory_order_relaxed)) {
+    const uint32_t i = pc::state::phys_trace_count.load(std::memory_order_relaxed);
+    if (i < pc::state::kPhysTraceSize) {
+      auto f32 = [](uint32_t a) {
+        const uint32_t v = ReadU32(a);
+        float f;
+        std::memcpy(&f, &v, sizeof f);
+        return f;
+      };
+      pc::state::PhysSample& s = pc::state::phys_trace[i];
+      s.t_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(
+                   std::chrono::steady_clock::now().time_since_epoch())
+                   .count();
+      s.swaps = pc::state::guest_swaps.load(std::memory_order_relaxed);
+      s.step = pc::state::frame_step.load(std::memory_order_relaxed);
+      s.scene = ReadU8(kCutsceneStateAddr);
+      s.x = f32(0x8266BB74);
+      s.y = f32(0x8266BB78);
+      s.z = f32(0x8266BB7C);
+      s.cx = f32(0x826A0450);
+      s.cy = f32(0x826A0454);
+      s.cz = f32(0x826A0458);
+      pc::state::phys_trace_count.store(i + 1, std::memory_order_release);
+    }
+  }
   if (const uint32_t req = pc::state::warp_requested.exchange(0, std::memory_order_relaxed)) {
     const uint16_t map = uint16_t(req >> 8);
     const uint8_t entry = uint8_t(req & 0xFF);
@@ -232,6 +262,7 @@ void PcHook_FrameStart() {
 
 void PcHook_PresentInterval(PPCRegister& r11) {
   pc::state::guest_swaps.fetch_add(1, std::memory_order_relaxed);
+  pc::log::NotePresent();  // tempo entre quadros para o registro de sessão (pc_log.h)
   // Ritmo da tela = ritmo do jogo: o runtime apresenta cada quadro do jogo uma vez e descarta
   // redesenhos extras só da interface (que seguiam a taxa do monitor, 90-120 FPS irregulares).
   {
@@ -571,6 +602,17 @@ void PcHook_ExitCancelled(PPCRegister& r3) {
     pc::state::title_exit_cancelled.fetch_add(1, std::memory_order_relaxed);
     REXLOG_INFO("menu principal: SAIR PARA O DESKTOP cancelada (NÃO); volta ao menu");
   }
+}
+
+// CONQUISTAS (M04, C-6): ação 0x822DD628 do jogo, antes de criar a pilha. Com a camada de PC
+// abre a lista de conquistas do PC no menu do jogo (a página 7 na vista CONQUISTAS; B volta).
+bool PcHook_AchievementsSelect(PPCRegister& r3) {
+  (void)r3;
+  if (!pc::Get().pc_menu_entry) return false;  // original: XamShowAchievementsUI (sem efeito)
+  pc::state::achievements_opened.fetch_add(1, std::memory_order_relaxed);
+  pc::ingame::RequestOpenView(pc::menu::options::kAchievementsView);
+  pc::log::Event("menus", "CONQUISTAS: lista de conquistas do PC (no lugar do painel do Xbox)");
+  return true;
 }
 
 // Ação compartilhada (0x822DEC40), antes de o handler criar a pilha: retornar aqui não deixa

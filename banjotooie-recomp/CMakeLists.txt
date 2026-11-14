@@ -34,6 +34,12 @@ set(BANJOTOOIE_SOURCES
     src/pc/pc_crash.cpp
     src/pc/pc_shaders.cpp
     src/pc/pc_userdir.cpp
+    # M04 (C-10): registro de sessão em <dados do usuário>\logs\sessao-*.txt
+    src/pc/pc_log.cpp
+    # M04 (C-29, C-25): monitor escolhido, resolução automática dele e sem bordas no monitor inteiro
+    src/pc/pc_display.cpp
+    # M04 (C-6): CONQUISTAS no PC (lista do jogo + obtidas guardadas por conta)
+    src/pc/pc_achievements.cpp
 )
 
 if(WIN32)
@@ -46,6 +52,40 @@ else()
 endif()
 
 rexglue_setup_target(banjotooie)
+
+# M04 (C-10): identificação do build no registro de sessão (commit do app e do rexglue-sdk e se
+# havia mudanças não gravadas). O configure roda a cada build (tools/build_native.cmd).
+find_package(Git QUIET)
+set(PC_GIT_COMMIT "desconhecido")
+set(PC_SDK_COMMIT "desconhecido")
+set(PC_GIT_STATE "desconhecido")
+if(GIT_FOUND)
+    execute_process(COMMAND "${GIT_EXECUTABLE}" rev-parse --short=12 HEAD
+        WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/.." OUTPUT_VARIABLE _pc_c
+        OUTPUT_STRIP_TRAILING_WHITESPACE ERROR_QUIET RESULT_VARIABLE _pc_r)
+    if(_pc_r EQUAL 0)
+        set(PC_GIT_COMMIT "${_pc_c}")
+    endif()
+    execute_process(COMMAND "${GIT_EXECUTABLE}" rev-parse --short=12 HEAD
+        WORKING_DIRECTORY "${REXSDK_DIR}" OUTPUT_VARIABLE _pc_s
+        OUTPUT_STRIP_TRAILING_WHITESPACE ERROR_QUIET RESULT_VARIABLE _pc_r)
+    if(_pc_r EQUAL 0)
+        set(PC_SDK_COMMIT "${_pc_s}")
+    endif()
+    execute_process(COMMAND "${GIT_EXECUTABLE}" status --porcelain --untracked-files=no
+        --ignore-submodules=dirty
+        WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/.." OUTPUT_VARIABLE _pc_d
+        OUTPUT_STRIP_TRAILING_WHITESPACE ERROR_QUIET RESULT_VARIABLE _pc_r)
+    if(_pc_r EQUAL 0)
+        if(_pc_d STREQUAL "")
+            set(PC_GIT_STATE "limpo")
+        else()
+            set(PC_GIT_STATE "com mudanças não gravadas")
+        endif()
+    endif()
+endif()
+set_source_files_properties(src/pc/pc_log.cpp PROPERTIES COMPILE_DEFINITIONS
+    "PC_GIT_COMMIT=\"${PC_GIT_COMMIT}\";PC_SDK_COMMIT=\"${PC_SDK_COMMIT}\";PC_GIT_STATE=\"${PC_GIT_STATE}\"")
 
 # --- Local build fix -------------------------------------------------------
 # The SDK harness rex_app.cpp (injected into this target by
@@ -66,7 +106,7 @@ if(WIN32)
     # MISSAO 01: MiniDumpWriteDump (relatorio de falhas em port_diagnostics.cpp).
     target_link_libraries(banjotooie PRIVATE dbghelp)
     # Camada de PC: CommandLineToArgvW; timeBeginPeriod; placa/driver no relatorio de shaders.
-    target_link_libraries(banjotooie PRIVATE shell32 winmm dxgi)
+    target_link_libraries(banjotooie PRIVATE shell32 winmm dxgi bcrypt)
 
     # Craft discovers packaged programs in app/Build. This entry point runs the
     # real native game, forwards checker arguments, and returns its exit code.

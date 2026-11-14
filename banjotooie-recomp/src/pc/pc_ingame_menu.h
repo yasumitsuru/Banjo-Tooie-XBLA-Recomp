@@ -15,6 +15,10 @@ namespace pc::ingame {
 // jogo livre abre a pausa (toque de START) e depois vai para elas. Já nelas, fecha.
 void RequestToggle();
 
+// Abre a página 7 direto numa vista (ex.: CONQUISTAS, options::kAchievementsView); B volta à
+// página de onde veio. Atendido no próximo quadro, como o F1.
+void RequestOpenView(int view);
+
 // Thread do jogo, início de cada quadro (PcHook_FrameStart): executa o pedido do F1.
 void FrameTick();
 

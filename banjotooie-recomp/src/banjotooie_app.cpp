@@ -29,6 +29,9 @@
 #include "port_test_input.h"
 
 // Camada de PC (ver banjotooie_app.h)
+#include "pc/pc_achievements.h"
+#include "pc/pc_display.h"
+#include "pc/pc_log.h"
 #include "pc/pc_automation.h"
 #include "pc/pc_crash.h"
 #include "pc/pc_menu.h"
@@ -196,6 +199,8 @@ void BanjotooieApp::OnConfigurePaths(rex::PathConfig& paths) {
       paths.cache_root = out_dir / "craft-runtime" / "cache";
   }
   rep.SetInfo("user_data_source", user_data_source);
+  user_data_source_ = user_data_source;
+  game_data_root_ = paths.game_data_root;
 
   rep.SetInfo("command_line", Utf8CommandLine());
   rep.SetInfo("exe_dir", exe_dir.string());
@@ -251,16 +256,29 @@ void BanjotooieApp::ConfigurePcLayer(rex::PathConfig& paths) {
   user_data_root_ = base;
   pc::SetPath(base / "pc_settings.toml");
   const bool had_settings = pc::Load();
+  // M04 (C-29): o monitor em que o jogo vai abrir (o escolhido nas opções ou, no automático, o do
+  // cursor). Antes a resolução automática olhava sempre o monitor PRINCIPAL, mesmo com a janela
+  // aberta em outro.
+  std::string monitor_why;
+  const pc::display::Monitor target = pc::display::Target(&monitor_why);
+  pc::display::SetChosen(target);
+  port::BootReport::Get().SetInfo(
+      "monitor", fmt::format("{} {}x{} a {} Hz ({})", target.device, target.width, target.height,
+                             target.hz, monitor_why));
   if (!had_settings || pc::Get().resolution_auto) {
-    // Resolucao fisica do monitor principal (GetSystemMetrics e reduzida pela escala do Windows
+    // Resolucao fisica do monitor escolhido (GetSystemMetrics e reduzida pela escala do Windows
     // num processo sem reconhecimento de DPI e escolheria 1080p num monitor 4K).
-    int w = GetSystemMetrics(SM_CXSCREEN);
-    int h = GetSystemMetrics(SM_CYSCREEN);
-    DEVMODEW mode{};
-    mode.dmSize = sizeof(mode);
-    if (EnumDisplaySettingsW(nullptr, ENUM_CURRENT_SETTINGS, &mode) && mode.dmPelsWidth > 0) {
-      w = int(mode.dmPelsWidth);
-      h = int(mode.dmPelsHeight);
+    int w = target.width;
+    int h = target.height;
+    if (w <= 0 || h <= 0) {
+      DEVMODEW mode{};
+      mode.dmSize = sizeof(mode);
+      w = GetSystemMetrics(SM_CXSCREEN);
+      h = GetSystemMetrics(SM_CYSCREEN);
+      if (EnumDisplaySettingsW(nullptr, ENUM_CURRENT_SETTINGS, &mode) && mode.dmPelsWidth > 0) {
+        w = int(mode.dmPelsWidth);
+        h = int(mode.dmPelsHeight);
+      }
     }
     pc::Get().resolution = (w >= 3840 && h >= 2160)   ? pc::Resolution::R2160p
                            : (w >= 2560 && h >= 1440) ? pc::Resolution::R1440p
@@ -273,8 +291,8 @@ void BanjotooieApp::ConfigurePcLayer(rex::PathConfig& paths) {
     const auto r = pc::Get().resolution;
     int pw = r == pc::Resolution::R1080p ? 1920 : r == pc::Resolution::R1440p ? 2560 : 3840;
     int ph = r == pc::Resolution::R1080p ? 1080 : r == pc::Resolution::R1440p ? 1440 : 2160;
-    RECT work{};
-    if (SystemParametersInfoW(SPI_GETWORKAREA, 0, &work, 0)) {
+    RECT work = target.rc_work;  // área útil física do monitor escolhido (C-29)
+    if (work.right > work.left || SystemParametersInfoW(SPI_GETWORKAREA, 0, &work, 0)) {
       const int maxw = (work.right - work.left) - 16;
       const int maxh = (work.bottom - work.top) - 40;
       if (pw > maxw) {  // mantem 16:9 ao limitar a area de trabalho
@@ -304,11 +322,14 @@ void BanjotooieApp::ConfigurePcLayer(rex::PathConfig& paths) {
   pc::ApplyRuntimeOptions();
   runtime_config_ = paths.config_path;
   {
-    // Saida e escala interna sempre pelas Configuracoes de PC (1080p = 1x, 1440p = 2x, 4K = 3x):
-    // a imagem do jogo tem 1280x720 e a janela precisa ser um multiplo inteiro dela.
+    // Saida e escala interna sempre pelas Configuracoes de PC. A imagem do jogo tem 1280x720 e
+    // o runtime so aceita escala inteira: 1440p = 2x e 4K = 3x exatos. Em 1080p (M04, C-22) a
+    // escala 1x deixava a imagem interna em 1280x720 ampliada para 1920x1080; agora o jogo
+    // desenha a 2x (2560x1440) e a apresentacao reduz para 1920x1080 (supersampling): mais de
+    // 1080 linhas reais, sem perder nitidez.
     const auto r = pc::Get().resolution;
     const char* preset = r == pc::Resolution::R1080p ? "1080p" : r == pc::Resolution::R1440p ? "1440p" : "4k";
-    const char* scale = r == pc::Resolution::R2160p ? "3" : r == pc::Resolution::R1440p ? "2" : "1";
+    const char* scale = pc::InternalScaleText(r);
     rex::cvar::SetFlagByName("resolution", preset);
     rex::cvar::SetFlagByName("draw_resolution_scale_x", scale);
     rex::cvar::SetFlagByName("draw_resolution_scale_y", scale);
@@ -324,6 +345,27 @@ void BanjotooieApp::OnPostInitLogging() {
                                    : fmt::format("ok ({} bytes)", f.size));
   }
   port::BootReport::Get().Stage("logging");
+  // M04 (C-10): registro de sessão sempre ligado na pasta de dados do usuário.
+  {
+    auto& rep = port::BootReport::Get();
+    pc::log::StartInfo si;
+    si.user_data_root = user_data_root_;
+    si.game_data_root = game_data_root_;
+    si.preflight = g_preflight.SummaryPtBr();
+    si.user_data_source = user_data_source_;
+    si.automated = automated_;
+    if (pc::log::Start(si)) {
+      rep.SetInfo("session_log", pc::log::Path().string());
+      rep.SetStageListener([](const std::string& name, const std::string& detail, double t_ms) {
+        char b[48];
+        std::snprintf(b, sizeof b, " (%.0f ms)", t_ms);
+        pc::log::Event("etapa", name + (detail.empty() ? "" : ": " + detail) + b);
+      });
+    } else {
+      rep.SetInfo("session_log", "indisponivel: " + pc::log::Error());
+      REXLOG_WARN("[sessao] registro de sessão indisponível: {}", pc::log::Error());
+    }
+  }
 }
 
 void BanjotooieApp::OnPreSetup(rex::RuntimeConfig& config) {
@@ -401,6 +443,8 @@ void BanjotooieApp::OnPreLaunchModule() {
   // Saves (M04, etapa B): conferir e, se o jogo fosse descartar algo, restaurar ANTES de o jogo
   // comecar. Antes isto rodava depois do inicio do jogo, em paralelo com a leitura dele.
   pc::saves::Initialize(user_data_root_);
+  // CONQUISTAS no PC (M04, C-6): obtidas guardadas por conta + aviso do runtime.
+  pc::achievements::Install(user_data_root_);
 }
 
 void BanjotooieApp::OnPostLaunchModule(rex::system::XThread* thread) {
@@ -541,6 +585,7 @@ void BanjotooieApp::OnShutdown() {
   if (!exit_requested_) {
     rep.SetExit(port::kExitOk, "encerrado normalmente (janela fechada ou fim do jogo)");
   }
+  pc::log::Stop(exit_requested_ ? exit_reason_ : std::string("janela fechada ou fim do jogo"));
 }
 
 void BanjotooieApp::StopMonitor() {
@@ -563,6 +608,7 @@ void BanjotooieApp::MonitorLoop() {
   double fps = 0.0;
   while (!stop_monitor_) {
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    pc::log::Tick();  // mapa, cena e bloco de desempenho do registro de sessão
     const uint64_t frames = port::GuestPresentCount().load(std::memory_order_relaxed);
     const auto now = clock::now();
     const double elapsed = std::chrono::duration<double>(now - launch_time_).count();
@@ -765,6 +811,7 @@ void BanjotooieApp::TakeScreenshotOnUiThread() {
 
 void BanjotooieApp::RequestExitOnUiThread(int code, const std::string& reason) {
   if (exit_requested_.exchange(true)) return;
+  exit_reason_ = fmt::format("saída pedida (código {}): {}", code, reason);
   auto& rep = port::BootReport::Get();
   rep.SetExit(code, reason);
   rep.Stage("exit_requested", fmt::format("codigo {}: {}", code, reason));

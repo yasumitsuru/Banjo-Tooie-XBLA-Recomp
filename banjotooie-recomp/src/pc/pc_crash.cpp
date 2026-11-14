@@ -1,5 +1,6 @@
 // Registro de falhas do port PT-BR (ver pc_crash.h).
 
+#include "pc_log.h"
 #include "pc_crash.h"
 
 #include <algorithm>
@@ -138,6 +139,8 @@ LONG WINAPI OnUnhandled(EXCEPTION_POINTERS* info) {
     CloseHandle(h);
   }
   OutputDebugStringA(text.c_str());
+  // Registro de sessão (M04, C-10): o relatório inteiro também vai para logs\sessao-*.txt.
+  pc::log::Emergency(text.c_str());
   return g_previous ? g_previous(info) : EXCEPTION_CONTINUE_SEARCH;
 }
 

@@ -46,6 +46,13 @@ struct Options {
   std::filesystem::path probe_testpad;  // gamepad virtual SDL: caminho real de um controle físico
   std::filesystem::path probe_save_sim;  // "save avançado" simulado: bandeiras + tela Totais + rastreador
   std::filesystem::path probe_display;  // estado aplicado + capturas reais da janela/framebuffer
+  // M04 etapa D (C-32): mesma entrada roteirizada (parado, andar, correr, pular, câmera, ré)
+  // com o rastro da posição em cada atualização da lógica; rodar com fps60 = true e false e
+  // comparar com tools/m04/fisica_30x60.py. --fisica-mapas "112:5,127:1" (hex mapa:entrada)
+  // viaja pela rotina do jogo e repete a sequência em cada mapa (vazio = só o início do jogo).
+  std::filesystem::path probe_fisica;
+  std::filesystem::path probe_conquistas;  // M04 C-6: CONQUISTAS no menu principal e na pausa
+  std::string fisica_mapas;
   // Save avançado DE VERDADE (use com --user_data_root=<pasta de teste>):
   //   --make-advanced-save  jogo novo, liga todos os colecionáveis e grava por "SALVAR E SAIR"
   //   --probe-advanced-save carrega esse save do disco pelo menu (JOGO 1) e confere tudo
@@ -80,7 +87,8 @@ struct Options {
            !probe_titlepc.empty() || !probe_titlemenu.empty() || !probe_pcpages.empty() || !probe_fullscreen.empty() || !probe_menucursor.empty() || !probe_gamepad.empty() || !probe_dd_maps.empty() ||
            !probe_dd_worlds.empty() || !probe_testpad.empty() || !probe_save_sim.empty() ||
            !make_advanced_save.empty() || !probe_advanced_save.empty() || !probe_display.empty() ||
-           !probe_saves.empty();
+           !probe_saves.empty() || !probe_fisica.empty() ||
+           !probe_conquistas.empty();
   }
 };
 

@@ -81,6 +81,9 @@ class BanjotooieApp : public rex::ReXApp {
   std::atomic<bool> screenshot_pending_{false};
   std::atomic<bool> screenshot_done_{false};
   std::atomic<bool> exit_requested_{false};
+  std::string exit_reason_;            // motivo da saída pedida (registro de sessão)
+  std::string user_data_source_;       // de onde veio a pasta de dados (registro de sessão)
+  std::filesystem::path game_data_root_;
   std::chrono::steady_clock::time_point launch_time_{};
 
   // Camada de PC

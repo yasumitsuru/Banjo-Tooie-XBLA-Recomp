@@ -33,6 +33,9 @@ struct Settings {
   Resolution resolution = Resolution::R1440p;
   bool resolution_auto = true;  // escolhe pela resolução do monitor na primeira execução
   DisplayMode display_mode = DisplayMode::Janela;
+  // Monitor (M04, C-29): \\.\DISPLAYn escolhido na linha MONITOR; vazio = automático (o do
+  // cursor na abertura). Ver pc_display.h.
+  std::string monitor;
   // Câmera (mouse/teclado)
   bool mouse_look = false;
   float cam_sens_x = 1.0f;
@@ -56,6 +59,8 @@ struct Settings {
   // Saves
   bool save_backup = true;
   int backup_count = 10;
+  // Registro de sessão (pc_log.h): detalhado = nível debug e bloco de desempenho a cada 5 s
+  bool log_detailed = false;
 };
 
 // Estado global lido pelos ganchos (thread do jogo) e escrito pelo menu (thread da UI).
@@ -71,6 +76,9 @@ const char* DrawDistanceName(DrawDistance d);
 const char* DisplayModeName(DisplayMode d);
 const char* ResolutionName(Resolution r);
 const char* DialogSpeedName(int speed);
+// Escala interna da imagem do jogo (1280x720) por resolução de saída: "2" (1080p, reduzida na
+// apresentação), "2" (1440p) ou "3" (4K). M04, C-22.
+const char* InternalScaleText(Resolution r);
 float DialogSpeedFactor(int speed);  // 1, 2, 4 ou 1000 (página inteira num quadro)
 
 // Aplica as opções que vivem em cvars do runtime (gamepad e volume geral).

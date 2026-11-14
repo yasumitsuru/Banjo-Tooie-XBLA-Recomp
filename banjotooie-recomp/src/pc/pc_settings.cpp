@@ -2,6 +2,8 @@
 
 #include <rex/cvar.h>
 
+#include "pc_log.h"
+
 #include <algorithm>
 #include <fstream>
 #include <sstream>
@@ -11,6 +13,7 @@ namespace pc {
 namespace {
 Settings g_settings;
 std::filesystem::path g_path;
+std::string g_last_serialized;  // última versão gravada/lida (registro de sessão: o que mudou)
 
 bool ParseBool(const std::string& v) { return v == "true" || v == "1" || v == "sim"; }
 
@@ -36,6 +39,8 @@ std::string TrimQuotes(std::string x) {
 Settings& Get() { return g_settings; }
 void SetPath(const std::filesystem::path& file) { g_path = file; }
 const std::filesystem::path& Path() { return g_path; }
+
+std::string Serialize(const Settings& s);
 
 const char* DisplayModeName(DisplayMode d) {
   switch (d) {
@@ -131,6 +136,7 @@ bool Load() {
                                              : v == "1440p" ? Resolution::R1440p
                                                             : Resolution::R2160p;
     else if (k == "resolution_auto") s.resolution_auto = ParseBool(v);
+    else if (k == "monitor") s.monitor = TrimQuotes(v);
     else if (k == "mouse_look") s.mouse_look = ParseBool(v);
     else if (k == "cam_sens_x") s.cam_sens_x = ClampFloat(v, 0.1f, 3.0f, 1.0f);
     else if (k == "cam_sens_y") s.cam_sens_y = ClampFloat(v, 0.1f, 3.0f, 1.0f);
@@ -149,6 +155,7 @@ bool Load() {
     else if (k == "pad_vibration") s.pad_vibration = ParseBool(v);
     else if (k == "save_backup") s.save_backup = ParseBool(v);
     else if (k == "backup_count") s.backup_count = ClampInt(std::atoi(v.c_str()), 1, 50);
+    else if (k == "log_detailed") s.log_detailed = ParseBool(v);
   }
   // Versão 1 gravava "lock60 = true  # comentário", que era lido como falso: o valor falso
   // desses arquivos não foi escolha do jogador, então volta ao padrão (travado a 60).
@@ -156,14 +163,11 @@ bool Load() {
   // Versão 2: lock60 também acelerava as cenas; agora isso é scenes60 (desligado por padrão).
   if (version < 3) s.scenes60 = false;
   g_settings = s;
+  g_last_serialized = Serialize(g_settings);
   return true;
 }
 
-bool Save() {
-  if (g_path.empty()) return false;
-  std::error_code ec;
-  std::filesystem::create_directories(g_path.parent_path(), ec);
-  const Settings& s = g_settings;
+std::string Serialize(const Settings& s) {
   std::ostringstream o;
   o << "# Configurações de PC — Banjo-Tooie PT-BR (independente dos saves do jogo)\n"
     << "settings_version = 3\n"
@@ -183,6 +187,7 @@ bool Save() {
     << "resolution = \"" << ResolutionName(s.resolution) << "\"\n"
     << "resolution_auto = " << (s.resolution_auto ? "true" : "false") << "\n"
     << "display_mode = \"" << DisplayModeName(s.display_mode) << "\"\n"
+    << "monitor = \"" << s.monitor << "\"  # vazio = automático (monitor do cursor na abertura)\n"
     << "[camera]\n"
     << "mouse_look = " << (s.mouse_look ? "true" : "false") << "\n"
     << "cam_sens_x = " << s.cam_sens_x << "\n"
@@ -205,13 +210,43 @@ bool Save() {
     << "save_backup = " << (s.save_backup ? "true" : "false") << "\n"
     << "backup_count = " << s.backup_count << "\n"
     << "[audio]\n"
-    << "volume_master = " << s.volume_master << "\n";
+    << "volume_master = " << s.volume_master << "\n"
+    << "[registro]\n"
+    << "log_detailed = " << (s.log_detailed ? "true" : "false")
+    << "  # registro de sessão detalhado (logs\\sessao-*.txt)\n";
+  return o.str();
+}
+
+bool Save() {
+  if (g_path.empty()) return false;
+  std::error_code ec;
+  std::filesystem::create_directories(g_path.parent_path(), ec);
+  const std::string now = Serialize(g_settings);
+  // Registro de sessão (M04, C-10): quais opções mudaram desde a última gravação/leitura.
+  {
+    std::string& last = g_last_serialized;
+    if (!last.empty() && last != now) {
+      std::istringstream a(last), b(now);
+      std::string la, lb, diff;
+      while (std::getline(b, lb)) {
+        if (!std::getline(a, la)) la.clear();
+        if (la != lb && lb.find('=') != std::string::npos) {
+          if (!diff.empty()) diff += "; ";
+          diff += lb.substr(0, lb.find('#'));
+        }
+      }
+      pc::log::Event("opcoes", "gravadas: " + diff);
+    } else if (last.empty()) {
+      pc::log::Event("opcoes", "gravadas em " + g_path.filename().string());
+    }
+    last = now;
+  }
   auto tmp = g_path;
   tmp += ".tmp";
   {
     std::ofstream out(tmp, std::ios::binary | std::ios::trunc);
     if (!out) return false;
-    out << o.str();
+    out << now;
     out.flush();
     if (!out) return false;
   }
@@ -223,6 +258,8 @@ bool Save() {
   std::filesystem::rename(tmp, g_path, ec);
   return !ec;
 }
+
+const char* InternalScaleText(Resolution r) { return r == Resolution::R2160p ? "3" : "2"; }
 
 void ApplyRuntimeOptions() {
   const Settings& s = g_settings;

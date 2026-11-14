@@ -94,6 +94,10 @@ void SetGamepadTestFocus(bool set);
 // que só pode rodar na thread da interface (janela, cursor, cvars do runtime, arquivos) é
 // enfileirado e aplicado no próximo quadro da interface, e o texto já mostra o valor novo.
 namespace options {
+// Vista CONQUISTAS (M04, C-6): aberta direto pela entrada CONQUISTAS do jogo, fora da lista de
+// seções das Configurações de PC. Linha 0 = resumo; depois uma linha por conquista (A mostra a
+// descrição dela no lugar do nome).
+inline constexpr int kAchievementsView = 100;
 int SectionCount();
 std::string SectionTitle(int section);
 int RowCount(int section);

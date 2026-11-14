@@ -35,7 +35,10 @@
 #include <vector>
 
 #include "pc_ingame_menu.h"
+#include "pc_achievements.h"
+#include "pc_display.h"
 #include "pc_lang.h"
+#include "pc_log.h"
 #include "pc_menu.h"
 #include "pc_progress.h"
 #include "pc_save_format.h"
@@ -366,8 +369,9 @@ bool ModeMatches(DisplayMode mode, const WindowMetrics& metrics) {
     case DisplayMode::Janela:
       return !metrics.fullscreen && (metrics.style & WS_CAPTION) != 0;
     case DisplayMode::SemBordas:
+      // M04 (C-25): sem bordas ocupa o monitor inteiro (antes: a área útil)
       return !metrics.fullscreen && (metrics.style & WS_CAPTION) == 0 &&
-             RectNear(metrics.outer, metrics.work);
+             RectNear(metrics.outer, metrics.monitor);
     case DisplayMode::TelaCheia:
       return metrics.fullscreen && (metrics.style & WS_CAPTION) == 0 &&
              RectNear(metrics.outer, metrics.monitor);
@@ -466,6 +470,8 @@ DiffStats CompareImages(const rex::ui::RawImage& a, const rex::ui::RawImage& b) 
   // Espera (até 2 s) as gravações de opções ainda na fila da interface (pc_menu PostUi).
   for (int i = 0; i < 200 && pc::menu::PendingUiWork(); ++i)
     std::this_thread::sleep_for(std::chrono::milliseconds(10));
+  // Registro de sessão (M04, C-10): último bloco de desempenho e o motivo, antes do fim abrupto.
+  pc::log::Stop("fim da sonda/auto-teste (código " + std::to_string(code) + ")");
   fflush(nullptr);
   TerminateProcess(GetCurrentProcess(), static_cast<UINT>(code));
   for (;;) {}
@@ -748,6 +754,88 @@ struct Vec3 {
 Vec3 ReadPlayerPos() {
   return {ReadBeF32(kPlayerPosAddr), ReadBeF32(kPlayerPosAddr + 4),
           ReadBeF32(kPlayerPosAddr + 8)};
+}
+
+// Jogo livre: sem cena (0x8266EF30 = 0) e com o jogador numa posição plausível. Mesma regra da
+// sonda --probe-dd-worlds.
+bool InGameplay() {
+  const Vec3 p = ReadPlayerPos();
+  const bool finite_pos = std::isfinite(p.x) && std::isfinite(p.y) && std::isfinite(p.z);
+  const bool nonzero = std::fabs(p.x) > 0.5f || std::fabs(p.y) > 1.0f || std::fabs(p.z) > 0.5f;
+  const bool sane =
+      std::fabs(p.x) < 1.0e5f && std::fabs(p.y) < 1.0e5f && std::fabs(p.z) < 1.0e5f;
+  return state::cutscene_state.load() == 0 && finite_pos && nonzero && sane;
+}
+
+// Espera o mapa ficar o mesmo e o jogo livre por 'frames' quadros seguidos.
+bool WaitStableGameplay(int frames, int limit = 2400) {
+  uint16_t last_map = ReadU16(kMapIdAddr);
+  int stable = 0;
+  for (int w = 0; w < limit; ++w) {
+    const uint16_t m = ReadU16(kMapIdAddr);
+    if (m == last_map && InGameplay()) {
+      if (++stable >= frames) return true;
+    } else {
+      stable = 0;
+    }
+    last_map = m;
+    WaitFrames(1, 1500);
+  }
+  return false;
+}
+
+// Viagem pela rotina do próprio jogo (0x82248810, chamada na thread do jogo pelo gancho de
+// início de quadro). Espera a guarda de viagem (0x826CC2B8) ficar livre ~1 s; até 4 tentativas,
+// fechando diálogos com B como um jogador faria. Mesma lógica da sonda --probe-dd-worlds.
+bool RequestWarp(uint16_t map, uint8_t entry) {
+  int clear = 0;
+  for (int w = 0; w < 3600; ++w) {
+    if (ReadU8(0x826CC2B8) == 0) {
+      if (++clear >= 60) break;
+    } else {
+      clear = 0;
+    }
+    WaitFrames(1, 3600);
+  }
+  for (int attempt = 0; attempt < 4; ++attempt) {
+    state::warp_invoked.store(0);
+    state::warp_result.store(0);
+    state::warp_was_blocked.store(0);
+    state::warp_requested.store((uint32_t(map) << 8) | entry, std::memory_order_relaxed);
+    for (int w = 0; w < 240 && !state::warp_invoked.load(); ++w) WaitFrames(1, 300);
+    if (state::warp_invoked.load() != 0) break;
+    state::warp_requested.store(0, std::memory_order_relaxed);
+    for (int i = 0; i < 3; ++i) {
+      Tap(input::kB, 8);
+      WaitFrames(40);
+    }
+  }
+  return state::warp_invoked.load() != 0 && state::warp_result.load() != 0;
+}
+
+// Depois de RequestWarp: espera o mapa pedido e o jogo livre (pulando cenas com B).
+bool WaitWarpArrival(uint16_t map) {
+  bool changed = false;
+  const uint64_t start = state::guest_swaps.load();
+  while (state::guest_swaps.load() - start < 2000) {
+    if (ReadU16(kMapIdAddr) == map) {
+      changed = true;
+      break;
+    }
+    WaitFrames(5, 90);
+  }
+  if (!changed) return false;
+  const uint64_t s2 = state::guest_swaps.load();
+  while (state::guest_swaps.load() - s2 < 2200) {
+    if (InGameplay()) return true;
+    if (state::cutscene_state.load() != 0) {
+      Tap(input::kB, 8);
+      WaitFrames(60);
+    } else {
+      WaitFrames(20);
+    }
+  }
+  return false;
 }
 
 // Contador de itens (ovos/penas) do jogo: u16 em 0x82673668 + id*2, XOR com a
@@ -1106,6 +1194,12 @@ Options ParseCommandLine() {
     else if (a == L"--probe-saves-choose") o.probe_saves_choose = _wtoi(argv[++i]);
     else if (a == L"--probe-saves-wait") o.probe_saves_wait = _wtoi(argv[++i]);
     else if (a == L"--dialog-speed") o.dialog_speed = _wtoi(argv[++i]);
+    else if (a == L"--probe-fisica") o.probe_fisica = argv[++i];
+    else if (a == L"--probe-conquistas") o.probe_conquistas = argv[++i];
+    else if (a == L"--fisica-mapas") {
+      const std::wstring w = argv[++i];
+      o.fisica_mapas.assign(w.begin(), w.end());  // só dígitos hex, ':' e ','
+    }
   }
   if (argv) LocalFree(argv);
   if (o.frames < 1) o.frames = 120;
@@ -1457,6 +1551,10 @@ void Start(const Options& opts, rex::ui::WindowedAppContext* ui,
         << correlation.mean_abs_diff << ",\"similar_sample_ratio\":" << correlation.similar_samples
         << ",\"width\":" << window_img.width << ",\"height\":" << window_img.height
         << ",\"path\":\"" << (window_png_written ? JsonEscape(window_png.string()) : "") << "\"}}"
+        << ",\"chosen_monitor\":{\"device\":\"" << JsonEscape(pc::display::Chosen().device)
+        << "\",\"width\":" << pc::display::Chosen().width << ",\"height\":"
+        << pc::display::Chosen().height << ",\"setting\":\"" << JsonEscape(pc::Get().monitor)
+        << "\",\"resolution_auto\":" << (pc::Get().resolution_auto ? "true" : "false") << "}"
         << ",\"output_backbuffer\":{\"available\":false,\"width\":null,\"height\":null}"
         << ",\"frames\":{\"before\":" << swaps_at_n << ",\"after\":" << frames_after
         << ",\"advanced\":" << (frames_after - swaps_at_n) << "}"
@@ -3563,6 +3661,464 @@ void Start(const Options& opts, rex::ui::WindowedAppContext* ui,
       }
       o << "]}\n";
       std::ofstream(opts.probe_dd_maps) << o.str();
+      Finish(0);
+    }
+
+    // Sonda das CONQUISTAS do PC (--probe-conquistas, M04 C-6): no menu principal e na pausa,
+    // escolhe CONQUISTAS, confere a lista (página 7, vista de conquistas), a descrição com A,
+    // uma conquista registrada como se o jogo a informasse, e que B volta ao menu de origem com
+    // as mesmas entradas.
+    if (!opts.probe_conquistas.empty()) {
+      input::SetActive(true);
+      std::filesystem::path base = opts.probe_conquistas;
+      base.replace_extension();
+      auto shot = [&](const char* suffix) {
+        rex::ui::RawImage im = capture();
+        if (!im.width) return;
+        ReduceTo1920(im);
+        std::filesystem::path png = base;
+        png += suffix;
+        WritePng(png, im.width, im.height, im.data.data(), im.stride);
+      };
+      auto labels_now = [&](uint32_t* page_out) {
+        std::vector<std::string> out;
+        const uint32_t pages = ReadU32(kScreenObjAddr + 0x154);
+        const uint32_t page = ReadU32(kScreenObjAddr + 0x2C);
+        if (page_out) *page_out = page;
+        if (pages < 0x40000000u || pages >= 0xA0000000u || page >= 16) return out;
+        const uint32_t entries = ReadU32(pages + page * 0x2C);
+        const uint32_t count = ReadU32(pages + page * 0x2C + 4);
+        if (entries < 0x40000000u || entries >= 0xA0000000u || count > 64) return out;
+        for (uint32_t i = 0; i < count; ++i) {
+          std::string s;
+          for (uint32_t k = 0; k < 0x40; ++k) {
+            const uint8_t c = ReadU8(entries + i * 0x88 + 0x3B + k);
+            if (!c) break;
+            s += char(c);
+          }
+          out.push_back(s);
+        }
+        return out;
+      };
+      auto json_list = [&](const std::vector<std::string>& v) {
+        std::string s = "[";
+        for (size_t i = 0; i < v.size(); ++i) {
+          s += i ? ",\"" : "\"";
+          for (unsigned char c : v[i]) {  // Latin-1 -> UTF-8
+            if (c == '"' || c == '\\') {
+              s += '\\';
+              s += char(c);
+            } else if (c < 0x80) {
+              s += char(c);
+            } else {
+              s += char(0xC0 | (c >> 6));
+              s += char(0x80 | (c & 0x3F));
+            }
+          }
+          s += "\"";
+        }
+        return s + "]";
+      };
+      std::ostringstream o;
+      o << "{\"version\":1";
+      bool all_ok = true;
+      auto phase = [&](const char* name) {
+        uint32_t page0 = 0;
+        const auto before = labels_now(&page0);
+        std::string label;
+        for (const auto& l : before)
+          if (l == "CONQUISTAS" || l == "ACHIEVEMENTS") label = l;
+        const bool found = !label.empty() && StepMenuCursorToLabel(label);
+        const uint32_t opened0 = state::achievements_opened.load();
+        if (found) Tap(input::kA, 10);
+        WaitFrames(150);
+        uint32_t page1 = 0;
+        const auto list = labels_now(&page1);
+        const auto st = pc::ingame::GetStatus();
+        const bool on_list = page1 == pc::ingame::PageIndex() &&
+                             st.view == pc::menu::options::kAchievementsView;
+        std::string p = std::string("_") + name;
+        shot((p + "_1_lista.png").c_str());
+        // A na 1ª conquista: descrição no lugar do nome
+        std::string row1_before = list.size() > 1 ? list[1] : "", row1_after;
+        if (on_list && list.size() > 1) {
+          Tap(input::kDpadDown, 10);
+          WaitFrames(40);
+          Tap(input::kA, 10);
+          WaitFrames(40);
+          const auto l2 = labels_now(nullptr);
+          row1_after = l2.size() > 1 ? l2[1] : "";
+          shot((p + "_2_descricao.png").c_str());
+        }
+        // conquista registrada como se o jogo a informasse (o jogo não dá conquista no início)
+        const auto items = pc::achievements::List();
+        bool recorded = false;
+        std::string row1_unlocked;
+        if (on_list && !items.empty()) {
+          pc::achievements::SimulateUnlock(items[0].id);
+          Tap(input::kDpadDown, 10);  // mover o cursor redesenha as linhas
+          WaitFrames(30);
+          Tap(input::kDpadUp, 10);
+          WaitFrames(40);
+          const auto l3 = labels_now(nullptr);
+          row1_unlocked = l3.size() > 1 ? l3[1] : "";
+          for (const auto& it : pc::achievements::List())
+            if (it.id == items[0].id) recorded = it.unlocked;
+          shot((p + "_3_obtida.png").c_str());
+        }
+        Tap(input::kB, 10);
+        WaitFrames(150);
+        uint32_t page2 = 0;
+        const auto after = labels_now(&page2);
+        const bool back_ok = page2 == page0 && after == before;
+        const bool ok = found && on_list && list.size() == items.size() + 1 &&
+                        row1_after != row1_before && recorded &&
+                        row1_unlocked.find(pc::lang::English() ? "DONE" : "OBTIDA") !=
+                            std::string::npos &&
+                        back_ok && state::achievements_opened.load() == opened0 + 1;
+        all_ok &= ok;
+        o << ",\"" << name << "\":{\"ok\":" << (ok ? "true" : "false")
+          << ",\"entry_found\":" << (found ? 1 : 0) << ",\"menu_before\":" << json_list(before)
+          << ",\"page_before\":" << page0 << ",\"page_list\":" << page1
+          << ",\"view\":" << st.view << ",\"rows\":" << json_list(list)
+          << ",\"achievements\":" << items.size() << ",\"row1_before\":"
+          << json_list({row1_before}) << ",\"row1_after_A\":" << json_list({row1_after})
+          << ",\"row1_unlocked\":" << json_list({row1_unlocked})
+          << ",\"recorded\":" << (recorded ? 1 : 0) << ",\"page_after_B\":" << page2
+          << ",\"menu_after\":" << json_list(after) << ",\"back_ok\":" << (back_ok ? 1 : 0)
+          << "}";
+      };
+      // menu principal
+      while (ReadU16(kMapIdAddr) != 0x14F && steady_clock::now() - t0 < seconds(200))
+        std::this_thread::sleep_for(milliseconds(20));
+      WaitFrames(90);
+      for (int tries = 0; tries < 6; ++tries) {
+        Tap(input::kStart, 12);
+        WaitFrames(150);
+        uint32_t pg = 99;
+        if (labels_now(&pg).size() >= 4 && pg == 0) break;
+      }
+      phase("titulo");
+      // pausa: o jogo já está no menu principal (mapa 0x158), então daqui: JOGAR, JOGO 1 e as
+      // cenas puladas com B até o jogo livre; depois START e CONQUISTAS
+      StepMenuCursorToLabel(pc::lang::English() ? "PLAY GAME" : "JOGAR");
+      Tap(input::kA, 12);
+      WaitFrames(150);
+      Tap(input::kA, 12);
+      WaitFrames(240);
+      for (int i = 0; i < 40 && !WaitStableGameplay(90, 300); ++i)
+        if (state::cutscene_state.load() != 0) Tap(input::kB, 10);
+      WaitFrames(60);
+      const bool paused = OpenPauseMenu();
+      WaitFrames(60);
+      if (paused) phase("pausa");
+      else all_ok = false;
+      const std::filesystem::path file = pc::achievements::File();
+      std::error_code ec;
+      o << ",\"lista\":[";
+      {
+        const auto all = pc::achievements::List();
+        for (size_t i = 0; i < all.size(); ++i)
+          o << (i ? "," : "") << "{\"id\":" << all[i].id << ",\"nome\":\""
+            << JsonEscape(all[i].name) << "\",\"descricao\":\"" << JsonEscape(all[i].description)
+            << "\",\"pontos\":" << all[i].points << ",\"obtida\":" << (all[i].unlocked ? 1 : 0)
+            << "}";
+      }
+      o << "]";
+      o << ",\"pause_opened\":" << (paused ? 1 : 0) << ",\"file\":\""
+        << JsonEscape(PathUtf8(file)) << "\",\"file_exists\":"
+        << (std::filesystem::exists(file, ec) ? 1 : 0)
+        << ",\"ok\":" << (all_ok ? "true" : "false") << "}\n";
+      std::ofstream(opts.probe_conquistas, std::ios::binary | std::ios::trunc) << o.str();
+      Finish(all_ok ? 0 : 1);
+    }
+
+    // Sonda de física 30 x 60 FPS (--probe-fisica, M04 etapa D, C-32/C-36): a MESMA entrada
+    // roteirizada, com tempos de relógio, em cada mapa pedido. O gancho de início de quadro
+    // grava a posição do jogador em cada atualização da lógica (pc_state.h). O jogo roda
+    // com o fps60 do pc_settings.toml da pasta de teste; tools/m04/fisica_30x60.py roda as
+    // duas configurações e compara velocidade, distância, pulo e a imagem depois do giro
+    // da câmera.
+    if (!opts.probe_fisica.empty()) {
+      input::SetActive(true);
+      NavigateToGameplay();
+      const bool start_ok = WaitStableGameplay(90);
+      std::filesystem::path base = opts.probe_fisica;
+      base.replace_extension();
+      using clk = std::chrono::steady_clock;
+      auto now_ns = []() {
+        return std::chrono::duration_cast<std::chrono::nanoseconds>(
+                   clk::now().time_since_epoch())
+            .count();
+      };
+      struct Target {
+        uint16_t map;
+        uint8_t entry;
+        bool warp;
+      };
+      std::vector<Target> targets;
+      targets.push_back({ReadU16(kMapIdAddr), 0, false});
+      {
+        std::string s = opts.fisica_mapas;
+        size_t pos = 0;
+        while (pos < s.size()) {
+          size_t comma = s.find(',', pos);
+          if (comma == std::string::npos) comma = s.size();
+          const std::string item = s.substr(pos, comma - pos);
+          const size_t colon = item.find(':');
+          if (colon != std::string::npos) {
+            const unsigned long m = std::strtoul(item.substr(0, colon).c_str(), nullptr, 16);
+            const unsigned long e = std::strtoul(item.substr(colon + 1).c_str(), nullptr, 16);
+            if (m && m < 0x10000 && e < 0x100) targets.push_back({uint16_t(m), uint8_t(e), true});
+          }
+          pos = comma + 1;
+        }
+      }
+      const bool camera_dump = wcsstr(GetCommandLineW(), L"--fisica-camera-dump") != nullptr;
+      const bool camera_scan = wcsstr(GetCommandLineW(), L"--fisica-camera-scan") != nullptr;
+      std::ostringstream cam_json;
+      const int64_t t0_ns = now_ns();
+      state::phys_trace_count.store(0);
+      state::phys_trace_enabled.store(true);
+      std::ostringstream mj;
+      bool firstm = true;
+      auto& pad = input::Get();
+      auto sleep_s = [](double s) {
+        std::this_thread::sleep_for(std::chrono::microseconds(int64_t(s * 1e6)));
+      };
+      for (const auto& t : targets) {
+        bool reached = true, gameplay = start_ok, invoked = true;
+        if (t.warp) {
+          invoked = RequestWarp(t.map, t.entry);
+          reached = invoked && WaitWarpArrival(t.map);
+          gameplay = reached && WaitStableGameplay(90);
+        }
+        std::ostringstream marks;
+        bool firstk = true;
+        auto mark = [&](const char* seg, const char* ev) {
+          marks << (firstk ? "" : ",") << "{\"seg\":\"" << seg << "\",\"ev\":\"" << ev
+                << "\",\"t\":" << double(now_ns() - t0_ns) / 1e9 << "}";
+          firstk = false;
+        };
+        auto shot = [&](const char* tag) {
+          rex::ui::RawImage im = capture();
+          if (!im.width) return false;
+          ReduceTo1920(im);
+          char name[64];
+          std::snprintf(name, sizeof name, "_map%X_%s.png", unsigned(t.map), tag);
+          std::filesystem::path png = base;
+          png += name;
+          return WritePng(png, im.width, im.height, im.data.data(), im.stride);
+        };
+        if (gameplay) {
+          pad = input::PadState{};
+          // Assentar por TEMPO de relógio (não por quadros: a 30 FPS 90 quadros seriam 3 s e a
+          // 60 FPS 1,5 s, e o jogador chegaria ao "parado" em momentos diferentes).
+          sleep_s(3.0);
+          if (camera_scan && t.map == targets.front().map) {
+            // Varredura da câmera no heap (0x80000000..0xC0000000): 5 fotos (parado, 2 giros
+            // para a direita, 1 para a esquerda, andando) e procura de trios x,y,z que orbitam
+            // o jogador (distância horizontal estável), giram com o analógico direito e o
+            // acompanham quando ele anda.
+            std::vector<std::vector<MemBlock>> snaps;
+            std::vector<Vec3> pls;
+            auto snap = [&]() {
+              snaps.push_back(SnapshotMemory());
+              pls.push_back(ReadPlayerPos());
+            };
+            snap();
+            pad.thumb_rx = 32767;
+            sleep_s(0.4);
+            pad.thumb_rx = 0;
+            sleep_s(0.6);
+            snap();
+            pad.thumb_rx = 32767;
+            sleep_s(0.4);
+            pad.thumb_rx = 0;
+            sleep_s(0.6);
+            snap();
+            pad.thumb_rx = -32767;
+            sleep_s(0.8);
+            pad.thumb_rx = 0;
+            sleep_s(0.6);
+            snap();
+            pad.thumb_ly = 32767;
+            sleep_s(0.8);
+            pad.thumb_ly = 0;
+            sleep_s(0.8);
+            snap();
+            auto find_block = [](const std::vector<MemBlock>& v, uint32_t addr) -> const MemBlock* {
+              auto it = std::lower_bound(v.begin(), v.end(), addr,
+                                         [](const MemBlock& b, uint32_t a) { return b.addr < a; });
+              return it != v.end() && it->addr == addr ? &*it : nullptr;
+            };
+            auto f32 = [](const MemBlock& b, size_t off) {
+              const uint8_t* p = b.data.data() + off;
+              const uint32_t v = (uint32_t(p[0]) << 24) | (uint32_t(p[1]) << 16) |
+                                 (uint32_t(p[2]) << 8) | p[3];
+              float f;
+              std::memcpy(&f, &v, 4);
+              return f;
+            };
+            auto angd = [](double a, double b) {
+              double x = b - a;
+              while (x > 180) x -= 360;
+              while (x < -180) x += 360;
+              return x;
+            };
+            std::ostringstream cs;
+            int found = 0;
+            for (const MemBlock& b0 : snaps[0]) {
+              const MemBlock* bs[5] = {&b0, find_block(snaps[1], b0.addr),
+                                       find_block(snaps[2], b0.addr), find_block(snaps[3], b0.addr),
+                                       find_block(snaps[4], b0.addr)};
+              if (!bs[1] || !bs[2] || !bs[3] || !bs[4]) continue;
+              for (size_t off = 0; off + 12 <= b0.data.size() && found < 200; off += 4) {
+                double dist[5], ang[5], py[5];
+                bool ok = true;
+                float cx[5], cz[5];
+                for (int k = 0; k < 5 && ok; ++k) {
+                  const float x = f32(*bs[k], off), y = f32(*bs[k], off + 4),
+                              z = f32(*bs[k], off + 8);
+                  if (!Finite(x) || !Finite(y) || !Finite(z)) {
+                    ok = false;
+                    break;
+                  }
+                  cx[k] = x;
+                  cz[k] = z;
+                  dist[k] = std::hypot(double(x) - pls[k].x, double(z) - pls[k].z);
+                  ang[k] = std::atan2(double(z) - pls[k].z, double(x) - pls[k].x) * 57.29578;
+                  py[k] = double(y) - pls[k].y;
+                  if (dist[k] < 50 || dist[k] > 3000) ok = false;
+                }
+                if (!ok) continue;
+                double dmin = dist[0], dmax = dist[0];
+                for (double d : dist) dmin = std::min(dmin, d), dmax = std::max(dmax, d);
+                if (dmax > 1.6 * dmin) continue;
+                const double moved = std::hypot(double(cx[4] - cx[3]), double(cz[4] - cz[3]));
+                if (moved < 100) continue;
+                const double a1 = angd(ang[0], ang[1]), a2 = angd(ang[1], ang[2]),
+                             a3 = angd(ang[2], ang[3]);
+                if (std::fabs(a1) < 5 && std::fabs(a2) < 5) continue;
+                cs << (found ? "," : "") << "{\"addr\":\"0x" << std::hex << (b0.addr + off)
+                   << std::dec << "\",\"dist\":[" << dist[0] << "," << dist[1] << "," << dist[2]
+                   << "," << dist[3] << "," << dist[4] << "],\"giros\":[" << a1 << "," << a2
+                   << "," << a3 << "],\"andou\":" << moved << ",\"altura\":" << py[0] << "}";
+                ++found;
+              }
+            }
+            std::filesystem::path f = base;
+            f += "_camscan.json";
+            std::ofstream(f) << "{\"candidates\":[" << cs.str() << "],\"count\":" << found
+                             << "}\n";
+            snaps.clear();
+            sleep_s(1.0);
+          }
+          if (camera_dump && t.map == targets.front().map) {
+            // Fotos da memória de dados do jogo (0x82600000..0x82700000) com a câmera girando,
+            // para achar a câmera (tools/m04/achar_camera.py).
+            auto dump = [&](int i) {
+              char name[48];
+              std::snprintf(name, sizeof name, "_cam%d.bin", i);
+              std::filesystem::path f = base;
+              f += name;
+              DumpGuestRange(f, 0x82600000u, 0x100000u);
+              const Vec3 pp = ReadPlayerPos();
+              cam_json << (i ? "," : "") << "{\"i\":" << i << ",\"player\":[" << pp.x << ","
+                       << pp.y << "," << pp.z << "]}";
+            };
+            dump(0);
+            pad.thumb_rx = 32767;
+            sleep_s(0.4);
+            pad.thumb_rx = 0;
+            sleep_s(0.6);
+            dump(1);
+            pad.thumb_rx = 32767;
+            sleep_s(0.4);
+            pad.thumb_rx = 0;
+            sleep_s(0.6);
+            dump(2);
+            pad.thumb_rx = -32767;
+            sleep_s(0.8);
+            pad.thumb_rx = 0;
+            sleep_s(0.6);
+            dump(3);
+            pad.thumb_ly = 32767;  // anda: a câmera acompanha
+            sleep_s(0.8);
+            pad.thumb_ly = 0;
+            sleep_s(0.8);
+            dump(4);
+            sleep_s(1.0);
+          }
+          // A ordem e os tempos são fixos: as duas execuções recebem a mesma entrada.
+          mark("parado", "inicio");
+          sleep_s(1.0);
+          mark("parado", "fim");
+          shot("inicio");
+          mark("andar", "inicio");  // meia inclinação do analógico: andar
+          pad.thumb_ly = 12000;
+          sleep_s(1.5);
+          pad.thumb_ly = 0;
+          mark("andar", "solta");
+          sleep_s(1.2);
+          mark("andar", "fim");
+          mark("correr", "inicio");  // analógico todo para frente: correr
+          pad.thumb_ly = 32767;
+          sleep_s(2.0);
+          pad.thumb_ly = 0;
+          mark("correr", "solta");
+          sleep_s(1.5);
+          mark("correr", "fim");
+          mark("pulo", "inicio");  // A segurado 0,4 s: pulo alto
+          input::SetButton(input::kA, true);
+          sleep_s(0.4);
+          input::SetButton(input::kA, false);
+          mark("pulo", "solta");
+          sleep_s(2.0);
+          mark("pulo", "fim");
+          mark("camera", "inicio");  // analógico direito todo para a direita por 1 s
+          pad.thumb_rx = 32767;
+          sleep_s(1.0);
+          pad.thumb_rx = 0;
+          mark("camera", "solta");
+          sleep_s(1.0);
+          mark("camera", "fim");
+          shot("camera");
+          mark("re", "inicio");  // analógico todo para trás 1,2 s (vira e corre)
+          pad.thumb_ly = -32767;
+          sleep_s(1.2);
+          pad.thumb_ly = 0;
+          mark("re", "solta");
+          sleep_s(1.5);
+          mark("re", "fim");
+          shot("fim");
+        }
+        mj << (firstm ? "" : ",") << "{\"map\":\"0x" << std::hex << t.map << std::dec
+           << "\",\"entry\":" << unsigned(t.entry) << ",\"warp\":" << (t.warp ? 1 : 0)
+           << ",\"invoked\":" << (invoked ? 1 : 0) << ",\"reached\":" << (reached ? 1 : 0)
+           << ",\"gameplay\":" << (gameplay ? 1 : 0) << ",\"map_after\":\"0x" << std::hex
+           << ReadU16(kMapIdAddr) << std::dec << "\",\"marks\":[" << marks.str() << "]}";
+        firstm = false;
+      }
+      state::phys_trace_enabled.store(false);
+      const uint32_t n = std::min(state::phys_trace_count.load(std::memory_order_acquire),
+                                  state::kPhysTraceSize);
+      std::ostringstream o;
+      o << std::setprecision(9);
+      o << "{\"version\":1,\"fps60\":" << (pc::Get().fps60 ? 1 : 0)
+        << ",\"scenes60\":" << (pc::Get().scenes60 ? 1 : 0) << ",\"camera_dumps\":["
+        << cam_json.str() << "],\"maps\":[" << mj.str()
+        << "],\"samples_fields\":[\"t\",\"swaps\",\"step\",\"scene\",\"x\",\"y\",\"z\","
+        << "\"cx\",\"cy\",\"cz\"]"
+        << ",\"samples\":[";
+      for (uint32_t i = 0; i < n; ++i) {
+        const auto& s = state::phys_trace[i];
+        o << (i ? "," : "") << "[" << double(s.t_ns - t0_ns) / 1e9 << "," << s.swaps << ","
+          << s.step << "," << s.scene << "," << s.x << "," << s.y << "," << s.z << "," << s.cx
+          << "," << s.cy << "," << s.cz << "]";
+      }
+      o << "]}\n";
+      std::ofstream(opts.probe_fisica, std::ios::binary | std::ios::trunc) << o.str();
       Finish(0);
     }
 

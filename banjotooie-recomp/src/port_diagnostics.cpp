@@ -226,6 +226,7 @@ struct BootReport::Impl {
   std::string screenshot_json = "null";
   std::string crash_json = "null";
   std::string exit_json = "null";
+  BootReport::StageListener listener = nullptr;
 };
 
 BootReport::BootReport() : impl_(new Impl) {}
@@ -281,11 +282,27 @@ void BootReport::SetPreflight(const PreflightResult& r) {
 }
 
 void BootReport::Stage(const std::string& name, const std::string& detail) {
+  StageListener fn = nullptr;
+  double t = 0;
   {
     std::lock_guard lock(impl_->mu);
-    impl_->stages.push_back({name, ElapsedMs(), detail});
+    t = ElapsedMs();
+    impl_->stages.push_back({name, t, detail});
+    fn = impl_->listener;
   }
   Flush();
+  if (fn) fn(name, detail, t);
+}
+
+void BootReport::SetStageListener(StageListener fn) {
+  std::vector<Impl::StageRow> rows;
+  {
+    std::lock_guard lock(impl_->mu);
+    impl_->listener = fn;
+    rows = impl_->stages;
+  }
+  if (fn)
+    for (const auto& r : rows) fn(r.name, r.detail, r.t_ms);
 }
 
 void BootReport::SetFrames(uint64_t frames, double fps, double elapsed_s) {

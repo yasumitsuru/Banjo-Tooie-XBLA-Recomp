@@ -22,7 +22,8 @@ inline std::atomic<uint32_t> pc_entry_label_requests{0};     // vezes que o jogo
 inline std::atomic<uint32_t> pc_entry_activations{0};        // vezes que a entrada foi escolhida
 inline std::atomic<uint32_t> pause_entry_added{0};           // vezes que CONFIGURAÇÕES DE PC entrou em AJUDA E OPÇÕES (pausa)
 inline std::atomic<uint32_t> pause_entry_count{0};           // entradas da página AJUDA E OPÇÕES depois disso
-inline std::atomic<bool> menu_open_request{false};           // abrir o menu de PC (consumido pela UI)
+inline std::atomic<bool> menu_open_request{false};
+inline std::atomic<uint32_t> achievements_opened{0};          // CONQUISTAS escolhida (M04, C-6)           // abrir o menu de PC (consumido pela UI)
 inline std::atomic<bool> menu_close_request{false};          // fechar (auto-teste)
 
 // Menu principal (título, antes de carregar um save): CLASSIFICAÇÕES vira
@@ -81,4 +82,21 @@ inline std::atomic<uint32_t> warp_was_blocked{0};  // 1 = jogo ainda estava em v
 inline std::atomic<uint32_t> count_requested{0};  // (tipo << 16) | id do mundo, quando != 0
 inline std::atomic<uint64_t> count_result{~0ull};  // valor em r3; ~0ull = não executou
 inline std::atomic<uint32_t> count_invoked{0};     // último pedido executado (mesma codificação)
+
+// Rastro de física (sonda --probe-fisica, M04 etapa D): o gancho de início de quadro grava,
+// na THREAD DO JOGO, a posição do jogador em cada atualização da lógica (30 ou 60 por segundo),
+// com o relógio do PC e o passo de quadros. Um só escritor (o jogo); a sonda lê até 'count'.
+struct PhysSample {
+  int64_t t_ns;     // steady_clock, ns
+  uint64_t swaps;   // quadros apresentados até aqui
+  uint32_t step;    // passo de quadros em vigor (1 = 60 FPS, 2 = 30 FPS)
+  uint32_t scene;   // byte de cena 0x8266EF30
+  float x, y, z;    // posição do jogador (0x8266BB74)
+  float cx, cy, cz; // trio da câmera em órbita (0x826A0450, achado por tools/m04/achar_camera.py)
+};
+constexpr uint32_t kPhysTraceSize = 32768;
+inline PhysSample phys_trace[kPhysTraceSize];
+inline std::atomic<uint32_t> phys_trace_count{0};
+inline std::atomic<bool> phys_trace_enabled{false};
+inline std::atomic<uint64_t> logic_updates{0};  // atualizações da lógica (início de quadro do jogo)
 }  // namespace pc::state

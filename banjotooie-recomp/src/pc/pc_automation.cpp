@@ -540,12 +540,13 @@ struct MemBlock {
   std::vector<uint8_t> data;
 };
 
-std::vector<MemBlock> SnapshotMemory() {
+std::vector<MemBlock> SnapshotMemory(uint32_t kStart = 0x80000000, uint32_t kEnd = 0xC0000000) {
   auto* mem = rex::system::kernel_state()->memory();
   const uint8_t* base = mem->virtual_membase();
   std::vector<MemBlock> out;
-  // O jogo guarda os objetos também na memória física (0xA0000000..0xBFFFFFFF).
-  const uint32_t kStart = 0x80000000, kEnd = 0xC0000000, kChunk = 0x10000;
+  // O jogo guarda os objetos também na memória física (0xA0000000..0xBFFFFFFF); o heap
+  // virtual do jogo fica em 0x40000000..0x7FFFFFFF (M04: a câmera não estava acima de 0x8...).
+  const uint32_t kChunk = 0x10000;
   for (uint32_t a = kStart; a < kEnd; a += kChunk) {
     MEMORY_BASIC_INFORMATION mbi{};
     if (!VirtualQuery(base + a, &mbi, sizeof(mbi))) continue;
@@ -4105,6 +4106,7 @@ void Start(const Options& opts, rex::ui::WindowedAppContext* ui,
       }
       const bool camera_dump = wcsstr(GetCommandLineW(), L"--fisica-camera-dump") != nullptr;
       const bool camera_scan = wcsstr(GetCommandLineW(), L"--fisica-camera-scan") != nullptr;
+      const bool discovery = wcsstr(GetCommandLineW(), L"--fisica-descoberta") != nullptr;
       std::ostringstream cam_json;
       const int64_t t0_ns = now_ns();
       state::phys_trace_count.store(0);
@@ -4152,7 +4154,7 @@ void Start(const Options& opts, rex::ui::WindowedAppContext* ui,
             std::vector<std::vector<MemBlock>> snaps;
             std::vector<Vec3> pls;
             auto snap = [&]() {
-              snaps.push_back(SnapshotMemory());
+              snaps.push_back(SnapshotMemory(0x40000000u, 0xC0000000u));
               pls.push_back(ReadPlayerPos());
             };
             snap();
@@ -4242,6 +4244,43 @@ void Start(const Options& opts, rex::ui::WindowedAppContext* ui,
                              << "}\n";
             snaps.clear();
             sleep_s(1.0);
+          }
+          if (discovery && t.map == targets.front().map) {
+            // Descoberta (M04): fotos da memória de dados do jogo (0x82600000..0x82700000) em
+            // momentos conhecidos, para achar o estado do jogador (parado/andando/no ar/nadando)
+            // e contadores de tempo (tools/m04/descoberta.py).
+            int k = 0;
+            auto dump = [&](const char* when) {
+              char name[48];
+              std::snprintf(name, sizeof name, "_desc%d.bin", k);
+              std::filesystem::path f = base;
+              f += name;
+              DumpGuestRange(f, 0x82600000u, 0x100000u);
+              const Vec3 pp = ReadPlayerPos();
+              cam_json << (k ? "," : "") << "{\"i\":" << k << ",\"when\":\"" << when
+                       << "\",\"t\":" << double(now_ns() - t0_ns) / 1e9
+                       << ",\"logic\":" << state::logic_updates.load()
+                       << ",\"swaps\":" << state::guest_swaps.load() << ",\"player\":["
+                       << pp.x << "," << pp.y << "," << pp.z << "]}";
+              ++k;
+            };
+            dump("parado");
+            sleep_s(2.0);
+            dump("parado");
+            pad.thumb_ly = 32767;
+            sleep_s(0.8);
+            dump("andando");
+            pad.thumb_ly = 0;
+            sleep_s(1.5);
+            dump("parado");
+            input::SetButton(input::kA, true);
+            sleep_s(0.3);
+            dump("no_ar");
+            input::SetButton(input::kA, false);
+            sleep_s(2.0);
+            dump("parado");
+            sleep_s(2.0);
+            dump("parado");
           }
           if (camera_dump && t.map == targets.front().map) {
             // Fotos da memória de dados do jogo (0x82600000..0x82700000) com a câmera girando,
@@ -4338,13 +4377,14 @@ void Start(const Options& opts, rex::ui::WindowedAppContext* ui,
         << ",\"scenes60\":" << (pc::Get().scenes60 ? 1 : 0) << ",\"camera_dumps\":["
         << cam_json.str() << "],\"maps\":[" << mj.str()
         << "],\"samples_fields\":[\"t\",\"swaps\",\"step\",\"scene\",\"x\",\"y\",\"z\","
-        << "\"cx\",\"cy\",\"cz\"]"
+        << "\"cx\",\"cy\",\"cz\",\"estado\",\"relogio_s\",\"quadros\"]"
         << ",\"samples\":[";
       for (uint32_t i = 0; i < n; ++i) {
         const auto& s = state::phys_trace[i];
         o << (i ? "," : "") << "[" << double(s.t_ns - t0_ns) / 1e9 << "," << s.swaps << ","
           << s.step << "," << s.scene << "," << s.x << "," << s.y << "," << s.z << "," << s.cx
-          << "," << s.cy << "," << s.cz << "]";
+          << "," << s.cy << "," << s.cz << "," << s.pstate << "," << s.clock_s << "," << s.frames
+          << "]";
       }
       o << "]}\n";
       std::ofstream(opts.probe_fisica, std::ios::binary | std::ios::trunc) << o.str();

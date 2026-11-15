@@ -25,9 +25,11 @@ concluída**: ver "Pendências" no relatório.
 - **Defeitos da auditoria:** os 3 corrigidos (C-75 na etapa B, C-29 e C-6 agora).
 - **60 FPS (maior risco):** medido no jogo real a 30 × 60 com a mesma entrada em 4 mapas:
   andar, correr e colisões iguais; pulo +3,6%, tempo no ar +17 ms e deslize ~10% maiores a 60,
-  pela integração do mesmo código a passo menor (MECHANICS.md §20). Natação, voo, cronômetros,
-  minijogos, chefes e cenas seguem sem medida.
-- **O resto:** 23 sem validação, 8 parciais, 10 não implementados e 10 não verificáveis — a
+  pela integração do mesmo código a passo menor (MECHANICS.md §20). Em 2026-11-15: câmera achada
+  na memória e igual a 30 × 60 em terra e no Fundo do Mar (diverge em Atlântida ao assentar);
+  natação igual (braçada 1–2%); relógio do jogo igual. Voo, minijogos, chefes e cenas seguem sem
+  medida (§20.1).
+- **O resto:** 23 sem validação, 9 parciais, 10 não implementados e 9 não verificáveis — a
   maioria em controles (remapeamento, controle físico), áudio (música/efeitos), câmera e cenas.
 
 ## Missão ativa — M04: correção integral, estabilização e validação automatizada
@@ -213,7 +215,7 @@ A coluna Etapa diz onde a M04 resolve o item. "manter" = já provado; só não p
 
 **Total na auditoria:** 24 OK, 34 NV, 8 PARCIAL, 13 NÃO IMPL., 3 DEFEITO, 1 BLOQ., 14 NÃO VERIF.
 **Total depois da etapa B (2026-11-13):** 32 OK, 30 NV, 7 PARCIAL, 12 NÃO IMPL., 2 DEFEITO, 1 BLOQ., 13 NÃO VERIF.
-**Total em 2026-11-14 (etapas C–F em andamento):** 46 OK, 23 NV, 8 PARCIAL, 10 NÃO IMPL., 0 DEFEITO, 0 BLOQ., 10 NÃO VERIF.
+**Total em 2026-11-15:** 46 OK, 23 NV, 9 PARCIAL, 10 NÃO IMPL., 0 DEFEITO, 0 BLOQ., 9 NÃO VERIF.
 
 **Limite das evidências:** as provas de distância de desenho, controle e save avançado que
 existem vêm do projeto vizinho `W:\Decomp\Banjo` (build de 08–09/11) e não valem para este build.
@@ -254,11 +256,11 @@ Os testes deste build cobrem só título, introdução e o início de Spiral Mou
 | 29 | Detecção automática da resolução | OK (M04-D: monitor escolhido/cursor; 3 monitores) | manter |
 | 30 | 60 FPS no início de Spiral Mountain | OK | manter |
 | 31 | 60 FPS sustentado (mundos, cenas, horas) | PARCIAL (M04-F: 59,4 FPS de média em 1 h pelos 18 mapas; mínimo 54,9 numa visita; cenas não medidas à parte) | D |
-| 32 | Física e velocidade iguais às de 30 FPS | PARCIAL (M04-D: andar, correr, pulo, deslize e colisões medidos 30×60; natação/voo não) | D |
+| 32 | Física e velocidade iguais às de 30 FPS | PARCIAL (M04-D: terra, natação e câmera medidas 30×60 em 5 mapas; câmera em Atlântida diverge ao assentar; voo não) | D |
 | 33 | Cenas a 30 com tela a 60 | NV | D |
 | 34 | Separação lógica / render / tempo | NÃO IMPL. | D (decisão) |
 | 35 | Sincronia de áudio e vídeo | NÃO VERIF. | D |
-| 36 | Cronômetros, minijogos, eventos por quadro | NÃO VERIF. | D |
+| 36 | Cronômetros, minijogos, eventos por quadro | PARCIAL (M04-D: relógio do jogo 1,0/s a 30 e 60; minijogos não iniciados — é neles que rodam 16 das 17 constantes) | D |
 | 37 | CONFIGURAÇÕES DE PC na pausa nativa (START → AJUDA E OPÇÕES) | OK | manter |
 | 38 | Abrir com START num controle físico | NV | E |
 | 39 | Entradas originais da pausa | OK | manter |

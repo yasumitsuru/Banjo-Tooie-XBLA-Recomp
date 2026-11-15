@@ -187,9 +187,19 @@ void PcHook_FrameStart() {
       s.x = f32(0x8266BB74);
       s.y = f32(0x8266BB78);
       s.z = f32(0x8266BB7C);
-      s.cx = f32(0x826A0450);
-      s.cy = f32(0x826A0454);
-      s.cz = f32(0x826A0458);
+      // Câmera: o jogo guarda o ponteiro da posição em 0x8266EEF0 (também em 0x8266F9E0 e
+      // 0x82674680); a posição fica no heap (0x4030E3F0 nas execuções de 2026-11-15).
+      const uint32_t cam = ReadU32(0x8266EEF0);
+      if (cam >= 0x40000000u && cam < 0xC0000000u) {
+        s.cx = f32(cam);
+        s.cy = f32(cam + 4);
+        s.cz = f32(cam + 8);
+      } else {
+        s.cx = s.cy = s.cz = 0.0f;
+      }
+      s.pstate = ReadU16(0x82674AD0);
+      s.clock_s = f32(0x8266EC80);
+      s.frames = ReadU32(0x8266C69C);
       pc::state::phys_trace_count.store(i + 1, std::memory_order_release);
     }
   }
@@ -282,9 +292,14 @@ void PcHook_PresentInterval(PPCRegister& r11) {
 // default.xex, conferidas endereco por endereco nesta linha de base; vem de
 // mechanics.json -> mechanics_values.h (tools/gen_mechanics_header.py, MECHANICS.md §12).
 // Estrutura: PC_K(endereço do gancho, registrador do gancho, constante 60 FPS).
-#define PC_K(addr, reg, v60)                       \
-  void PcHook_K_##addr(PPCRegister& reg) {         \
-    if (Fps60()) SetFloat(reg, v60);               \
+// M04: cada uso conta no grupo da função dona (registro de sessão anota por mapa).
+constexpr int KGroup(uint32_t a) {
+  return a == 0x822C8930u ? 0 : (a >> 12) == 0x821A2u ? 1 : (a >> 12) == 0x8213Eu ? 2 : 3;
+}
+#define PC_K(addr, reg, v60)                                                      \
+  void PcHook_K_##addr(PPCRegister& reg) {                                        \
+    pc::state::k60_uses[KGroup(0x##addr##u)].fetch_add(1, std::memory_order_relaxed); \
+    if (Fps60()) SetFloat(reg, v60);                                              \
   }
 PC_K(822C8930, f0, pc::mechanics::K_822C8930)   // 0.05 (0x82000B48) -> 0.2 (0x8200073C)
 PC_K(821A22E4, f5, pc::mechanics::K_821A22E4)   // 3.0 (0x82000800) -> 9.0 (0x82001EDC)

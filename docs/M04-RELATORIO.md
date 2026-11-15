@@ -16,8 +16,8 @@ finalize o restante". Plano vivo: [`PLANO.md`](PLANO.md). Detalhes técnicos: `M
   falso resultado (matriz de vídeo, pausa ao minimizar, escolha de backup).
 - **Implementado:** registro de sessão (C-10), linha MONITOR, lista de CONQUISTAS do PC, sonda de
   física 30×60, sonda de sessão longa, bateria única de regressão.
-- **Matriz do plano:** 46 OK (eram 32), 0 defeitos, 0 bloqueados; 23 NV, 8 parciais,
-  10 não implementados, 10 não verificáveis.
+- **Matriz do plano:** 46 OK (eram 32), 0 defeitos, 0 bloqueados; 23 NV, 9 parciais,
+  10 não implementados, 9 não verificáveis.
 
 ## Correções
 
@@ -44,7 +44,7 @@ finalize o restante". Plano vivo: [`PLANO.md`](PLANO.md). Detalhes técnicos: `M
 | Saves (etapa B) | `tools/test_saves.py` | 18/18 (completo) e 17/17 (rápido, depois das mudanças) |
 | Auto-teste do Craft | `--self-test` | 10/10 (várias vezes; 60,0 FPS, 16,66 ± 0,93 ms) |
 | Tradução PT-BR | `tools/test_traducao.ps1` | PASS: 29/29 leituras, 15/15 telas, 36/36 |
-| Física 30×60 | `tools/m04/fisica_30x60.py` | 71/80 medidas iguais (§20); as 9 fora estão explicadas |
+| Física 30×60 | `tools/m04/fisica_30x60.py` | 71/80 (terra, 2026-11-14); 68/79 com câmera e natação (2026-11-15, §20.1) |
 | Vídeo 3×3 | `tools/test_display_modes.py` | 9/9 estados + 9/9 reaberturas, 72 trocas de modo; limite físico: janela 4K num monitor 4K |
 | Monitores | `tools/m04/test_monitores.py` | 7/7 (3 monitores) |
 | Distância de desenho / viagem | `--probe-dd-worlds` | 18/18 mapas PASS (3 perfis aplicados e capturados) |
@@ -84,10 +84,14 @@ memória de vídeo (DXGI).
 
 ## Pendências (tudo o que não foi concluído ou validado)
 
-- **Física/tempo (C-32 parcial, C-33, C-35, C-36):** natação, voo, cronômetros, minijogos,
-  inimigos, chefes, cenas e sincronia de áudio não medidos a 30×60. A câmera não foi medida por
-  posição: o trio de memória achado não era a câmera e a varredura do heap não encontrou um
-  candidato; a comparação por imagem indica diferença < ~2° depois de 1 s de giro.
+- **Física/tempo (C-32, C-33, C-35, C-36):** atualizado em 2026-11-15 (MECHANICS.md §20.1):
+  câmera achada (ponteiro fixo `0x8266EEF0`) e medida — igual em terra e no Fundo do Mar, mas em
+  **Atlântida a câmera assenta diferente a 60 FPS** depois de soltar o analógico (não vem das 17
+  constantes; causa no código da câmera não identificada); natação medida e igual; relógio do
+  jogo igual. **Ainda não medidos:** voo (só começa numa plataforma de voo; nenhum ponto de
+  chegada automático fica numa e as posições das plataformas não foram achadas), minijogos
+  (começam por diálogo/ingresso; 16 das 17 constantes do 60 FPS só rodam neles), inimigos,
+  chefes, cenas e sincronia de áudio.
 - **Controles (C-38, C-52–C-61):** sem controle físico conectado nesta rodada; remapeamento de
   controle, aviso de conflito e restaurar padrões **não implementados**.
 - **Áudio (C-65–C-67):** música/efeitos separados não implementados; nenhum nível medido.

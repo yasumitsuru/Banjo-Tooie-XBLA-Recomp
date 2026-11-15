@@ -361,6 +361,90 @@
       "group": "diagnostico",
       "value": "20 / 30 s",
       "source": "src/pc/pc_log.h kKeepSessions, pc_log.cpp Tick"
+    },
+    {
+      "name": "ponteiro fixo para a posicao da camera",
+      "group": "camera",
+      "value": "0x8266EEF0 (tambem 0x8266F9E0 e 0x82674680)",
+      "source": "M04 2026-11-15: varredura de memoria em execucao (--probe-fisica --fisica-camera-scan/--fisica-descoberta, tools/m04/descoberta.py): trio no heap (0x4030E3F0) a ~900 u do jogador, ~280 u acima, gira com o analogico direito e acompanha ao andar"
+    },
+    {
+      "name": "giro da camera por toque de 0,4 s no analogico direito (Spiral Mountain)",
+      "group": "camera",
+      "value": 23,
+      "unit": "graus",
+      "source": "M04 2026-11-15: varredura de memoria em execucao (--probe-fisica --fisica-camera-scan/--fisica-descoberta, tools/m04/descoberta.py)"
+    },
+    {
+      "name": "estado do jogador (u16): parado / andando / no ar",
+      "group": "movimento",
+      "value": "0x82674AD0: 444 / 48 / 32",
+      "source": "M04 2026-11-15: varredura de memoria em execucao (--probe-fisica --fisica-camera-scan/--fisica-descoberta, tools/m04/descoberta.py) (igual a 30 e 60 FPS)"
+    },
+    {
+      "name": "relogio do jogo em segundos (f32)",
+      "group": "tempo",
+      "value": "0x8266EC80: 1,0 por segundo a 30 e a 60 FPS",
+      "source": "M04 2026-11-15: varredura de memoria em execucao (--probe-fisica --fisica-camera-scan/--fisica-descoberta, tools/m04/descoberta.py)"
+    },
+    {
+      "name": "contador de atualizacoes da logica (u32)",
+      "group": "tempo",
+      "value": "0x8266C69C: 30/s a 30 FPS, 60/s a 60 FPS",
+      "source": "M04 2026-11-15: varredura de memoria em execucao (--probe-fisica --fisica-camera-scan/--fisica-descoberta, tools/m04/descoberta.py)"
+    },
+    {
+      "name": "mapas submersos usados na medicao de natacao",
+      "group": "movimento",
+      "value": "0x1A8:1 Atlantida, 0x1A9:1 Fundo do Mar",
+      "source": "capturas de chegada (_audit/out/m04/C/ddworlds-final) com o titulo e o medidor de ar"
+    },
+    {
+      "name": "funcoes com as constantes do 60 FPS",
+      "group": "60fps",
+      "value": "0x821A2288 e 0x8213E290: aceleracao com botao segurado (limites 90 e 200), chamadas por atualizacoes de objetos (0x821A4678, 0x82140040)",
+      "source": "Ghidra ev_eed7fccda5 / ev_aaf3aa2abe / ev_e9a5744403"
+    },
+    {
+      "name": "giro da camera em 1 s de analogico direito a 30 FPS (terra)",
+      "group": "camera",
+      "value": 69.2,
+      "unit": "graus",
+      "source": "medido no jogo real: tools/m04/fisica_30x60.py (_audit/out/m04/D/fisica-20261115-013114), 2 execucoes por configuracao"
+    },
+    {
+      "name": "giro da camera em 1 s de analogico direito a 60 FPS (terra)",
+      "group": "camera",
+      "value": 68.0,
+      "unit": "graus",
+      "source": "medido no jogo real: tools/m04/fisica_30x60.py (_audit/out/m04/D/fisica-20261115-013114), 2 execucoes por configuracao"
+    },
+    {
+      "name": "distancia da camera ao jogador (Spiral Mountain)",
+      "group": "camera",
+      "value": 803,
+      "unit": "u",
+      "source": "medido no jogo real: tools/m04/fisica_30x60.py (_audit/out/m04/D/fisica-20261115-013114), 2 execucoes por configuracao"
+    },
+    {
+      "name": "bracada embaixo d'agua (A 0,4 s), distancia 3D a 30 FPS",
+      "group": "movimento",
+      "value": 395,
+      "unit": "u",
+      "source": "medido no jogo real: tools/m04/fisica_30x60.py (_audit/out/m04/D/fisica-20261115-013114), 2 execucoes por configuracao (Atlantida 0x1A8)"
+    },
+    {
+      "name": "bracada embaixo d'agua (A 0,4 s), distancia 3D a 60 FPS",
+      "group": "movimento",
+      "value": 390,
+      "unit": "u",
+      "source": "medido no jogo real: tools/m04/fisica_30x60.py (_audit/out/m04/D/fisica-20261115-013114), 2 execucoes por configuracao (Atlantida 0x1A8)"
+    },
+    {
+      "name": "onde as constantes do 60 FPS agem nos 18 pontos de chegada",
+      "group": "60fps",
+      "value": "so 0x822C8930 (0xD6: 3, 0x163: 239 usos); as outras 16 nao rodam",
+      "source": "contador por mapa no registro de sessao (_audit/out/m04/D/k60-mundos)"
     }
   ],
   "pc": {

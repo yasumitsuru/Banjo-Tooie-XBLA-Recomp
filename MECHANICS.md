@@ -948,3 +948,45 @@ port (`SetAchievementWrittenCallback`), que guarda id e data em `<dados>\conquis
 - **Fonte única das opções de vídeo**: resolução, escala, tamanho da janela e tela cheia vêm de
   `pc_settings.toml` e são reaplicados depois do `banjotooie.toml` do runtime, que não os grava
   mais (antes `resolution = "4k"` do runtime vencia a escolha do menu).
+
+### 20.1 Câmera, natação, cronômetros, voo e minijogos (2026-11-15)
+
+**Câmera achada.** Varredura de toda a memória do jogo (0x40000000–0xC0000000) com 5 fotos
+(parado, 2 giros para a direita, 1 para a esquerda, andando): o trio em `0x4030E3F0` fica a
+~900 u do Banjo e ~280 u acima, gira +23° a cada toque de 0,4 s no analógico direito, volta no
+giro contrário e acompanha o Banjo. Três ponteiros fixos do jogo apontam para ele: **`0x8266EEF0`**
+(ao lado do byte de cena `0x8266EF30`), `0x8266F9E0` e `0x82674680`. O rastro de física lê a
+câmera por esse ponteiro. (O trio `0x826A0450` da rodada anterior não era a câmera.)
+
+**Estado do jogador e relógios** (`tools/m04/descoberta.py`, fotos parado/andando/no ar a 60 e
+30 FPS): u16 **`0x82674AD0`** = estado (parado 444, andando 48, no ar 32; embaixo d'água
+448/450/451/454/455). Relógios em segundos (f32, ex. **`0x8266EC80`**) andam **1,0/s a 60 e a
+30 FPS**; contadores de quadros (u32 `0x8266C69C`, `0x82673FF0`, `0x8269F2B4`) andam 60/s ou 30/s.
+
+**Resultado 30 × 60** (`_audit/out/m04/D/fisica-20261115-013114/resultado.json`, 2 execuções por
+configuração, 5 mapas: 0xAF, 0x127, 0xD6 em terra; **0x1A8 Atlântida e 0x1A9 Fundo do Mar, que
+começam embaixo d'água**): 68/79 medidas dentro da tolerância.
+
+| Medida | 60 FPS | 30 FPS | Leitura |
+|---|---|---|---|
+| Câmera: giro em 1 s de analógico direito (terra, 3 mapas; Fundo do Mar) | 68,0° / 66,2° | 69,2° / 67,8° | igual (−1,8%, menos de 1 quadro de 30 FPS) |
+| Câmera: tempo até 90% do giro | 0,99–1,12 s | 1,01–1,16 s | igual |
+| Câmera: distância ao Banjo | 792–933 u | 792–933 u | igual |
+| Câmera seguindo durante a corrida | −189° (0x127), ~0° | −189°, ~0° | igual |
+| **Câmera em Atlântida depois de soltar o analógico** | volta a 42°, 537 u, 118 u abaixo | fica em 54°, 421 u, 66 u abaixo | **diferente**: igual até 1,3 s; depois, a 60 a câmera continua se ajeitando |
+| Nado: braçada (A segurado 0,4 s), distância 3D | 390 / 388 u | 395 / 396 u | igual (1–2%) |
+| Nado com o analógico todo / ré, 3D | 87 / 85 u; 70 / 72 u | 83 / 85 u; 71 / 74 u | igual |
+| Nado devagar (meio analógico), 3D | 30 / 42 u | 42 / 32 u | diverge em sentidos opostos nos 2 mapas: depende da fase da flutuação na chegada (não é efeito do ritmo) |
+| Relógio do jogo (segundos por segundo) | 1,00 | 1,00 | igual em todos os mapas |
+
+**Onde agem as 17 constantes do 60 FPS** (contador por mapa no registro de sessão, passando pelos
+18 pontos de chegada): só `0x822C8930` roda (0xD6: 3 usos; **0x163: 239**). Ela fica em
+`0x822C8860`, um objeto que segue uma curva (`0x8228B790`/`0x8228B068`/`0x8228AFE8`) com velocidade
+mínima 0,05 (0,2 no 60 FPS). As outras 16 (`0x821A2288` e `0x8213E290`: aceleração com botão
+segurado, limites 90 e 200, chamadas pelas atualizações de objetos `0x821A4678` e `0x82140040`, e
+`0x821129B8`) **não rodam em nenhum dos 18 pontos**: são de veículos/minijogos que só existem com o
+minijogo em andamento. A diferença da câmera em Atlântida, portanto, não vem delas.
+
+**Não medido (precisa de mais que viagem por mapa):** voo (só começa numa plataforma de voo; nenhum
+ponto de chegada fica numa delas e as posições das plataformas não foram achadas) e minijogos
+(começam por diálogo/ingresso; é neles que rodam as constantes 0x821A22xx/0x8213E2xx).

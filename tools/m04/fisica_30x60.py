@@ -33,6 +33,10 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import rodar  # noqa: E402
 
 SEGS = ["parado", "andar", "correr", "pulo", "camera", "re"]
+# Mapas que começam embaixo d'água (Atlântida e Fundo do Mar): o nado é em 3D (o analógico
+# inclina para cima/baixo e o Banjo flutua), então distância e velocidade são medidas em 3D e as
+# medidas de pulo (altura, tempo no ar) não se aplicam.
+AGUA = {"0x1a8", "0x1a9"}
 Q30 = 1.0 / 30.0
 
 
@@ -78,14 +82,17 @@ def analisa_mapa(samples, marks):
         if len(pts) < 3:
             continue
         path = 0.0
+        path3 = 0.0
         vs = []
         for a, b in zip(pts, pts[1:]):
             path += math.hypot(b[4] - a[4], b[6] - a[6])
+            path3 += math.dist(a[4:7], b[4:7])
             vs.append(_vel(a, b))
         vs_sorted = sorted(vs)
         p95 = vs_sorted[min(len(vs_sorted) - 1, int(0.95 * len(vs_sorted)))]
         steps = sorted(set(p[2] for p in pts))
-        m = {"amostras": len(pts), "passos": steps, "percurso": path, "vel_p95": p95,
+        m = {"amostras": len(pts), "passos": steps, "percurso": path, "percurso3d": path3,
+             "vel_p95": p95,
              "deslocamento": math.hypot(pts[-1][4] - pts[0][4], pts[-1][6] - pts[0][6]),
              "dy": pts[-1][5] - pts[0][5],
              "atualizacoes_por_s": (len(pts) - 1) / max(1e-6, pts[-1][0] - pts[0][0])}
@@ -148,9 +155,21 @@ def analisa_mapa(samples, marks):
                 a, b = pts[max(0, up - 1)], pts[up + 1]
                 m["vel_subida"] = (b[5] - a[5]) / max(1e-6, b[0] - a[0])
         out[seg] = m
-    # posicao final da sequencia relativa ao inicio
+    # relogio do jogo (segundos, f32 0x8266EC80) e contador de quadros (0x8266C69C) ao longo
+    # da sequencia; estados do jogador vistos (u16 0x82674AD0)
     t0, _, _ = seg_window(marks, "parado")
     _, _, t1 = seg_window(marks, "re")
+    if t0 is not None and t1 is not None:
+        seq = [x for x in samples if t0 <= x[0] <= t1]
+        if len(seq) > 2 and len(seq[0]) >= 13:
+            dt = seq[-1][0] - seq[0][0]
+            out["relogio"] = {"taxa_s": (seq[-1][11] - seq[0][11]) / dt,
+                              "quadros_por_s": (seq[-1][12] - seq[0][12]) / dt}
+            cnt = {}
+            for x in seq:
+                cnt[int(x[10])] = cnt.get(int(x[10]), 0) + 1
+            out["estados"] = {str(k): round(v / len(seq), 3) for k, v in
+                              sorted(cnt.items(), key=lambda kv: -kv[1])}
     if t0 is not None and t1 is not None:
         a = _antes(samples, t0)
         b = _antes(samples, t1)
@@ -235,13 +254,19 @@ def main():
         return v
 
     for mp in maps:
-        for seg, key in [("parado", "percurso"), ("andar", "percurso"), ("andar", "vel_regime"),
+        lista = [("parado", "percurso"), ("andar", "percurso"), ("andar", "vel_regime"),
                          ("andar", "aceleracao_s"), ("andar", "deslize"), ("correr", "percurso"), ("correr", "vel_regime"),
                          ("correr", "aceleracao_s"), ("correr", "deslize"), ("pulo", "altura"),
                          ("pulo", "tempo_no_ar"), ("pulo", "percurso"), ("camera", "percurso"),
                          ("camera", "cam_giro"), ("camera", "cam_t90"), ("camera", "cam_dist"),
                          ("correr", "cam_giro"),
-                         ("re", "percurso"), ("re", "vel_regime"), ("final", "dist")]:
+                         ("re", "percurso"), ("re", "vel_regime"), ("final", "dist"),
+                         ("relogio", "taxa_s")]
+        if mp in AGUA:
+            lista = [("andar", "percurso3d"), ("correr", "percurso3d"), ("pulo", "percurso3d"),
+                     ("re", "percurso3d"), ("camera", "cam_giro"), ("camera", "cam_t90"),
+                     ("camera", "cam_dist"), ("relogio", "taxa_s")]
+        for seg, key in lista:
             v60, v30 = vals(names60, mp, seg, key), vals(names30, mp, seg, key)
             if not v60 or not v30:
                 comps.append({"mapa": mp, "trecho": seg, "medida": key, "ok": False,
@@ -252,7 +277,11 @@ def main():
             spread = max(max(v60) - min(v60), max(v30) - min(v30))
             vseg = "correr" if seg == "final" else seg
             vmax = max(vals(names60 + names30, mp, vseg, "vel_p95") or [0.0])
-            if key in ("percurso", "deslize"):
+            if key == "percurso3d":
+                tol = 0.03 * max(m60, m30) + spread + 2.0
+                why = ("nado em 3D: 3%% (1 quadro de 30 FPS de uma braçada de ~1 s) + variacao %.1f"
+                       % spread)
+            elif key in ("percurso", "deslize"):
                 tol = vmax * Q30 + spread + 2.0
                 why = ("1 quadro de 30 FPS a %.0f u/s (p95) + variacao %.1f + 2 u"
                        % (vmax, spread))
@@ -272,6 +301,9 @@ def main():
                 vs = vals(names60 + names30, mp, "pulo", "vel_subida") or [0.0]
                 tol = abs(max(vs)) * (Q30 - 1 / 60.0) / 2 + spread + 1.0
                 why = "v_subida %.0f u/s x (1/30-1/60)/2 + variacao %.1f + 1 u" % (max(vs), spread)
+            elif key == "taxa_s":
+                tol = 0.01 + spread
+                why = "relogio do jogo: 1%% + variacao %.4f" % spread
             elif key == "cam_giro":
                 # 1 quadro de 30 FPS do giro medio do trecho (graus/s) + variacao + 1 grau
                 vel = abs(max(v60 + v30, key=abs)) / 1.0
@@ -328,7 +360,11 @@ def main():
            "atualizacoes_por_s": {n: round(met[n]["mapas"][maps[0]]["m"].get("correr", {})
                                            .get("atualizacoes_por_s", 0), 1)
                                   for n in met if met[n] and maps},
-           "comparacoes": comps, "imagens": imgs, "ok": all_ok}
+           "comparacoes": comps, "imagens": imgs, "ok": all_ok,
+           "estados_por_mapa": {n: {k: v["m"].get("estados") for k, v in met[n]["mapas"].items()}
+                                for n in met if met[n]},
+           "quadros_por_s": {n: {k: (v["m"].get("relogio") or {}).get("quadros_por_s")
+                                 for k, v in met[n]["mapas"].items()} for n in met if met[n]}}
     with open(os.path.join(root, "resultado.json"), "w", encoding="utf-8") as f:
         json.dump(res, f, ensure_ascii=False, indent=1)
     nok = sum(1 for c in comps if c["ok"])

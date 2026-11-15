@@ -500,6 +500,21 @@ void Tick() {
     const uint16_t map = uint16_t((mem[0x82673720] << 8) | mem[0x82673721]);
     const uint32_t scene = mem[0x8266EF30];
     if (map != g_last_map) {
+      // usos das constantes do 60 FPS no mapa que terminou (onde o código delas roda)
+      static uint64_t last_k[4] = {};
+      uint64_t k[4];
+      for (int i = 0; i < 4; ++i) k[i] = pc::state::k60_uses[i].load();
+      if (g_last_map != 0xFFFF && (k[0] != last_k[0] || k[1] != last_k[1] ||
+                                   k[2] != last_k[2] || k[3] != last_k[3])) {
+        char kb[200];
+        std::snprintf(kb, sizeof kb,
+                      "mapa 0x%X: 0x822C8930=%llu 0x821A22xx=%llu 0x8213E2xx=%llu 0x821129B8=%llu",
+                      unsigned(g_last_map), (unsigned long long)(k[0] - last_k[0]),
+                      (unsigned long long)(k[1] - last_k[1]), (unsigned long long)(k[2] - last_k[2]),
+                      (unsigned long long)(k[3] - last_k[3]));
+        Event("k60", kb);
+      }
+      for (int i = 0; i < 4; ++i) last_k[i] = k[i];
       char b[64];
       if (g_last_map == 0xFFFF) std::snprintf(b, sizeof b, "0x%X", unsigned(map));
       else std::snprintf(b, sizeof b, "0x%X -> 0x%X", unsigned(g_last_map), unsigned(map));

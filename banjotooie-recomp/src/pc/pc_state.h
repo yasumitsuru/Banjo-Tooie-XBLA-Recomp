@@ -92,11 +92,17 @@ struct PhysSample {
   uint32_t step;    // passo de quadros em vigor (1 = 60 FPS, 2 = 30 FPS)
   uint32_t scene;   // byte de cena 0x8266EF30
   float x, y, z;    // posição do jogador (0x8266BB74)
-  float cx, cy, cz; // trio da câmera em órbita (0x826A0450, achado por tools/m04/achar_camera.py)
+  float cx, cy, cz; // posição da câmera: *(0x8266EEF0) (ponteiro fixo do jogo; M04, varredura do heap)
+  uint32_t pstate;  // estado do jogador: u16 0x82674AD0 (parado 444, andando 48, no ar 32)
+  float clock_s;    // relógio do jogo em segundos (f32 0x8266EC80, 1,0/s a 30 e a 60 FPS)
+  uint32_t frames;  // contador de atualizações da lógica do jogo (u32 0x8266C69C)
 };
 constexpr uint32_t kPhysTraceSize = 32768;
 inline PhysSample phys_trace[kPhysTraceSize];
 inline std::atomic<uint32_t> phys_trace_count{0};
 inline std::atomic<bool> phys_trace_enabled{false};
 inline std::atomic<uint64_t> logic_updates{0};  // atualizações da lógica (início de quadro do jogo)
+// Usos das 17 constantes do 60 FPS (M04): grupo 0 = 0x822C8930, 1 = 0x821A22xx (limite 90),
+// 2 = 0x8213E2xx (limite 200), 3 = 0x821129B8. O registro de sessão anota por mapa.
+inline std::atomic<uint64_t> k60_uses[4] = {};
 }  // namespace pc::state

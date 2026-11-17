@@ -1638,7 +1638,7 @@ void Start(const Options& opts, rex::ui::WindowedAppContext* ui,
     double guest_fps = 0, logic_fps = 0;
     rex::ui::HostPresentStats host;
 
-    if (opts.dialog_speed >= 0) pc::Get().dialog_speed = std::clamp(opts.dialog_speed, 0, 3);
+    if (opts.dialog_speed >= 0) pc::Get().dialog_speed = std::clamp(opts.dialog_speed, 0, 5);
 
     // Sonda das cenas: sem nenhuma entrada, registra por --measure-secs segundos (desde o
     // início do processo de automação) cada mudança do estado de cena 0x8266EF30, com o
@@ -1738,16 +1738,32 @@ void Start(const Options& opts, rex::ui::WindowedAppContext* ui,
         const double secs = duration<double>(steady_clock::now() - ts).count();
         const uint64_t frames = state::guest_swaps.load() - fs;
         const int typed = int(total) - int(shown0);
+        // Legenda com tempo (estado 3): a caixa espera caixa+0x224 quadros/60 s e segue sozinha.
+        // Mede quanto tempo ela fica (sem apertar nada); nos modos lentos deve ser 2x/3x.
+        const uint8_t after = ReadU8(box + 0x1C9);
+        const uint8_t hold_frames = ReadU8(box + 0x224);
+        double hold_secs = -1;
+        if (after == 3) {
+          const auto th = steady_clock::now();
+          while (ReadU8(box + 0x1C9) == 3 && steady_clock::now() < th + seconds(30))
+            std::this_thread::sleep_for(milliseconds(2));
+          hold_secs = duration<double>(steady_clock::now() - th).count();
+        }
         if (pages) o << ",";
         o << "{\"chars\":" << int(total) << ",\"shown_at_start\":" << int(shown0)
           << ",\"seconds\":" << secs << ",\"frames\":" << frames
-          << ",\"chars_per_second\":" << (secs > 0 ? typed / secs : 0) << "}";
+          << ",\"chars_per_second\":" << (secs > 0 ? typed / secs : 0)
+          << ",\"state_after_typing\":" << int(after) << ",\"hold_frames_at_60\":" << int(hold_frames)
+          << ",\"hold_seconds_original\":" << (after == 3 ? hold_frames / 60.0 : 0)
+          << ",\"hold_seconds_measured\":" << hold_secs << "}";
         ++pages;
         WaitFrames(30);
         Tap(input::kA);  // próxima página
         WaitFrames(20);
       }
-      o << "],\"type_calls\":" << state::dialog_type_calls.load() << "}\n";
+      o << "],\"type_calls\":" << state::dialog_type_calls.load()
+        << ",\"hold_factor\":" << pc::DialogHoldFactor(pc::Get().dialog_speed)
+        << ",\"hold_calls\":" << state::dialog_hold_calls.load() << "}\n";
       std::ofstream(opts.probe_dialog) << o.str();
       if (shot.width) {
         ReduceTo1920(shot);

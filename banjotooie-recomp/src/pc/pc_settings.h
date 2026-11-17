@@ -26,8 +26,10 @@ struct Settings {
   bool show_perf_stats = false;
   bool show_collectibles = false;
   bool pc_menu_entry = true;  // camada de menus: título sem CLASSIFICAÇÕES + CONFIGURAÇÃO DA RECOMPILAÇÃO; pausa sem CLASSIFICAÇÕES, CONFIGURAÇÕES DE PC em AJUDA E OPÇÕES
-  // Diálogos: 0 = Original (1x), 1 = Rápida (2x), 2 = Muito rápida (4x), 3 = Instantânea.
-  // Multiplica o tempo que a caixa de texto acumula por letra (gancho 0x8225D8A8).
+  // Diálogos: 0 = Original (1x), 1 = Rápida (2x), 2 = Muito rápida (4x), 3 = Instantânea,
+  // 4 = Lenta (letras a 1/2 e legendas com tempo ficam 2x mais na tela), 5 = Muito lenta (1/3 e
+  // 3x). Multiplica o tempo que a caixa acumula por letra (gancho 0x8225D8A8) e, nos modos
+  // lentos, a espera das legendas que avançam sozinhas (gancho 0x8225DB64).
   int dialog_speed = 0;
   // Vídeo (aplicados ao runtime; resolução exige reiniciar)
   Resolution resolution = Resolution::R1440p;
@@ -84,7 +86,13 @@ const char* DialogSpeedName(int speed);
 const char* InternalScaleText(Resolution r);
 // O arquivo lido era de antes da linha MONITOR (versão < 4): abrir no principal, como antes.
 bool MigratedFromOldMonitorRule();
-float DialogSpeedFactor(int speed);  // 1, 2, 4 ou 1000 (página inteira num quadro)
+float DialogSpeedFactor(int speed);  // 1, 2, 4, 1000 (página inteira num quadro), 1/2 ou 1/3
+float DialogHoldFactor(int speed);   // espera das legendas com tempo: 1, 2 (Lenta) ou 3 (Muito lenta)
+// Ordem em que os menus mostram as velocidades: Muito lenta, Lenta, Original, Rápida, Muito
+// rápida, Instantânea. DialogSpeedStep anda nessa ordem (dir -1/+1, com volta).
+inline constexpr int kDialogSpeedCount = 6;
+inline constexpr int kDialogSpeedOrder[kDialogSpeedCount] = {5, 4, 0, 1, 2, 3};
+int DialogSpeedStep(int speed, int dir);
 
 // Aplica as opções que vivem em cvars do runtime (gamepad e volume geral).
 void ApplyRuntimeOptions();

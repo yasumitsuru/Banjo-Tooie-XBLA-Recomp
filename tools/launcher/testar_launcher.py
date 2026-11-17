@@ -333,6 +333,32 @@ def main():
     check("português: seletor volta para português e grava", t["idioma"] == "pt" and "Jogar" in t["textos"] and 'idioma = "pt"' in ini)
     check("idioma: preparação e opções intactas depois das trocas", 'jogo = "jogo"' in ini and 'estado = "pronto"' in ini
           and teste(root2, "s_depois_troca").get("opcoes_atuais", {}).get("swap_post_effect") == "fxaa")
+
+    # 15. Pedido de 2026-11-17: página Jogar sem rolagem em qualquer tamanho, créditos sem a linha
+    # da tradução PT-BR e velocidades Lenta/Muito lenta (legendas mais tempo na tela).
+    for size in ("800x600", "1220x900", "2400x1300"):
+        png = WORK / "ui" / f"resp-jogar-{size}.png"
+        if png.exists():
+            png.unlink()
+        subprocess.run([str(root2 / EXE), "--captura-ui", str(png), "--pagina", "jogar", "--tamanho", size, "--idioma", "pt"], timeout=120)
+        rep = json.loads(png.with_suffix(".json").read_text(encoding="utf-8")) if png.with_suffix(".json").exists() else {}
+        check(f"responsivo: página Jogar cabe sem rolagem em {size}", rep.get("jogar_cabe") is True and rep.get("botao_jogar_visivel") is True,
+              f"escala {rep.get('escala')}, cliente {rep.get('cliente')}, página {rep.get('pagina_jogar')}, fim {rep.get('jogar_fim_conteudo')}")
+    png = WORK / "ui" / "resp-graficos-1600x1000.png"
+    subprocess.run([str(root2 / EXE), "--captura-ui", str(png), "--pagina", "graficos", "--tamanho", "1600x1000", "--idioma", "pt"], timeout=120)
+    rep = json.loads(png.with_suffix(".json").read_text(encoding="utf-8")) if png.with_suffix(".json").exists() else {}
+    check("responsivo: opções em duas colunas em janela larga", rep.get("colunas_GraphicsGroups") == 2, str(rep))
+    for lang in ("pt", "en"):
+        t = textos_ui(root2, f"t_creditos_{lang}", "--idioma", lang)
+        check(f"créditos ({lang}): sem a linha da tradução PT-BR",
+              not any(x.startswith("Tradução PT-BR:") or x.startswith("PT-BR translation:") for x in t["textos"]))
+    t = textos_ui(root2, "u_lentas", "--idioma", "pt")
+    check("diálogos: opções Lenta e Muito lenta no launcher",
+          any(x.startswith("Lenta (legendas 2×") for x in t["textos"]) and any(x.startswith("Muito lenta (legendas 3×") for x in t["textos"]))
+    d = teste(root2, "v_dialogo_lento", "--opcoes", "dialog_speed=5")
+    pcs = d.get("opcoes", {}).get("pc_settings", "")
+    check("diálogos: Muito lenta grava dialog_speed = 5 no pc_settings.toml", "dialog_speed = 5" in pcs and not d.get("opcoes", {}).get("diferencas"))
+    teste(root2, "w_dialogo_volta", "--opcoes", "dialog_speed=1")
     return finish()
 
 

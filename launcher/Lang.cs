@@ -112,7 +112,6 @@ namespace BanjoLauncher {
    {"Referência de endereços para 60 FPS e alcance de desenho: patches da comunidade do Xenia (illusion, retroben, wedarobi)","Address reference for 60 FPS and draw distance: Xenia community patches (illusion, retroben, wedarobi)"},
    {"Modelo deste launcher (layout, estilos, configurador e backups): MC_LA_Recompiled, de Roberto Araujo (GPL-3.0-or-later). Este launcher também é GPL-3.0-or-later.",
     "Model for this launcher (layout, styles, settings editor and backups): MC_LA_Recompiled, by Roberto Araujo (GPL-3.0-or-later). This launcher is also GPL-3.0-or-later."},
-   {"Tradução PT-BR: a da cópia do jogo fornecida por você","PT-BR translation: the one in the game copy you provide"},
    {"Banjo-Tooie e suas marcas pertencem à Microsoft e à Rare. Esta pasta não traz nenhum arquivo do jogo: o port usa somente a sua própria cópia, neste computador. O programa do port contém código recompilado do jogo: é para uso pessoal; não compartilhe a pasta preparada.",
     "Banjo-Tooie and its trademarks belong to Microsoft and Rare. This folder contains no game files: the port only uses your own copy, on this computer. The port program contains code recompiled from the game: it is for personal use; do not share the prepared folder."},
    {"Abrir créditos e licenças","Open credits and licenses"},

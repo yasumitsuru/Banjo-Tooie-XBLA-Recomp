@@ -1,7 +1,7 @@
 {
  "resultado": "PASS",
- "passaram": 56,
- "total": 56,
+ "passaram": 64,
+ "total": 64,
  "testes": [
   {
    "teste": "pacote: ZIP de distribuição existe",
@@ -66,7 +66,7 @@
   {
    "teste": "preparação: caminho do jogo guardado relativo à pasta portátil",
    "ok": true,
-   "detalhe": "jogo = \"jogo\" | versao_jogo = \"PT-BR (tradução conferida)\" | versao = \"ptbr\" | launcher = \"1.0.0\" | estado = \"pronto\" | preparado_em = \"2026-11-16 21:22\""
+   "detalhe": "jogo = \"jogo\" | versao_jogo = \"PT-BR (tradução conferida)\" | versao = \"ptbr\" | launcher = \"1.0.0\" | estado = \"pronto\" | preparado_em = \"2026-11-17 02:28\""
   },
   {
    "teste": "preparação: cópia em jogo\\ idêntica ao original (SHA-256 de todos os arquivos)",
@@ -111,7 +111,7 @@
   {
    "teste": "jogo: FXAA e anisotropia do launcher aplicados (registro de sessão)",
    "ok": true,
-   "detalhe": "sessao-20261116-212209.txt"
+   "detalhe": "sessao-20261117-022838.txt"
   },
   {
    "teste": "opções: preservadas depois de o jogo regravar o arquivo",
@@ -146,7 +146,7 @@
   {
    "teste": "saves: importação do .zip, com os dados anteriores guardados antes",
    "ok": true,
-   "detalhe": "9 arquivos importados; os dados anteriores foram guardados em backups-launcher\\dados-antes-da-importacao-20261116-212341.zip."
+   "detalhe": "9 arquivos importados; os dados anteriores foram guardados em backups-launcher\\dados-antes-da-importacao-20261117-023009.zip."
   },
   {
    "teste": "saves: cópia do save de Documentos (ou aviso claro quando não há)",
@@ -156,12 +156,12 @@
   {
    "teste": "shaders: preparação pelo launcher (--prepare-shaders do port) com relatório",
    "ok": true,
-   "detalhe": "Shaders preparados na NVIDIA GeForce RTX 5080 (driver 32.0.16.2124): 2 arquivo(s) do cache em 1993 ms."
+   "detalhe": "Shaders preparados na NVIDIA GeForce RTX 5080 (driver 32.0.16.2124): 2 arquivo(s) do cache em 1946 ms."
   },
   {
    "teste": "diagnóstico: arquivo gerado com programa, jogo, monitores e opções",
    "ok": true,
-   "detalhe": "diagnostico-20261116-212344.txt"
+   "detalhe": "diagnostico-20261117-023013.txt"
   },
   {
    "teste": "originais: pasta do jogo da pessoa idêntica (SHA-256 de todos os arquivos)",
@@ -171,7 +171,7 @@
   {
    "teste": "originais: saves da pessoa em Documentos sem mudança",
    "ok": true,
-   "detalhe": "pasta: %USERPROFILE%\\OneDrive\\All\\Documentos\\My Games\\Banjo-Tooie XBLA\narquivos: 15\nIGUAL a W:\\Decomp\\Banjo 3\\app\\_audit\\out\\launcher\\foto_pessoa_antes.txt"
+   "detalhe": "pasta: %USERPROFILE%\\OneDrive\\All\\Documentos\\My Games\\Banjo-Tooie XBLA\narquivos: 17\nIGUAL a W:\\Decomp\\Banjo 3\\app\\_audit\\out\\launcher\\foto_pessoa_antes.txt"
   },
   {
    "teste": "launcher: nenhum código de rede nem de Registro do Windows",
@@ -221,17 +221,17 @@
   {
    "teste": "inglês: nenhum texto em português nas 7 páginas",
    "ok": true,
-   "detalhe": "307 textos; restos: []"
+   "detalhe": "308 textos; restos: []"
   },
   {
    "teste": "português: interface continua em português",
    "ok": true,
-   "detalhe": "308 textos"
+   "detalhe": "309 textos"
   },
   {
    "teste": "inglês: seletor troca a janela para inglês e grava o idioma",
    "ok": true,
-   "detalhe": "jogo = \"jogo\" | versao_jogo = \"PT-BR (tradução conferida)\" | versao = \"ptbr\" | launcher = \"1.0.0\" | estado = \"pronto\" | preparado_em = \"2026-11-16 21:22\" | idioma = \"en\""
+   "detalhe": "jogo = \"jogo\" | versao_jogo = \"PT-BR (tradução conferida)\" | versao = \"ptbr\" | launcher = \"1.0.0\" | estado = \"pronto\" | preparado_em = \"2026-11-17 02:28\" | idioma = \"en\""
   },
   {
    "teste": "inglês: próxima abertura usa o idioma gravado",
@@ -282,7 +282,47 @@
    "teste": "idioma: preparação e opções intactas depois das trocas",
    "ok": true,
    "detalhe": ""
+  },
+  {
+   "teste": "responsivo: página Jogar cabe sem rolagem em 800x600",
+   "ok": true,
+   "detalhe": "escala 0.654, cliente 785x563, página 911x762, fim 762"
+  },
+  {
+   "teste": "responsivo: página Jogar cabe sem rolagem em 1220x900",
+   "ok": true,
+   "detalhe": "escala 1, cliente 1205x863, página 916x765, fim 765"
+  },
+  {
+   "teste": "responsivo: página Jogar cabe sem rolagem em 2400x1300",
+   "ok": true,
+   "detalhe": "escala 1, cliente 2385x1263, página 2096x1165, fim 1165"
+  },
+  {
+   "teste": "responsivo: opções em duas colunas em janela larga",
+   "ok": true,
+   "detalhe": "{'escala': 1, 'cliente': '1585x963', 'pagina_jogar': '0x0', 'colunas_GraphicsGroups': 2, 'colunas_ControlGroups': 1, 'colunas_GameGroups': 1}"
+  },
+  {
+   "teste": "créditos (pt): sem a linha da tradução PT-BR",
+   "ok": true,
+   "detalhe": ""
+  },
+  {
+   "teste": "créditos (en): sem a linha da tradução PT-BR",
+   "ok": true,
+   "detalhe": ""
+  },
+  {
+   "teste": "diálogos: opções Lenta e Muito lenta no launcher",
+   "ok": true,
+   "detalhe": ""
+  },
+  {
+   "teste": "diálogos: Muito lenta grava dialog_speed = 5 no pc_settings.toml",
+   "ok": true,
+   "detalhe": ""
   }
  ],
- "quando": "2026-11-16 21:23:59"
+ "quando": "2026-11-17 02:30:35"
 }

@@ -656,3 +656,4 @@ Logs lidos: `out/native/logs/banjotooie_281..293.log`, `banjotooie_boot.json`,
 - **Prova:** capturas da abertura antes/depois em `_audit/out/xbla_logo/` (`cmp_antes_depois.png`,
   `cmp_inteiro.png`; não versionadas, são imagem do jogo): logo limpo em 720p e em 4K com FXAA;
   check do Craft com auto-teste 10/10. A correção vale para todo `vaddsws` do jogo.
+- **2026-11-17:** launcher responsivo (página Jogar sem rolagem, escala abaixo de 1120×860, opções em duas colunas em janelas largas), créditos sem a linha da tradução PT-BR e diálogos Lenta/Muito lenta (letras ½/⅓ e legendas com tempo 2×/3× mais na tela; gancho `0x8225DB64`, `MECHANICS.md` §24). Bateria do launcher 64/64.

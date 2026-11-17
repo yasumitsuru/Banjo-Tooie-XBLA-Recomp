@@ -27,7 +27,7 @@ namespace BanjoLauncher {
     if(args.Length>=2&&args[0]=="--teste") return TestMode.Run(args);
     var app=new Application{ShutdownMode=ShutdownMode.OnMainWindowClose};
     var c=new Controller();
-    if(args.Length>=2&&args[0]=="--captura-ui") return c.Capture(app,args[1],TestMode.Arg(args,"--pagina")??"jogar");
+    if(args.Length>=2&&args[0]=="--captura-ui") return c.Capture(app,args[1],TestMode.Arg(args,"--pagina")??"jogar",TestMode.Arg(args,"--tamanho"));
     if(args.Length>=2&&args[0]=="--textos-ui") {
      // --trocar-para pt|en: usa o seletor de idioma da janela (o mesmo caminho do clique) e lista
      // os textos da janela nova.
@@ -58,6 +58,7 @@ namespace BanjoLauncher {
   readonly Dictionary<string,Control> controls=new Dictionary<string,Control>();
   readonly Dictionary<string,string> pageOf=new Dictionary<string,string>();
   readonly HashSet<string> dirty=new HashSet<string>();
+  readonly Dictionary<StackPanel,List<FrameworkElement>> hostCards=new Dictionary<StackPanel,List<FrameworkElement>>();
   Process running;
   bool loading;
   internal T F<T>(string name) where T:class {return Window.FindName(name) as T;}
@@ -70,6 +71,7 @@ namespace BanjoLauncher {
    var art=Res.Image("banjotooie.png");F<Image>("HeroArt").Source=art;F<Image>("SideLogo").Source=art;
    F<TextBlock>("VersionText").Text=L.T("Launcher portátil ","Portable launcher ")+Paths.Version;
    SetupLanguage();
+   SetupFit();
    Game.Log=Log;
    Game.Progress=v=>Ui(()=>F<ProgressBar>("WorkProgress").Value=v);
    Nav("NavHome","PageHome");Nav("NavGraphics","PageGraphics");Nav("NavControls","PageControls");Nav("NavGame","PageGame");
@@ -96,6 +98,41 @@ namespace BanjoLauncher {
    RefreshHome();RefreshSaves();RefreshShaders();
    Log("Launcher "+Paths.Version+L.T(" aberto em "," opened in ")+Paths.Root+" ("+L.T("idioma: português","language: English")+")");
    Current=this;
+  }
+
+  // ---------- tamanho da janela ----------
+  // Abaixo do tamanho do desenho (DesignW x DesignH, em unidades da tela) a janela inteira é
+  // reduzida em escala, sem barra de rolagem na página Jogar; acima dele, a arte da página Jogar
+  // cresce e as páginas de opções passam a duas colunas.
+  const double DesignW=1120,DesignH=860,TwoColumns=1080;
+  double scale=1;
+  FrameworkElement client;
+  void SetupFit() {
+   var root=F<Grid>("RootGrid");
+   root.Loaded+=delegate{
+    client=VisualTreeHelper.GetParent(root) as FrameworkElement;
+    if(client!=null){client.SizeChanged+=delegate{Fit();};Fit();}
+   };
+  }
+  void Fit() {
+   if(client==null||client.ActualWidth<=0||client.ActualHeight<=0)return;
+   double s=Math.Min(1.0,Math.Min(client.ActualWidth/DesignW,client.ActualHeight/DesignH));
+   if(Math.Abs(s-scale)<0.002)return;
+   scale=s;F<Grid>("RootGrid").LayoutTransform=s<0.999?new ScaleTransform(s,s):Transform.Identity;
+  }
+  // Para os testes: escala, tamanho útil e se a página Jogar coube sem cortar.
+  public Dictionary<string,object> LayoutReport() {
+   var home=F<Grid>("PageHome");var info=F<Border>("HomeInfoBox");
+   var r=new Dictionary<string,object>{{"escala",Math.Round(scale,3)},{"cliente",client==null?"":Math.Round(client.ActualWidth)+"x"+Math.Round(client.ActualHeight)},
+    {"pagina_jogar",Math.Round(home.ActualWidth)+"x"+Math.Round(home.ActualHeight)}};
+   if(home.IsVisible) {
+    // a última caixa da página precisa terminar dentro da página
+    var pt=info.TranslatePoint(new Point(0,info.ActualHeight),home);
+    r["jogar_cabe"]=pt.Y<=home.ActualHeight+0.5;r["jogar_fim_conteudo"]=Math.Round(pt.Y);
+    var card=F<Button>("PlayButton");var pb=card.TranslatePoint(new Point(0,card.ActualHeight),home);r["botao_jogar_visivel"]=pb.Y>0&&pb.Y<=home.ActualHeight;
+   }
+   foreach(var kv in hostCards) r["colunas_"+kv.Key.Name]=kv.Key.Children.OfType<Grid>().Any(g=>g.ColumnDefinitions.Count==3)?2:1;
+   return r;
   }
 
   // ---------- idioma ----------
@@ -195,7 +232,8 @@ namespace BanjoLauncher {
       controls[o.Key]=cb;cell=cb;
      } else {
       var g=new Grid{Margin=new Thickness(0,5,0,5)};
-      g.ColumnDefinitions.Add(new ColumnDefinition());g.ColumnDefinitions.Add(new ColumnDefinition{Width=new GridLength(twoCols?190:330)});
+      g.ColumnDefinitions.Add(new ColumnDefinition());
+      g.ColumnDefinitions.Add(twoCols?new ColumnDefinition{Width=new GridLength(190)}:new ColumnDefinition{Width=new GridLength(1,GridUnitType.Star),MinWidth=230,MaxWidth=380});
       var label=new TextBlock{Text=o.Label,VerticalAlignment=VerticalAlignment.Center,TextWrapping=TextWrapping.Wrap,Margin=new Thickness(0,0,14,0)};
       var combo=new ComboBox{Tag=o};
       for(int k=0;k<o.Values.Length;k++)combo.Items.Add(new ComboBoxItem{Content=o.Labels[k],Tag=o.Values[k]});
@@ -209,7 +247,30 @@ namespace BanjoLauncher {
     if(parts[1]=="TELA") stack.Children.Add(new TextBlock{Text=L.T("O jogo desenha a imagem em 1280 × 720 vezes a escala interna e entrega na resolução de saída. Em 1080p a imagem interna 1440p é reduzida na apresentação (mais nitidez). 4K real = saída 4K com imagem interna 4K.","The game draws the image at 1280 × 720 times the internal scale and presents it at the output resolution. At 1080p the 1440p internal image is scaled down when presented (sharper). Real 4K = 4K output with a 4K internal image."),Style=(Style)Window.FindResource("Hint"),FontSize=11,Margin=new Thickness(0,10,0,0)});
     if(parts[1]=="QUADROS POR SEGUNDO") stack.Children.Add(new TextBlock{Text=L.T("60 FPS usa a lógica de 60 quadros do port (patch da comunidade do Xenia aplicado no código). 30 FPS é o ritmo original do Xbox 360.","60 FPS uses the port's 60-frame logic (the Xenia community patch applied in code). 30 FPS is the original Xbox 360 rate."),Style=(Style)Window.FindResource("Hint"),FontSize=11,Margin=new Thickness(0,10,0,0)});
     if(parts[1]=="TECLADO") stack.Children.Add(new TextBlock{Text=L.T("F1 abre e fecha as Configurações de PC dentro do jogo. Duas ações na mesma tecla funcionam ao mesmo tempo.","F1 opens and closes the PC Settings inside the game. Two actions on the same key work at the same time."),Style=(Style)Window.FindResource("Hint"),FontSize=11,Margin=new Thickness(0,10,0,0)});
-    host.Children.Add(card);
+    card.Tag=twoCols?"largo":null;  // o teclado (duas colunas por dentro) ocupa a largura toda
+    List<FrameworkElement> list;if(!hostCards.TryGetValue(host,out list)){list=new List<FrameworkElement>();hostCards[host]=list;host.SizeChanged+=delegate{ArrangeCards(host);};}
+    list.Add(card);host.Children.Add(card);
+   }
+  }
+  // Uma coluna em janelas estreitas; duas (cada cartão na coluna mais curta) nas largas.
+  void ArrangeCards(StackPanel host) {
+   bool two=host.ActualWidth>=TwoColumns;
+   if(host.Tag is bool&&(bool)host.Tag==two)return;
+   host.Tag=two;
+   var cards=hostCards[host];
+   foreach(var c in cards){var p=c.Parent as Panel;if(p!=null)p.Children.Remove(c);}
+   host.Children.Clear();
+   if(!two){foreach(var c in cards){c.Margin=new Thickness(0,0,0,18);host.Children.Add(c);}return;}
+   var grid=new Grid();
+   grid.ColumnDefinitions.Add(new ColumnDefinition());grid.ColumnDefinitions.Add(new ColumnDefinition{Width=new GridLength(18)});grid.ColumnDefinitions.Add(new ColumnDefinition());
+   var left=new StackPanel();var right=new StackPanel();Grid.SetColumn(right,2);
+   grid.Children.Add(left);grid.Children.Add(right);host.Children.Add(grid);
+   double colW=(host.ActualWidth-18)/2,hl=0,hr=0;
+   foreach(var c in cards) {
+    c.Margin=new Thickness(0,0,0,18);
+    if((c.Tag as string)=="largo"){host.Children.Add(c);continue;}
+    c.Measure(new Size(colW,double.PositiveInfinity));double h=c.DesiredSize.Height;
+    if(hl<=hr){left.Children.Add(c);hl+=h;}else{right.Children.Add(c);hr+=h;}
    }
   }
   void Changed(Option o) {
@@ -384,8 +445,9 @@ namespace BanjoLauncher {
   }
 
   // Captura da interface (testes): desenha a janela fora da tela, grava o PNG e sai.
-  public int Capture(Application app,string png,string page) {
+  public int Capture(Application app,string png,string page,string size) {
    Window.WindowStartupLocation=WindowStartupLocation.Manual;Window.Left=-30000;Window.Top=-30000;Window.ShowActivated=false;Window.ShowInTaskbar=false;
+   if(size!=null){var p=size.Split('x');Window.MinWidth=0;Window.MinHeight=0;Window.Width=Double.Parse(p[0],CultureInfo.InvariantCulture);Window.Height=Double.Parse(p[1],CultureInfo.InvariantCulture);}
    int result=1;
    Window.ContentRendered+=delegate{
     ShowPage(page);
@@ -399,6 +461,7 @@ namespace BanjoLauncher {
       var enc=new PngBitmapEncoder();enc.Frames.Add(BitmapFrame.Create(bmp));
       Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(png)));
       using(var f=File.Create(png))enc.Save(f);
+      File.WriteAllText(Path.ChangeExtension(png,".json"),Util.Json.Serialize(LayoutReport()),new UTF8Encoding(false));
       result=0;
      } finally {dirty.Clear();Window.Close();}
     }));

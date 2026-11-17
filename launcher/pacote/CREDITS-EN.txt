@@ -25,6 +25,3 @@ Launcher
   settings editor and backup export. This launcher is also GPL-3.0-or-later
   (LICENCAS\launcher-GPL-3.0.txt); its source code is in the project's app\launcher folder.
   Interface in Portuguese (Brazil) and English.
-
-PT-BR translation
-  The one in the game copy you provide.

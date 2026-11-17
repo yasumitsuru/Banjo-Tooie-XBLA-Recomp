@@ -194,3 +194,24 @@ derivado do Xenia) e bibliotecas de terceiros (licenças em `LICENCAS\terceiros`
   (`launcher/capturas/en-*.png`) e preparação/opções intactas depois das trocas.
 - **Limite:** o seletor foi acionado pelo mesmo código do clique (`--trocar-para`); pela automação
   do Windows a lista do ComboBox abriu, mas a escolha do item não é exposta (`not_supported`).
+
+## Janela responsiva, diálogos mais lentos e créditos (pedido de 2026-11-17)
+
+- **Sem barra de rolagem na página Jogar:** a página divide a altura da janela (a arte cresce ou
+  encolhe; o resto tem a altura do conteúdo). Abaixo do tamanho do desenho (1120 × 860 unidades)
+  a janela inteira é reduzida em escala, então nada fica cortado nem precisa rolar; mínimo da
+  janela 760 × 560. Em janelas largas (área de conteúdo ≥ 1080) as páginas de opções usam duas
+  colunas (cada cartão na coluna mais curta; o teclado ocupa a largura toda). As páginas com
+  muitas opções (Controles, Gráficos) ainda podem rolar em janelas pequenas: são mais altas que
+  qualquer tela.
+- **Diálogos e legendas mais lentos:** "Velocidade dos diálogos e legendas" ganhou **Lenta** e
+  **Muito lenta** (também no menu F1 do jogo: DIÁLOGOS : LENTOS / MUITO LENTOS). As letras saem a
+  ½ ou ⅓ da velocidade e as legendas que avançam sozinhas ficam 2× ou 3× mais tempo na tela
+  (gancho novo `PcHook_DialogHold` em `0x8225DB64`, `MECHANICS.md` §24; `dialog_speed` 4 e 5).
+  Medido no jogo (`docs/evidencias/launcher/dialogo-*.json`, sonda `--probe-dialog`): 13,4–14,3
+  letras/s no Original, 6,8–7,1 na Lenta, 4,5–4,9 na Muito lenta; espera da legenda com tempo
+  0,115 s → 0,200 s → 0,283 s.
+- **Créditos:** sem a linha "Tradução PT-BR" (página Créditos e `CREDITOS.txt`/`CREDITS-EN.txt`).
+- **Testes:** bateria com 64 verificações, **64/64 PASS** (8 novas: página Jogar cabe sem rolagem
+  em 800×600, 1220×900 e 2400×1300; duas colunas em 1600×1000; créditos PT/EN sem a linha;
+  opções lentas no launcher e gravação `dialog_speed = 5`).

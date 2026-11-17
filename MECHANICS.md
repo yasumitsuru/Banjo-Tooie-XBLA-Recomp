@@ -990,3 +990,21 @@ minijogo em andamento. A diferença da câmera em Atlântida, portanto, não vem
 **Não medido (precisa de mais que viagem por mapa):** voo (só começa numa plataforma de voo; nenhum
 ponto de chegada fica numa delas e as posições das plataformas não foram achadas) e minijogos
 (começam por diálogo/ingresso; é neles que rodam as constantes 0x821A22xx/0x8213E2xx).
+
+## 24. Caixa de texto: velocidade das letras e espera das legendas (pedido de 2026-11-17)
+
+Função `0x8225D580` (caixa em `r31`; estado em `+0x1C9`):
+
+- **Estado 2 (digitando):** `0x8225D8A8` soma o tempo do quadro (`f29`) ao cronômetro `+0x22C`;
+  cada vez que ele passa do intervalo por letra (`+0x230`) aparece mais uma letra (`+0x1F6`).
+  O gancho `PcHook_DialogSpeed` multiplica essa parcela (Rápida 2×, Muito rápida 4×,
+  Instantânea; Lenta ½, Muito lenta ⅓).
+- **Estado 3 (legenda com tempo):** quando a página termina e a caixa tem a marca de avanço
+  automático (`+0x248` bits 0x400/0x8000), `0x8225DAC4` grava `+0x21C = byte(+0x224) × 1/60`
+  (`0x82000B98`) segundos; a cada quadro `0x8225DB64` (`fsubs f0,f0,f29`, `0xEC00E828`)
+  desconta o tempo do quadro e, abaixo de 0.0 (`0x82000734`), a caixa vai ao estado 4 e avança
+  sozinha. Apertar A pula a espera (`0x8225DB04`). Sem a marca, a caixa vai direto ao estado 4.
+  O gancho `PcHook_DialogHold` desconta só `1/fator` do quadro nos modos lentos: a legenda
+  fica **2× (Lenta)** ou **3× (Muito lenta)** mais tempo na tela. Os modos rápidos não mudam a espera.
+- Configuração `dialog_speed`: 0 Original, 1 Rápida, 2 Muito rápida, 3 Instantânea, 4 Lenta,
+  5 Muito lenta (menus mostram na ordem Muito lenta → Instantânea).

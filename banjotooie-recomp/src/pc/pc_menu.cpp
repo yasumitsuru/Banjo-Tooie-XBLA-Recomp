@@ -1136,9 +1136,10 @@ class PcSettingsDialog : public rex::ui::ImGuiDialog {
       s.draw_distance = DrawDistance(dd);
       ImGui::TextUnformatted("Velocidade dos diálogos");
       int ds = s.dialog_speed;
-      for (int i = 0; i < 4; ++i) {
+      for (int i = 0; i < pc::kDialogSpeedCount; ++i) {
         if (i) ImGui::SameLine();
-        ImGui::RadioButton(pc::DialogSpeedName(i), &ds, i);
+        const int code = pc::kDialogSpeedOrder[i];
+        ImGui::RadioButton(pc::DialogSpeedName(code), &ds, code);
       }
       if (ds != s.dialog_speed) {
         s.dialog_speed = ds;
@@ -1547,16 +1548,21 @@ std::vector<Row> BuildGame() {
                  return true;
                }});
   r.push_back({[] {
+                 // índice = código salvo (4/5 são os modos lentos, que dão mais tempo
+                 // para ler as legendas que avançam sozinhas); a ordem na tela é a de
+                 // pc::kDialogSpeedOrder (do mais lento ao instantâneo).
                  static const L kNames[] = {{"ORIGINAL", "ORIGINAL"},
                                             {"RÁPIDOS", "FAST"},
                                             {"MUITO RÁPIDOS", "VERY FAST"},
-                                            {"INSTANTÂNEOS", "INSTANT"}};
+                                            {"INSTANTÂNEOS", "INSTANT"},
+                                            {"LENTOS", "SLOW"},
+                                            {"MUITO LENTOS", "VERY SLOW"}};
                  return Tx({"DIÁLOGOS", "DIALOGUE"}) + " : " +
-                        Tx(kNames[std::clamp(pc::Get().dialog_speed, 0, 3)]);
+                        Tx(kNames[std::clamp(pc::Get().dialog_speed, 0, 5)]);
                },
                [](int dir) {
                  auto& s = pc::Get();
-                 s.dialog_speed = Wrap(std::clamp(s.dialog_speed, 0, 3), 4, dir);
+                 s.dialog_speed = pc::DialogSpeedStep(std::clamp(s.dialog_speed, 0, 5), dir);
                  RequestSave();
                  return true;
                }});

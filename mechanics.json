@@ -140,6 +140,12 @@
       "source": "instrucao em 0x8225D8A8, funcao 0x8225D580"
     },
     {
+      "name": "espera das legendas com tempo (estado 3 da caixa de texto) antes de avancar sozinha",
+      "group": "video",
+      "value": "caixa+0x21C = caixa+0x224 (quadros) x 1/60 (0x82000B98) segundos; descontado por 'fsubs f0,f0,f29' em 0x8225DB64 (0xEC00E828); abaixo de 0.0 (0x82000734) vai ao estado 4",
+      "source": "funcao 0x8225D580, instrucoes em 0x8225DAC4-0x8225DB68"
+    },
+    {
       "name": "formula do alcance de desenho do ator",
       "group": "video",
       "value": "(base & 0x3FFFFFFF) << 2",

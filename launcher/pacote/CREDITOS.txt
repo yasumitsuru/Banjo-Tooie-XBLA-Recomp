@@ -25,6 +25,3 @@ Launcher
   editor de opções e exportação de backups. Este launcher também é GPL-3.0-or-later
   (LICENCAS\launcher-GPL-3.0.txt); o código-fonte está em app\launcher do projeto.
   Interface em português (Brasil) e inglês.
-
-Tradução PT-BR
-  A da cópia do jogo fornecida por você.

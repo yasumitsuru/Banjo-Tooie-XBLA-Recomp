@@ -16,8 +16,8 @@ abriu, foi fechado e o launcher registrou "Jogo fechado (código 0)".
 | Código do launcher (GPL-3.0-or-later) | `launcher/` (`Core.cs`, `Launcher.cs`, `Launcher.xaml`, `assets/`, `pacote/`) |
 | Build do launcher + pasta portátil + ZIP | `tools\build_launcher.cmd` (também roda no fim de `npm run build` / `tools\build_native.cmd`) |
 | Executável Release x64 | `out\launcher\Banjo-Tooie PT-BR Recompiled.exe` |
-| Pasta portátil pronta | `out\portable\Banjo-Tooie-PT-BR-Recompiled\` (42 arquivos, 44,4 MB) |
-| ZIP de distribuição | `out\portable\Banjo-Tooie-PT-BR-Recompiled-1.0.0-win64.zip` (13,9 MB; SHA-256 `dba079cf8e130601bfe7330a3b57a6f9ed949848d0f7b0598208d06abe0ce3cb`) |
+| Pasta portátil pronta | `out\portable\Banjo-Tooie-PT-BR-Recompiled\` (44 arquivos, 44,4 MB) |
+| ZIP de distribuição | `out\portable\Banjo-Tooie-PT-BR-Recompiled-1.0.0-win64.zip` (13,9 MB; SHA-256 `9d12207233a277c315b4550026357899d568618e54473d4d49e8e84239823d39`, versão com inglês) |
 | Testes | `python -I tools\launcher\testar_launcher.py --jogo "<pasta do jogo>"` |
 | Capturas da interface | `launcher/capturas/*.png` |
 
@@ -171,3 +171,26 @@ MC_LA_Recompiled (Roberto Araujo, GPL-3.0-or-later) como modelo do launcher; pro
 `W:\Decomp\Banjo` (primeira adaptação); iron-jay (base do port); ReXGlue SDK (BSD-3-Clause,
 derivado do Xenia) e bibliotecas de terceiros (licenças em `LICENCAS\terceiros`). Detalhes em
 `CREDITS.md`.
+
+## Idioma inglês (pedido de 2026-11-16: "adicione suporte ao idioma inglês ao launcher")
+
+- **Seletor IDIOMA · LANGUAGE** no pé da barra lateral: Português (Brasil) / English. A troca
+  refaz a janela no outro idioma, no mesmo lugar e na mesma página, e grava `idioma = "pt"|"en"`
+  no `config\launcher.ini` da pasta portátil (nada no Registro). Na primeira vez o launcher segue o
+  idioma do Windows (português → PT-BR; outro → inglês). Não troca com o jogo aberto; opções não
+  salvas pedem confirmação.
+- **Tudo traduzido:** textos da janela (`launcher/Lang.cs`: tabela dos textos do XAML), opções e
+  listas (rótulos, teclas, grupos), mensagens da conferência e da preparação, saves, shaders,
+  registro e o arquivo de diagnóstico. Datas em `aaaa-mm-dd` no inglês. O `launcher.ini` guarda
+  a versão do jogo como código (`versao = "ptbr"|"global"|"modificada"`) e o nome aparece no
+  idioma da janela (arquivos antigos, só com o nome em português, também são entendidos).
+- **Não muda:** os nomes das pastas da pasta portátil (`jogo\`, `dados\`...), as opções gravadas
+  e o idioma do jogo, que vem dos arquivos da pessoa (tradução PT-BR ou versão global em inglês).
+- **Pacote:** `README-EN.txt` e `CREDITS-EN.txt` ao lado do `LEIA-ME.txt`/`CREDITOS.txt`.
+- **Testes:** a bateria passou a ter 56 verificações, **56/56 PASS** sobre o ZIP novo. As 14 novas:
+  conferência em inglês, nenhum texto em português nas 7 páginas em inglês (307 textos, lidos da
+  própria janela com `--textos-ui`), português intacto, troca pelo seletor para inglês e de volta
+  (gravada e usada na abertura seguinte), as 7 páginas em inglês desenhadas
+  (`launcher/capturas/en-*.png`) e preparação/opções intactas depois das trocas.
+- **Limite:** o seletor foi acionado pelo mesmo código do clique (`--trocar-para`); pela automação
+  do Windows a lista do ComboBox abriu, mas a escolha do item não é exposta (`not_supported`).

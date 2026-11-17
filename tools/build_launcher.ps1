@@ -32,7 +32,7 @@ $cscArgs = @('/nologo', '/target:winexe', '/platform:x64', '/optimize+', '/langv
   "/resource:$(Join-Path $src 'Launcher.xaml'),BanjoLauncher.Launcher.xaml",
   "/resource:$(Join-Path $src 'assets\banjotooie.png'),BanjoLauncher.banjotooie.png",
   "/resource:$(Join-Path $src 'assets\banjotooie.ico'),BanjoLauncher.banjotooie.ico") + $refs +
-  @((Join-Path $src 'Core.cs'), (Join-Path $src 'Launcher.cs'))
+  @((Join-Path $src 'Core.cs'), (Join-Path $src 'Lang.cs'), (Join-Path $src 'Launcher.cs'))
 Write-Host "[launcher] compilando $exeName (C# 5, x64, Release)..."
 & $csc @cscArgs
 if ($LASTEXITCODE -ne 0) { throw "csc falhou (código $LASTEXITCODE)" }
@@ -74,7 +74,7 @@ São arquivos redistribuíveis da Microsoft (lista "Distributable Code" dos term
 Visual Studio), incluídos para o jogo abrir sem instalar o pacote do Visual C++.
 "@
 [IO.File]::WriteAllText((Join-Path $pkg 'LICENCAS\Microsoft-Visual-C++-runtime.txt'), $vcLic, (New-Object Text.UTF8Encoding($true)))
-foreach ($t in 'LEIA-ME.txt', 'CREDITOS.txt') {
+foreach ($t in 'LEIA-ME.txt', 'CREDITOS.txt', 'README-EN.txt', 'CREDITS-EN.txt') {
   $text = [IO.File]::ReadAllText((Join-Path $src "pacote\$t"), [Text.Encoding]::UTF8) -replace "`r?`n", "`r`n"
   [IO.File]::WriteAllText((Join-Path $pkg $t), $text, (New-Object Text.UTF8Encoding($true)))
 }

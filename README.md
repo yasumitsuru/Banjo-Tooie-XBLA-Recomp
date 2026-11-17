@@ -26,12 +26,12 @@ saves com backup e auto-teste `--self-test`. **Estado atual, provas e próximos 
 `out\portable\Banjo-Tooie-PT-BR-Recompiled-1.0.0-win64.zip` (gerado por `npm run build` ou
 `tools\build_launcher.cmd`): extraia, abra `Banjo-Tooie PT-BR Recompiled.exe`, escolha a pasta do
 seu Banjo-Tooie XBLA descompactado (`default.xex` + `RAWFiles`), **PREPARAR MEU JOGO** e **JOGAR**.
-O launcher (PT-BR, adaptado do MC_LA_Recompiled, GPL-3.0) confere a pasta com a pré-checagem do
+O launcher (português ou inglês, no seletor IDIOMA · LANGUAGE; adaptado do MC_LA_Recompiled, GPL-3.0) confere a pasta com a pré-checagem do
 jogo e o SHA-256, copia o jogo para `jogo\` e guarda saves, opções, registros e cache dentro da
 própria pasta (nada no Registro nem em Documentos). Gráficos, controles (inclusive teclado), áudio,
 qualidade de vida, saves e diagnóstico editam os mesmos arquivos que o menu F1 do jogo. O ZIP não
 tem arquivos do jogo, mas o programa do port contém código recompilado: uso pessoal. Relatório,
-testes (42/42) e limitações: [`docs/LAUNCHER-RELATORIO.md`](docs/LAUNCHER-RELATORIO.md).
+testes (56/56, português e inglês) e limitações: [`docs/LAUNCHER-RELATORIO.md`](docs/LAUNCHER-RELATORIO.md).
 
 ## Escolher a versão (PT-BR ou global em inglês)
 

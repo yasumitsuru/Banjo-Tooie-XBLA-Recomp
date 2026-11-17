@@ -1,0 +1,30 @@
+CREDITS — BANJO-TOOIE XBLA PT-BR RECOMPILED
+===========================================
+
+Game
+  Banjo-Tooie (XBLA) © Microsoft / Rare. No game files come with this folder.
+
+Native port
+  Base recompilation of Banjo-Tooie XBLA: iron-jay — https://github.com/iron-jay/banjo_tooie_xbla_recomp
+  (the repository declares no license; this project is for personal use).
+  PC layer in Portuguese (settings, 60 FPS, 4K, saves with backups, session log):
+  the Banjo-Tooie XBLA PT-BR Recompiled project.
+
+Runtime
+  ReXGlue SDK (Tom Clay and contributors, derived from Xenia) — BSD-3-Clause.
+  Third-party libraries of the runtime: licenses in LICENCAS\terceiros.
+  Microsoft Visual C++ 2015-2022 runtime (Microsoft redistributable).
+
+References
+  Addresses for 60 FPS and draw distance: the Xenia community patches for Banjo-Tooie
+  (illusion, retroben, wedarobi).
+
+Launcher
+  Adapted from the MC_LA_Recompiled installer/configurator by Roberto Araujo
+  (https://github.com/robertoaraujo77/MC_LA_Recompiled, GPL-3.0-or-later): layout, styles,
+  settings editor and backup export. This launcher is also GPL-3.0-or-later
+  (LICENCAS\launcher-GPL-3.0.txt); its source code is in the project's app\launcher folder.
+  Interface in Portuguese (Brazil) and English.
+
+PT-BR translation
+  The one in the game copy you provide.

@@ -13,6 +13,7 @@ import argparse
 import hashlib
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -51,25 +52,42 @@ def tree_hashes(root):
     return {str(p.relative_to(root)): sha(p) for p in sorted(root.rglob("*")) if p.is_file()}
 
 
-def teste(root, name, *args, timeout=900):
+def teste(root, name, *args, timeout=900, idioma="pt"):
     out = WORK / "json" / (name + ".json")
     out.parent.mkdir(parents=True, exist_ok=True)
     if out.exists():
         out.unlink()
     t0 = time.time()
-    p = subprocess.run([str(root / EXE), "--teste", str(out), *args], timeout=timeout)
+    extra = ["--idioma", idioma] if idioma else []  # sem idioma: o gravado no launcher.ini
+    p = subprocess.run([str(root / EXE), "--teste", str(out), *args, *extra], timeout=timeout)
     data = json.loads(out.read_text(encoding="utf-8")) if out.exists() else {}
     data["_codigo_saida"] = p.returncode
     data["_segundos"] = round(time.time() - t0, 1)
     return data
 
 
-def capture(root, page, png):
+def capture(root, page, png, idioma="pt"):
     png.parent.mkdir(parents=True, exist_ok=True)
     if png.exists():
         png.unlink()
-    p = subprocess.run([str(root / EXE), "--captura-ui", str(png), "--pagina", page], timeout=120)
+    p = subprocess.run([str(root / EXE), "--captura-ui", str(png), "--pagina", page, "--idioma", idioma], timeout=120)
     return p.returncode == 0 and png.exists() and png.stat().st_size > 10000
+
+
+# Textos que denunciam português na interface em inglês. "jogo\" e "dados\" são nomes de pastas.
+PT_WORDS = re.compile(r"[ãõçáéíóúâêôàÃÕÇÁÉÍÓÚÂÊÔ]|\b(de|da|dos|das|para|não|com|pasta|arquivo|opções|Abrir|Salvar)\b|\bjogo\b(?!\\)")
+PT_ALLOW = ("Português (Brasil)", "IDIOMA · LANGUAGE", "Idioma / Language", "(ABNT2)")
+
+
+def textos_ui(root, name, *args):
+    out = WORK / "json" / (name + ".json")
+    if out.exists():
+        out.unlink()
+    p = subprocess.run([str(root / EXE), "--textos-ui", str(out), *args], timeout=120)
+    data = json.loads(out.read_text(encoding="utf-8")) if out.exists() else {"idioma": None, "textos": []}
+    data["_codigo_saida"] = p.returncode
+    data["_restos_pt"] = [t for t in data["textos"] if PT_WORDS.search(t) and not any(a in t for a in PT_ALLOW)]
+    return data
 
 
 def foto_pessoa(out):
@@ -106,10 +124,10 @@ def main():
     need = [f"{PKG_NAME}/{EXE}", f"{PKG_NAME}/bin/banjotooie.exe", f"{PKG_NAME}/bin/rexruntime.dll",
             f"{PKG_NAME}/bin/vcruntime140.dll", f"{PKG_NAME}/bin/vcruntime140_1.dll",
             f"{PKG_NAME}/bin/msvcp140.dll", f"{PKG_NAME}/bin/msvcp140_atomic_wait.dll",
-            f"{PKG_NAME}/LEIA-ME.txt", f"{PKG_NAME}/CREDITOS.txt",
+            f"{PKG_NAME}/LEIA-ME.txt", f"{PKG_NAME}/CREDITOS.txt", f"{PKG_NAME}/README-EN.txt", f"{PKG_NAME}/CREDITS-EN.txt",
             f"{PKG_NAME}/LICENCAS/launcher-GPL-3.0.txt", f"{PKG_NAME}/LICENCAS/ReXGlue-SDK-BSD-3-Clause.txt"]
     missing = [n for n in need if n not in names]
-    check("pacote: launcher, port, runtime VC++, LEIA-ME, créditos e licenças", not missing,
+    check("pacote: launcher, port, runtime VC++, LEIA-ME/README-EN, créditos PT/EN e licenças", not missing,
           ", ".join(missing) or f"{len(need)} itens")
 
     # 2. Extrai como a pessoa faria (pasta com espaços no nome).
@@ -283,7 +301,7 @@ def main():
     check("originais: saves da pessoa em Documentos sem mudança", ok, detail)
 
     # 12. Sem rede e sem Registro no código do launcher.
-    src = "\n".join((APP / "launcher" / n).read_text(encoding="utf-8") for n in ("Core.cs", "Launcher.cs"))
+    src = "\n".join((APP / "launcher" / n).read_text(encoding="utf-8") for n in ("Core.cs", "Lang.cs", "Launcher.cs"))
     net = [w for w in ("WebClient", "HttpClient", "WebRequest", "System.Net", "Socket", "Microsoft.Win32.Registry",
                        "RegistryKey") if w in src]
     check("launcher: nenhum código de rede nem de Registro do Windows", not net, ", ".join(net))
@@ -291,6 +309,30 @@ def main():
     # 13. Interface depois de preparar, todas as páginas (pasta movida).
     for i, page in enumerate(["jogar", "graficos", "controles", "jogo", "saves", "registro", "creditos"], 2):
         check(f"interface: página {page}", capture(root2, page, WORK / "ui" / f"{i}-{page}.png"))
+
+    # 14. Inglês: mensagens, textos de todas as páginas, troca pelo seletor (gravada) e capturas.
+    d = teste(root2, "m_vazia_en", "--jogo", str(empty), idioma="en")
+    msg = d.get("conferencia", {}).get("mensagem", "")
+    check("inglês: conferência em inglês (pasta vazia)", d.get("idioma") == "en" and msg.startswith("Missing required files"), msg)
+    t = textos_ui(root2, "n_textos_en", "--idioma", "en")
+    check("inglês: nenhum texto em português nas 7 páginas", t["idioma"] == "en" and len(t["textos"]) > 250 and not t["_restos_pt"],
+          f"{len(t['textos'])} textos; restos: {t['_restos_pt'][:3]}")
+    t = textos_ui(root2, "o_textos_pt", "--idioma", "pt")
+    check("português: interface continua em português", t["idioma"] == "pt" and "Jogar" in t["textos"] and "SALVAR CONFIGURAÇÕES" in t["textos"],
+          f"{len(t['textos'])} textos")
+    t = textos_ui(root2, "p_troca_en", "--idioma", "pt", "--trocar-para", "en")
+    ini = (root2 / "config" / "launcher.ini").read_text(encoding="utf-8")
+    check("inglês: seletor troca a janela para inglês e grava o idioma", t["idioma"] == "en" and "Play" in t["textos"]
+          and not t["_restos_pt"] and 'idioma = "en"' in ini, ini.strip().replace("\n", " | "))
+    d = teste(root2, "q_idioma_gravado", idioma=None)
+    check("inglês: próxima abertura usa o idioma gravado", d.get("idioma") == "en", str(d.get("idioma")))
+    for i, page in enumerate(["jogar", "graficos", "controles", "jogo", "saves", "registro", "creditos"], 2):
+        check(f"inglês: página {page}", capture(root2, page, WORK / "ui" / f"en-{i}-{page}.png", idioma="en"))
+    t = textos_ui(root2, "r_troca_pt", "--trocar-para", "pt")
+    ini = (root2 / "config" / "launcher.ini").read_text(encoding="utf-8")
+    check("português: seletor volta para português e grava", t["idioma"] == "pt" and "Jogar" in t["textos"] and 'idioma = "pt"' in ini)
+    check("idioma: preparação e opções intactas depois das trocas", 'jogo = "jogo"' in ini and 'estado = "pronto"' in ini
+          and teste(root2, "s_depois_troca").get("opcoes_atuais", {}).get("swap_post_effect") == "fxaa")
     return finish()
 
 

@@ -5,6 +5,10 @@ Port nativo para Windows (x64) do Banjo-Tooie de Xbox Live Arcade, recompilado a
 do Xbox 360 — não é um emulador. Esta pasta NÃO traz nenhum arquivo do jogo: você usa a sua própria
 cópia do Banjo-Tooie XBLA, já descompactada.
 
+O launcher está em português (Brasil) e em inglês: use o seletor IDIOMA · LANGUAGE no pé da barra
+lateral. Na primeira vez ele segue o idioma do Windows. O idioma do jogo em si vem dos seus arquivos
+(tradução PT-BR ou versão global em inglês). English instructions: README-EN.txt.
+
 O QUE VOCÊ PRECISA
 - Windows 10 ou 11 de 64 bits, placa de vídeo com DirectX 12.
 - A pasta do seu Banjo-Tooie XBLA descompactado: ela tem o arquivo default.xex e a pasta RAWFiles
@@ -29,7 +33,7 @@ PASTA PORTÁTIL
   jogo\       a cópia dos seus arquivos do jogo (criada na preparação)
   dados\      saves, backups automáticos, opções de PC, registros e relatórios de falha
   cache\      cache de shaders da placa de vídeo
-  config\     launcher.ini (a pasta do jogo escolhida, guardada relativa a esta pasta)
+  config\     launcher.ini (a pasta do jogo escolhida, guardada relativa a esta pasta, e o idioma)
   logs\       registros do launcher e diagnósticos
 Tudo fica aqui: nada vai para o Registro do Windows, para Documentos ou para AppData, e nada é
 baixado da internet. Para levar o jogo para outro disco ou computador, copie a pasta inteira.

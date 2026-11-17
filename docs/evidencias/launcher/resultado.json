@@ -1,7 +1,7 @@
 {
  "resultado": "PASS",
- "passaram": 42,
- "total": 42,
+ "passaram": 56,
+ "total": 56,
  "testes": [
   {
    "teste": "pacote: ZIP de distribuição existe",
@@ -11,7 +11,7 @@
   {
    "teste": "pacote: ZIP íntegro (CRC de todas as entradas)",
    "ok": true,
-   "detalhe": "42 arquivos"
+   "detalhe": "44 arquivos"
   },
   {
    "teste": "pacote: nenhum arquivo do jogo, save ou opção de desenvolvimento",
@@ -19,14 +19,14 @@
    "detalhe": "nenhum"
   },
   {
-   "teste": "pacote: launcher, port, runtime VC++, LEIA-ME, créditos e licenças",
+   "teste": "pacote: launcher, port, runtime VC++, LEIA-ME/README-EN, créditos PT/EN e licenças",
    "ok": true,
-   "detalhe": "11 itens"
+   "detalhe": "13 itens"
   },
   {
    "teste": "pacote: SHA-256 de cada arquivo extraído confere com o manifesto",
    "ok": true,
-   "detalhe": "41 arquivos"
+   "detalhe": "43 arquivos"
   },
   {
    "teste": "foto (somente leitura) dos saves da pessoa em Documentos",
@@ -66,7 +66,7 @@
   {
    "teste": "preparação: caminho do jogo guardado relativo à pasta portátil",
    "ok": true,
-   "detalhe": "jogo = \"jogo\" | versao_jogo = \"PT-BR (tradução conferida)\" | launcher = \"1.0.0\" | estado = \"pronto\" | preparado_em = \"2026-11-16 20:57\""
+   "detalhe": "jogo = \"jogo\" | versao_jogo = \"PT-BR (tradução conferida)\" | versao = \"ptbr\" | launcher = \"1.0.0\" | estado = \"pronto\" | preparado_em = \"2026-11-16 21:22\""
   },
   {
    "teste": "preparação: cópia em jogo\\ idêntica ao original (SHA-256 de todos os arquivos)",
@@ -91,7 +91,7 @@
   {
    "teste": "jogo: aberto pelo launcher e fechado com código 0",
    "ok": true,
-   "detalhe": "{\"argumentos\": \"--game_data_root \\\"W:\\\\Decomp\\\\Banjo 3\\\\app\\\\_audit\\\\out\\\\launcher\\\\extraido com espaco\\\\Banjo-Tooie-PT-BR-Recompiled\\\\jogo\\\" --user_data_root \\\"W:\\\\Decomp\\\\Banjo 3\\\\app\\\\_audit\\\\out\\\\launcher\\\\extraido com espaco\\\\Banjo-Tooie-PT-BR-Recompiled\\\\dados\\\" --cache_path \\\"W:\\\\Decomp\\\\Banjo 3\\\\app\\\\_audit\\\\out\\\\launcher\\\\extraido com espaco\\\\Banjo-Tooie-PT-BR-Recompiled\\\\cache\\\" --self-test \\\"W:\\\\Decomp\\\\Banjo 3\\\\app\\\\_audit\\\\out\\\\launcher\\\\extraido com espaco\\\\Banjo-Tooie-PT-BR-Recompiled\\\\logs\\\\selftest.json\\\" --boot_report \\\"W:\\\\Decomp\\\\Banjo 3\\\\app\\\\_audit\\\\out\\\\launcher\\\\extraido com espaco\\\\Banjo-Tooie-PT-BR-Recompiled\\\\logs\\\\boot.json\\\"\", \"saiu_sozinho\": true, \"codigo\": 0, \"segundos\": 69}"
+   "detalhe": "{\"argumentos\": \"--game_data_root \\\"W:\\\\Decomp\\\\Banjo 3\\\\app\\\\_audit\\\\out\\\\launcher\\\\extraido com espaco\\\\Banjo-Tooie-PT-BR-Recompiled\\\\jogo\\\" --user_data_root \\\"W:\\\\Decomp\\\\Banjo 3\\\\app\\\\_audit\\\\out\\\\launcher\\\\extraido com espaco\\\\Banjo-Tooie-PT-BR-Recompiled\\\\dados\\\" --cache_path \\\"W:\\\\Decomp\\\\Banjo 3\\\\app\\\\_audit\\\\out\\\\launcher\\\\extraido com espaco\\\\Banjo-Tooie-PT-BR-Recompiled\\\\cache\\\" --self-test \\\"W:\\\\Decomp\\\\Banjo 3\\\\app\\\\_audit\\\\out\\\\launcher\\\\extraido com espaco\\\\Banjo-Tooie-PT-BR-Recompiled\\\\logs\\\\selftest.json\\\" --boot_report \\\"W:\\\\Decomp\\\\Banjo 3\\\\app\\\\_audit\\\\out\\\\launcher\\\\extraido com espaco\\\\Banjo-Tooie-PT-BR-Recompiled\\\\logs\\\\boot.json\\\"\", \"saiu_sozinho\": true, \"codigo\": 0, \"segundos\": 68.4}"
   },
   {
    "teste": "jogo: auto-teste do port passou",
@@ -111,7 +111,7 @@
   {
    "teste": "jogo: FXAA e anisotropia do launcher aplicados (registro de sessão)",
    "ok": true,
-   "detalhe": "sessao-20261116-205744.txt"
+   "detalhe": "sessao-20261116-212209.txt"
   },
   {
    "teste": "opções: preservadas depois de o jogo regravar o arquivo",
@@ -146,7 +146,7 @@
   {
    "teste": "saves: importação do .zip, com os dados anteriores guardados antes",
    "ok": true,
-   "detalhe": "9 arquivos importados; os dados anteriores foram guardados em backups-launcher\\dados-antes-da-importacao-20261116-205917.zip."
+   "detalhe": "9 arquivos importados; os dados anteriores foram guardados em backups-launcher\\dados-antes-da-importacao-20261116-212341.zip."
   },
   {
    "teste": "saves: cópia do save de Documentos (ou aviso claro quando não há)",
@@ -156,12 +156,12 @@
   {
    "teste": "shaders: preparação pelo launcher (--prepare-shaders do port) com relatório",
    "ok": true,
-   "detalhe": "Shaders preparados na NVIDIA GeForce RTX 5080 (driver 32.0.16.2124): 2 arquivo(s) do cache em 1912 ms."
+   "detalhe": "Shaders preparados na NVIDIA GeForce RTX 5080 (driver 32.0.16.2124): 2 arquivo(s) do cache em 1993 ms."
   },
   {
    "teste": "diagnóstico: arquivo gerado com programa, jogo, monitores e opções",
    "ok": true,
-   "detalhe": "diagnostico-20261116-205920.txt"
+   "detalhe": "diagnostico-20261116-212344.txt"
   },
   {
    "teste": "originais: pasta do jogo da pessoa idêntica (SHA-256 de todos os arquivos)",
@@ -212,7 +212,77 @@
    "teste": "interface: página creditos",
    "ok": true,
    "detalhe": ""
+  },
+  {
+   "teste": "inglês: conferência em inglês (pasta vazia)",
+   "ok": true,
+   "detalhe": "Missing required files: default.xex, RAWFiles\\db360.cmp, RAWFiles\\db360.textures.cmp, RAWFiles\\banjo2_360.tbl, RAWFiles\\banjo2_360.ctl."
+  },
+  {
+   "teste": "inglês: nenhum texto em português nas 7 páginas",
+   "ok": true,
+   "detalhe": "307 textos; restos: []"
+  },
+  {
+   "teste": "português: interface continua em português",
+   "ok": true,
+   "detalhe": "308 textos"
+  },
+  {
+   "teste": "inglês: seletor troca a janela para inglês e grava o idioma",
+   "ok": true,
+   "detalhe": "jogo = \"jogo\" | versao_jogo = \"PT-BR (tradução conferida)\" | versao = \"ptbr\" | launcher = \"1.0.0\" | estado = \"pronto\" | preparado_em = \"2026-11-16 21:22\" | idioma = \"en\""
+  },
+  {
+   "teste": "inglês: próxima abertura usa o idioma gravado",
+   "ok": true,
+   "detalhe": "en"
+  },
+  {
+   "teste": "inglês: página jogar",
+   "ok": true,
+   "detalhe": ""
+  },
+  {
+   "teste": "inglês: página graficos",
+   "ok": true,
+   "detalhe": ""
+  },
+  {
+   "teste": "inglês: página controles",
+   "ok": true,
+   "detalhe": ""
+  },
+  {
+   "teste": "inglês: página jogo",
+   "ok": true,
+   "detalhe": ""
+  },
+  {
+   "teste": "inglês: página saves",
+   "ok": true,
+   "detalhe": ""
+  },
+  {
+   "teste": "inglês: página registro",
+   "ok": true,
+   "detalhe": ""
+  },
+  {
+   "teste": "inglês: página creditos",
+   "ok": true,
+   "detalhe": ""
+  },
+  {
+   "teste": "português: seletor volta para português e grava",
+   "ok": true,
+   "detalhe": ""
+  },
+  {
+   "teste": "idioma: preparação e opções intactas depois das trocas",
+   "ok": true,
+   "detalhe": ""
   }
  ],
- "quando": "2026-11-16 20:59:25"
+ "quando": "2026-11-16 21:23:59"
 }

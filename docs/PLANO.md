@@ -638,3 +638,4 @@ Logs lidos: `out/native/logs/banjotooie_281..293.log`, `banjotooie_boot.json`,
   `docs/LAUNCHER-RELATORIO.md`.
 - **Fica em aberto:** teste num Windows limpo (sem Visual Studio); remapear botões do controle físico
   (o runtime não oferece); volumes de música/efeitos continuam no menu do próprio jogo.
+- **Inglês no launcher (2026-11-16):** seletor IDIOMA · LANGUAGE (PT-BR/English, gravado no `config\launcher.ini`; padrão = idioma do Windows), interface, mensagens e diagnóstico traduzidos, `README-EN.txt`/`CREDITS-EN.txt` no pacote; bateria 56/56 (`docs/LAUNCHER-RELATORIO.md`, seção Idioma inglês).

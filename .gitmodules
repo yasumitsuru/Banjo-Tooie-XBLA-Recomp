@@ -1,4 +1,5 @@
 [submodule "rexglue-sdk"]
 	path = rexglue-sdk
-	url = https://github.com/iron-jay/rexglue-sdk.git
+	url = https://github.com/yasumitsuru/Banjo-Tooie-XBLA-Recomp-rexglue-sdk.git
 	ignore = dirty
+	branch = ptbr-port-banjo3

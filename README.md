@@ -71,13 +71,20 @@ outra pasta (`out\craft-check\user`) e nunca mexem no save de ninguém.
   REGISTROS abre a pasta. Útil para relatar problemas.
 - Testes da missão: `tools\m04\` (bateria única: `python -I tools\m04\bateria.py [--longos]`).
 
+## Repositório no GitHub (privado)
+
+`https://github.com/yasumitsuru/Banjo-Tooie-XBLA-Recomp`, com o SDK modificado em
+`https://github.com/yasumitsuru/Banjo-Tooie-XBLA-Recomp-rexglue-sdk` (submódulo `rexglue-sdk`).
+Clone com `git clone --recursive …`. Revisão de dados sensíveis/direitos autorais e publicação:
+[`docs/PUBLICACAO-GITHUB.md`](docs/PUBLICACAO-GITHUB.md).
+
 ## Como compilar e rodar
 
 Para o checker do Craft Anything, `npm run build` executa o build C++/CMake real
 sem dependências npm; veja [a integração do build nativo](docs/BUILD-NATIVE-CRAFT.md).
 
 ```
-git submodule update --init --recursive        (runtime ReXGlue fixado em 035aa25)
+git submodule update --init --recursive        (runtime ReXGlue: base 035aa25 + correções do port, branch ptbr-port-banjo3)
 tools\build_port.cmd                           (VS 2022 Build Tools + Clang 19; ~5 min)
 banjotooie-recomp\out\build\win-amd64-release\banjotooie.exe --game_data_root "<pasta com default.xex e RAWFiles>"
 pwsh -File tools\smoke_port.ps1                (teste automatizado: preflight, jogo, captura, falha, hashes)

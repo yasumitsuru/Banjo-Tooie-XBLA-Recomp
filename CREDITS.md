@@ -45,7 +45,20 @@ PT-BR, por isso o código recompilado serve às duas. Diferem só os textos e te
 | Dependências do SDK (SDL3, imgui, fmt, spdlog, tomlplusplus, FFmpeg/fork, glslang, SPIRV, libmspack, xxHash, snappy, Tracy etc.) | `rexglue-sdk/thirdparty/` (submódulos do SDK, nos commits fixados por ele) | licenças próprias de cada projeto | compiladas junto com o runtime |
 | Código deste projeto | `banjotooie-recomp/src/banjotooie_app.cpp`, `src/port_diagnostics.{h,cpp}`, `tools/` | do projeto | diagnóstico, preflight, relatório de boot, minidump, contador de quadros, PNG, scripts de build e teste |
 
-Referências consultadas, sem código copiado: [hedge-dev/XenonRecomp](https://github.com/hedge-dev/XenonRecomp) e os forks dele, [MC_LA_Recompiled](https://github.com/robertoaraujo77/MC_LA_Recompiled) (GPL-3.0, só como referência de produto).
+Referências consultadas, sem código copiado: [hedge-dev/XenonRecomp](https://github.com/hedge-dev/XenonRecomp) e os forks dele.
+
+## Launcher portátil (2026-11-16)
+
+| Item | Onde está | Licença | O que foi usado |
+|---|---|---|---|
+| [MC_LA_Recompiled](https://github.com/robertoaraujo77/MC_LA_Recompiled) (Roberto Araujo), instalador/configurador `installer/source` | adaptado em `launcher/` (via a primeira adaptação do projeto irmão `W:\Decomp\Banjo\app\recomp\launcher\windows`) | **GPL-3.0-or-later** | layout e estilos do XAML, editor de opções "chave = valor", perfis, exportação de backup, tarefa com progresso, script de build com `csc.exe`. Por isso `launcher/` é **GPL-3.0-or-later** (`launcher/LICENSE-GPL-3.0.txt`, cópia do texto do repositório de referência); a pasta portátil leva a licença em `LICENCAS\` e o crédito em `CREDITOS.txt` |
+| Arte `launcher/assets/banjotooie.png` | projeto irmão `W:\Decomp\Banjo` | do projeto | favo de mel original (sem arte do jogo); `banjotooie.ico` é o ícone do port |
+| Runtime do Microsoft Visual C++ 2015-2022 x64 | copiado de `VC\Redist\MSVC\14.44.35112` para `bin\` da pasta portátil | redistribuível da Microsoft | implantação local para o jogo abrir sem instalar o pacote VC++ |
+| Licenças do ReXGlue e de `rexglue-sdk/thirdparty/*` | copiadas para `LICENCAS\` da pasta portátil | de cada projeto | cumprimento das licenças do runtime distribuído junto |
+
+A pasta portátil e o ZIP **não** contêm arquivos do jogo (o build recusa empacotá-los), mas
+`bin\banjotooie.exe` contém código recompilado do jogo e a base do port não declara licença:
+uso pessoal, como em `docs/DECISOES.md` nº 4.
 
 ## Usados só como referência/verificação na auditoria (nada copiado para o produto)
 

@@ -463,6 +463,7 @@ void RequestSave() {
 
 // Valores com que o programa começou (resolução, MSAA, FXAA e escala só mudam ao reiniciar).
 Resolution g_startup_resolution = Resolution::R1440p;
+int g_startup_internal_scale = 0;  // resolução interna em vigor nesta execução
 bool g_startup_msaa = false;
 std::map<std::string, std::string> g_startup_cvars;
 
@@ -1184,6 +1185,7 @@ void Create(rex::ui::ImGuiDrawer* drawer, rex::ui::Window* window,
   CaptureSessionCvars();
   g_window = window;
   g_startup_resolution = pc::Get().resolution;
+  g_startup_internal_scale = pc::Get().internal_scale;
   g_startup_msaa = CvarBool("native_2x_msaa");
   for (const char* c : {"swap_post_effect", "native_2x_msaa", "present_effect",
                         "anisotropic_override", "host_vsync", "audio_mute"})
@@ -1443,6 +1445,25 @@ std::vector<Row> BuildGraphics() {
                  s.resolution_auto = false;
                  const Resolution res = s.resolution;
                  PostUi([res] { ApplyResolutionCvars(res); });
+                 g_restart_needed = true;
+                 RequestSave();
+                 return true;
+               }});
+  // RESOLUÇÃO INTERNA (M04, launcher): escala da imagem do jogo separada da saída; AUTOMÁTICA
+  // segue a saída (1080p/1440p = 2x, 4K = 3x). Vale ao reiniciar.
+  r.push_back({[] {
+                 static const L kNames[] = {{"AUTOMÁTICA", "AUTOMATIC"},
+                                            {"720P", "720P"},
+                                            {"1440P", "1440P"},
+                                            {"4K", "4K"}};
+                 const int v = std::clamp(pc::Get().internal_scale, 0, 3);
+                 std::string t = Tx({"RES. INTERNA", "INTERNAL RES."}) + " : " + Tx(kNames[v]);
+                 if (v != g_startup_internal_scale) t += RestartHint();
+                 return t;
+               },
+               [](int dir) {
+                 auto& s = pc::Get();
+                 s.internal_scale = Wrap(std::clamp(s.internal_scale, 0, 3), 4, dir == 0 ? 1 : dir);
                  g_restart_needed = true;
                  RequestSave();
                  return true;

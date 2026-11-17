@@ -21,7 +21,7 @@ if not exist "%APP%\banjotooie-recomp\generated\rexglue.cmake" (
   exit /b 11
 )
 
-rem Valores reais do jogo (decompilados do default.xex, MECHANICS.md §12) viram
+rem Valores reais do jogo (decompilados do default.xex, MECHANICS.md ?12) viram
 rem banjotooie-recomp\src\pc\mechanics_values.h e sao conferidos contra pc_hooks.toml.
 rem Se a tabela de ganchos divergir dos valores decompilados, o build para aqui.
 python -I "%APP%\tools\gen_mechanics_header.py"
@@ -44,4 +44,9 @@ set "PATH=%LLVM%;C:\Program Files\CMake\bin;%PATH%"
 if errorlevel 1 exit /b %ERRORLEVEL%
 
 "%CMAKE%" --build "%BUILD%" --target banjotooie banjotooie_craft_launcher banjotooie_seletor --parallel 4
+if errorlevel 1 exit /b %ERRORLEVEL%
+
+rem Launcher portatil (app\launcher: C# 5/WPF, compilado com o csc do .NET Framework do Windows) e
+rem a pasta portatil out\portable\ + ZIP com o port recem-compilado. Ver tools\build_launcher.ps1.
+powershell -NoProfile -ExecutionPolicy Bypass -File "%APP%\tools\build_launcher.ps1"
 exit /b %ERRORLEVEL%

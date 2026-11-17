@@ -138,6 +138,7 @@ bool Load() {
                                                             : Resolution::R2160p;
     else if (k == "resolution_auto") s.resolution_auto = ParseBool(v);
     else if (k == "monitor") s.monitor = TrimQuotes(v);
+    else if (k == "internal_scale") s.internal_scale = ClampInt(std::atoi(v.c_str()), 0, 3);
     else if (k == "mouse_look") s.mouse_look = ParseBool(v);
     else if (k == "cam_sens_x") s.cam_sens_x = ClampFloat(v, 0.1f, 3.0f, 1.0f);
     else if (k == "cam_sens_y") s.cam_sens_y = ClampFloat(v, 0.1f, 3.0f, 1.0f);
@@ -191,6 +192,7 @@ std::string Serialize(const Settings& s) {
     << "[video]\n"
     << "resolution = \"" << ResolutionName(s.resolution) << "\"\n"
     << "resolution_auto = " << (s.resolution_auto ? "true" : "false") << "\n"
+    << "internal_scale = " << s.internal_scale << "  # 0 automática, 1 = 720p, 2 = 1440p, 3 = 4K\n"
     << "display_mode = \"" << DisplayModeName(s.display_mode) << "\"\n"
     << "monitor = \"" << s.monitor << "\"  # vazio = automático (monitor do cursor na abertura)\n"
     << "[camera]\n"
@@ -266,7 +268,14 @@ bool Save() {
 
 bool MigratedFromOldMonitorRule() { return g_migrated_monitor; }
 
-const char* InternalScaleText(Resolution r) { return r == Resolution::R2160p ? "3" : "2"; }
+const char* InternalScaleText(Resolution r) {
+  switch (g_settings.internal_scale) {
+    case 1: return "1";
+    case 2: return "2";
+    case 3: return "3";
+    default: return r == Resolution::R2160p ? "3" : "2";
+  }
+}
 
 void ApplyRuntimeOptions() {
   const Settings& s = g_settings;

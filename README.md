@@ -21,6 +21,18 @@ saves com backup e auto-teste `--self-test`. **Estado atual, provas e próximos 
 [`docs/PLANO.md`](docs/PLANO.md)** (auditoria e plano da Missão 04 de 2026-11-13; texto da missão em
 [`docs/MISSAO-04-CORRECAO-INTEGRAL.md`](docs/MISSAO-04-CORRECAO-INTEGRAL.md)).
 
+## Launcher portátil (2026-11-16)
+
+`out\portable\Banjo-Tooie-PT-BR-Recompiled-1.0.0-win64.zip` (gerado por `npm run build` ou
+`tools\build_launcher.cmd`): extraia, abra `Banjo-Tooie PT-BR Recompiled.exe`, escolha a pasta do
+seu Banjo-Tooie XBLA descompactado (`default.xex` + `RAWFiles`), **PREPARAR MEU JOGO** e **JOGAR**.
+O launcher (PT-BR, adaptado do MC_LA_Recompiled, GPL-3.0) confere a pasta com a pré-checagem do
+jogo e o SHA-256, copia o jogo para `jogo\` e guarda saves, opções, registros e cache dentro da
+própria pasta (nada no Registro nem em Documentos). Gráficos, controles (inclusive teclado), áudio,
+qualidade de vida, saves e diagnóstico editam os mesmos arquivos que o menu F1 do jogo. O ZIP não
+tem arquivos do jogo, mas o programa do port contém código recompilado: uso pessoal. Relatório,
+testes (42/42) e limitações: [`docs/LAUNCHER-RELATORIO.md`](docs/LAUNCHER-RELATORIO.md).
+
 ## Escolher a versão (PT-BR ou global em inglês)
 
 `Seletor\BanjoTooie_Seletor.exe` abre uma janela com dois botões: **Português (PT-BR)** (pasta
@@ -82,6 +94,8 @@ Opções do port: `--preflight_only`, `--boot_report <json>`, `--screenshot <png
   4K pelo sistema gráfico do ReXGlue)
 - **Missão 00 (auditoria):** `docs/AUDITORIA-MISSAO-00.md`, com evidências em `docs/evidencias/`
 - **Valores reais do executável original:** `MECHANICS.md` (endereços do XEX, base `0x82000000`)
+- **Launcher portátil:** `docs/LAUNCHER-RELATORIO.md` (código em `launcher/`, testes em
+  `tools/launcher/`)
 - **Créditos e licenças:** `CREDITS.md`
 
 ## Estrutura

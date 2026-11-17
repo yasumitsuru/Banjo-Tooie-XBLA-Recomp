@@ -1,0 +1,218 @@
+{
+ "resultado": "PASS",
+ "passaram": 42,
+ "total": 42,
+ "testes": [
+  {
+   "teste": "pacote: ZIP de distribuição existe",
+   "ok": true,
+   "detalhe": "W:\\Decomp\\Banjo 3\\app\\out\\portable\\Banjo-Tooie-PT-BR-Recompiled-1.0.0-win64.zip"
+  },
+  {
+   "teste": "pacote: ZIP íntegro (CRC de todas as entradas)",
+   "ok": true,
+   "detalhe": "42 arquivos"
+  },
+  {
+   "teste": "pacote: nenhum arquivo do jogo, save ou opção de desenvolvimento",
+   "ok": true,
+   "detalhe": "nenhum"
+  },
+  {
+   "teste": "pacote: launcher, port, runtime VC++, LEIA-ME, créditos e licenças",
+   "ok": true,
+   "detalhe": "11 itens"
+  },
+  {
+   "teste": "pacote: SHA-256 de cada arquivo extraído confere com o manifesto",
+   "ok": true,
+   "detalhe": "41 arquivos"
+  },
+  {
+   "teste": "foto (somente leitura) dos saves da pessoa em Documentos",
+   "ok": true,
+   "detalhe": ""
+  },
+  {
+   "teste": "interface: abre e desenha a página Jogar (antes de preparar)",
+   "ok": true,
+   "detalhe": ""
+  },
+  {
+   "teste": "conferência: pasta vazia é recusada com a lista do que falta",
+   "ok": true,
+   "detalhe": "Faltam arquivos obrigatórios: default.xex, RAWFiles\\db360.cmp, RAWFiles\\db360.textures.cmp, RAWFiles\\banjo2_360.tbl, RAWFiles\\banjo2_360.ctl."
+  },
+  {
+   "teste": "conferência: pasta inexistente é recusada",
+   "ok": true,
+   "detalhe": "Escolha a pasta do Banjo-Tooie XBLA descompactado (a que tem default.xex e a pasta RAWFiles)."
+  },
+  {
+   "teste": "conferência: versão incompatível (default.xex diferente) é recusada",
+   "ok": true,
+   "detalhe": "Esse default.xex é de outra versão (SHA-256 8e2853995977…). O port foi recompilado para o Banjo-Tooie XBLA (título 58410955) e não roda outra versão."
+  },
+  {
+   "teste": "conferência: pasta do jogo reconhecida, versão identificada",
+   "ok": true,
+   "detalhe": "PT-BR (tradução conferida) - Pasta reconhecida: Banjo-Tooie XBLA, versão PT-BR (tradução conferida)."
+  },
+  {
+   "teste": "preparação: concluída e marcada como pronta",
+   "ok": true,
+   "detalhe": ""
+  },
+  {
+   "teste": "preparação: caminho do jogo guardado relativo à pasta portátil",
+   "ok": true,
+   "detalhe": "jogo = \"jogo\" | versao_jogo = \"PT-BR (tradução conferida)\" | launcher = \"1.0.0\" | estado = \"pronto\" | preparado_em = \"2026-11-16 20:57\""
+  },
+  {
+   "teste": "preparação: cópia em jogo\\ idêntica ao original (SHA-256 de todos os arquivos)",
+   "ok": true,
+   "detalhe": "36 de 36 arquivos"
+  },
+  {
+   "teste": "opções: gravadas e relidas iguais",
+   "ok": true,
+   "detalhe": "18 opções"
+  },
+  {
+   "teste": "opções: resolução e escala só em dados\\pc_settings.toml (versão 4)",
+   "ok": true,
+   "detalhe": ""
+  },
+  {
+   "teste": "opções: cvars do runtime em bin\\banjotooie.toml",
+   "ok": true,
+   "detalhe": ""
+  },
+  {
+   "teste": "jogo: aberto pelo launcher e fechado com código 0",
+   "ok": true,
+   "detalhe": "{\"argumentos\": \"--game_data_root \\\"W:\\\\Decomp\\\\Banjo 3\\\\app\\\\_audit\\\\out\\\\launcher\\\\extraido com espaco\\\\Banjo-Tooie-PT-BR-Recompiled\\\\jogo\\\" --user_data_root \\\"W:\\\\Decomp\\\\Banjo 3\\\\app\\\\_audit\\\\out\\\\launcher\\\\extraido com espaco\\\\Banjo-Tooie-PT-BR-Recompiled\\\\dados\\\" --cache_path \\\"W:\\\\Decomp\\\\Banjo 3\\\\app\\\\_audit\\\\out\\\\launcher\\\\extraido com espaco\\\\Banjo-Tooie-PT-BR-Recompiled\\\\cache\\\" --self-test \\\"W:\\\\Decomp\\\\Banjo 3\\\\app\\\\_audit\\\\out\\\\launcher\\\\extraido com espaco\\\\Banjo-Tooie-PT-BR-Recompiled\\\\logs\\\\selftest.json\\\" --boot_report \\\"W:\\\\Decomp\\\\Banjo 3\\\\app\\\\_audit\\\\out\\\\launcher\\\\extraido com espaco\\\\Banjo-Tooie-PT-BR-Recompiled\\\\logs\\\\boot.json\\\"\", \"saiu_sozinho\": true, \"codigo\": 0, \"segundos\": 69}"
+  },
+  {
+   "teste": "jogo: auto-teste do port passou",
+   "ok": true,
+   "detalhe": "10/10: "
+  },
+  {
+   "teste": "jogo: dados, cache e jogo dentro da pasta portátil",
+   "ok": true,
+   "detalhe": "dados=W:\\Decomp\\Banjo 3\\app\\_audit\\out\\launcher\\extraido com espaco\\Banjo-Tooie-PT-BR-Recompiled\\dados cache=W:\\Decomp\\Banjo 3\\app\\_audit\\out\\launcher\\extraido com espaco\\Banjo-Tooie-PT-BR-Recompiled\\cache jogo=W:\\Decomp\\Banjo 3\\app\\_audit\\out\\launcher\\extraido com espaco\\Banjo-Tooie-PT-BR-Recompiled\\jogo"
+  },
+  {
+   "teste": "jogo: resolução e escala do launcher aplicadas",
+   "ok": true,
+   "detalhe": "1080p escala 1x fps60=true distancia=Longe"
+  },
+  {
+   "teste": "jogo: FXAA e anisotropia do launcher aplicados (registro de sessão)",
+   "ok": true,
+   "detalhe": "sessao-20261116-205744.txt"
+  },
+  {
+   "teste": "opções: preservadas depois de o jogo regravar o arquivo",
+   "ok": true,
+   "detalhe": ""
+  },
+  {
+   "teste": "portabilidade: depois de mover, continua preparado e acha o jogo",
+   "ok": true,
+   "detalhe": "W:\\Decomp\\Banjo 3\\app\\_audit\\out\\launcher\\movido\\Outra Pasta\\Banjo-Tooie-PT-BR-Recompiled\\jogo"
+  },
+  {
+   "teste": "portabilidade: o jogo abre da pasta nova (código 0) com dados e cache nela",
+   "ok": true,
+   "detalhe": "código 0, dados=W:\\Decomp\\Banjo 3\\app\\_audit\\out\\launcher\\movido\\Outra Pasta\\Banjo-Tooie-PT-BR-Recompiled\\dados"
+  },
+  {
+   "teste": "portabilidade: opções seguem com a pasta",
+   "ok": true,
+   "detalhe": ""
+  },
+  {
+   "teste": "portabilidade: nenhum caminho absoluto antigo gravado nas configurações",
+   "ok": true,
+   "detalhe": ""
+  },
+  {
+   "teste": "saves: exportação gera .zip com opções e registros",
+   "ok": true,
+   "detalhe": "9 arquivos"
+  },
+  {
+   "teste": "saves: importação do .zip, com os dados anteriores guardados antes",
+   "ok": true,
+   "detalhe": "9 arquivos importados; os dados anteriores foram guardados em backups-launcher\\dados-antes-da-importacao-20261116-205917.zip."
+  },
+  {
+   "teste": "saves: cópia do save de Documentos (ou aviso claro quando não há)",
+   "ok": true,
+   "detalhe": "Save copiado de %USERPROFILE%\\OneDrive\\All\\Documentos\\My Games\\Banjo-Tooie XBLA\\B13EBABEBABEBABE\\58410955\\00000001\\BanjoSave.bin\\savegame.dat (o original não foi alterado)."
+  },
+  {
+   "teste": "shaders: preparação pelo launcher (--prepare-shaders do port) com relatório",
+   "ok": true,
+   "detalhe": "Shaders preparados na NVIDIA GeForce RTX 5080 (driver 32.0.16.2124): 2 arquivo(s) do cache em 1912 ms."
+  },
+  {
+   "teste": "diagnóstico: arquivo gerado com programa, jogo, monitores e opções",
+   "ok": true,
+   "detalhe": "diagnostico-20261116-205920.txt"
+  },
+  {
+   "teste": "originais: pasta do jogo da pessoa idêntica (SHA-256 de todos os arquivos)",
+   "ok": true,
+   "detalhe": "36 arquivos"
+  },
+  {
+   "teste": "originais: saves da pessoa em Documentos sem mudança",
+   "ok": true,
+   "detalhe": "pasta: %USERPROFILE%\\OneDrive\\All\\Documentos\\My Games\\Banjo-Tooie XBLA\narquivos: 15\nIGUAL a W:\\Decomp\\Banjo 3\\app\\_audit\\out\\launcher\\foto_pessoa_antes.txt"
+  },
+  {
+   "teste": "launcher: nenhum código de rede nem de Registro do Windows",
+   "ok": true,
+   "detalhe": ""
+  },
+  {
+   "teste": "interface: página jogar",
+   "ok": true,
+   "detalhe": ""
+  },
+  {
+   "teste": "interface: página graficos",
+   "ok": true,
+   "detalhe": ""
+  },
+  {
+   "teste": "interface: página controles",
+   "ok": true,
+   "detalhe": ""
+  },
+  {
+   "teste": "interface: página jogo",
+   "ok": true,
+   "detalhe": ""
+  },
+  {
+   "teste": "interface: página saves",
+   "ok": true,
+   "detalhe": ""
+  },
+  {
+   "teste": "interface: página registro",
+   "ok": true,
+   "detalhe": ""
+  },
+  {
+   "teste": "interface: página creditos",
+   "ok": true,
+   "detalhe": ""
+  }
+ ],
+ "quando": "2026-11-16 20:59:25"
+}

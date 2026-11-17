@@ -32,6 +32,9 @@ struct Settings {
   // Vídeo (aplicados ao runtime; resolução exige reiniciar)
   Resolution resolution = Resolution::R1440p;
   bool resolution_auto = true;  // escolhe pela resolução do monitor na primeira execução
+  // Resolução interna (escala da imagem 1280x720 do jogo): 0 = automática pela saída (1080p e
+  // 1440p = 2x, 4K = 3x), 1 = 720p, 2 = 1440p, 3 = 4K. Vale ao reiniciar (launcher e menu).
+  int internal_scale = 0;
   DisplayMode display_mode = DisplayMode::Janela;
   // Monitor (M04, C-29): \\.\DISPLAYn escolhido na linha MONITOR; vazio = automático (o do
   // cursor na abertura). Ver pc_display.h.

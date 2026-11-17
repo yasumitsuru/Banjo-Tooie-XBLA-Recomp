@@ -620,3 +620,21 @@ Logs lidos: `out/native/logs/banjotooie_281..293.log`, `banjotooie_boot.json`,
 - **Fica para a pessoa:** a pasta antiga `Documentos\banjotooie` (testes de 09-10/11) não foi usada nem
   apagada; o arquivo de opções do runtime (`out\native\banjotooie.toml`: atalhos e alguns ajustes
   de vídeo) continua ao lado do jogo, igual para todas as contas.
+
+## Launcher portátil adaptado do MC_LA_Recompiled (pedido de 2026-11-16)
+
+- **Pedido:** launcher gráfico PT-BR, 100% portátil, que usa a cópia do Banjo-Tooie XBLA já
+  descompactada da pessoa, com opções reais e build Release + ZIP.
+- **Feito:** `launcher/` (C# 5/WPF, GPL-3.0-or-later, adaptado do MC_LA_Recompiled via o projeto
+  irmão): conferência pela pré-checagem do jogo + SHA-256 (PT-BR/global/incompatível), preparação
+  com cópia conferida para `jogo\`, opções nos mesmos `pc_settings.toml`/`banjotooie.toml` do menu
+  F1 (vídeo, FPS, AA, controles, teclado, áudio, qualidade de vida, saves, registro), saves
+  (exportar/importar `.zip`, copiar de Documentos), shaders (`--prepare-shaders`) e diagnóstico.
+  Port: opção nova `internal_scale` (RES. INTERNA no menu F1). `tools\build_launcher.cmd` (chamado
+  pelo `npm run build`) gera `out\portable\` + ZIP sem arquivos do jogo.
+- **Prova:** `tools\launcher\testar_launcher.py` sobre o ZIP final: 42/42 (auto-teste do port 10/10
+  aberto pelo launcher, portabilidade depois de mover a pasta, originais e saves da pessoa
+  intactos); percurso pela interface real (Conferir, Salvar, JOGAR → código 0). Relatório:
+  `docs/LAUNCHER-RELATORIO.md`.
+- **Fica em aberto:** teste num Windows limpo (sem Visual Studio); remapear botões do controle físico
+  (o runtime não oferece); volumes de música/efeitos continuam no menu do próprio jogo.

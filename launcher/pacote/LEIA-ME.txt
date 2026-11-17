@@ -1,0 +1,51 @@
+BANJO-TOOIE XBLA PT-BR RECOMPILED — LAUNCHER PORTÁTIL
+=====================================================
+
+Port nativo para Windows (x64) do Banjo-Tooie de Xbox Live Arcade, recompilado a partir do código
+do Xbox 360 — não é um emulador. Esta pasta NÃO traz nenhum arquivo do jogo: você usa a sua própria
+cópia do Banjo-Tooie XBLA, já descompactada.
+
+O QUE VOCÊ PRECISA
+- Windows 10 ou 11 de 64 bits, placa de vídeo com DirectX 12.
+- A pasta do seu Banjo-Tooie XBLA descompactado: ela tem o arquivo default.xex e a pasta RAWFiles
+  (com db360.cmp, db360.textures.cmp, X360_strings.dat, banjo2_360.tbl e outros).
+  O port foi feito para a versão traduzida PT-BR; a versão global (inglês) também abre.
+- Nada para instalar: o runtime do Visual C++ e o .NET Framework 4 (que já vem com o Windows) bastam.
+
+COMO USAR
+1. Extraia o ZIP inteiro numa pasta onde você possa gravar (por exemplo D:\Jogos\Banjo-Tooie).
+   Não use "Arquivos de Programas".
+2. Abra "Banjo-Tooie PT-BR Recompiled.exe".
+3. Em "Jogar", clique em "Procurar pasta…" e escolha a pasta do seu jogo descompactado.
+   "Conferir" mostra se a pasta serve e qual versão é.
+4. Deixe ligado "Copiar os arquivos do jogo para dentro desta pasta portátil" (recomendado) e
+   clique em PREPARAR MEU JOGO. Os seus arquivos originais nunca são alterados.
+5. Ajuste Gráficos, Controles e Áudio e jogo se quiser (SALVAR CONFIGURAÇÕES) e clique em JOGAR.
+   Dentro do jogo, F1 abre as mesmas Configurações de PC.
+
+PASTA PORTÁTIL
+  Banjo-Tooie PT-BR Recompiled.exe   o launcher
+  bin\        o port (banjotooie.exe, rexruntime.dll e o runtime do Visual C++)
+  jogo\       a cópia dos seus arquivos do jogo (criada na preparação)
+  dados\      saves, backups automáticos, opções de PC, registros e relatórios de falha
+  cache\      cache de shaders da placa de vídeo
+  config\     launcher.ini (a pasta do jogo escolhida, guardada relativa a esta pasta)
+  logs\       registros do launcher e diagnósticos
+Tudo fica aqui: nada vai para o Registro do Windows, para Documentos ou para AppData, e nada é
+baixado da internet. Para levar o jogo para outro disco ou computador, copie a pasta inteira.
+(O driver da placa de vídeo pode manter o cache dele próprio fora desta pasta; isso é do driver.)
+
+SAVES
+- O save fica em dados\. Os backups automáticos ficam em dados\backups.
+- "Saves e backups" exporta tudo para um .zip e importa de volta.
+- Se você já jogava o port sem este launcher, o save está em Documentos\My Games\Banjo-Tooie XBLA:
+  "Copiar o save de Documentos para esta pasta" copia (sem mexer no original).
+
+PROBLEMAS
+- "Diagnóstico" → "Gerar diagnóstico" cria um .txt em logs\ com o que ajuda a investigar.
+- Registros de cada partida: dados\logs. Relatórios de falha: dados\crashes.
+
+AVISO
+Banjo-Tooie e suas marcas pertencem à Microsoft e à Rare. O programa do port contém código
+recompilado do jogo e é para uso pessoal de quem tem a própria cópia. Não compartilhe a pasta
+preparada (ela passa a conter os seus arquivos do jogo). Créditos e licenças: CREDITOS.txt e LICENCAS\.

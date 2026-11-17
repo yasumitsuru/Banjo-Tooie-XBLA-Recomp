@@ -103,7 +103,9 @@ void SaveRuntimeConfig() {
   static const char* const kSessionOnly[] = {"user_data_root", "game_data_root", "window_width",
                                              "window_height", "config_path", "resolution",
                                              "draw_resolution_scale_x", "draw_resolution_scale_y",
-                                             "fullscreen"};
+                                             "fullscreen",
+                                             // ritmo reduzido só enquanto há legenda lenta
+                                             "guest_vblank_divisor"};
   std::string out = "# Auto-generated cvar configuration\n";
   const std::string all = rex::cvar::SerializeToTOML();
   size_t pos = 0;

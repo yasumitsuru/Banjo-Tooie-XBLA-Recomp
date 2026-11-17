@@ -15,6 +15,9 @@ inline std::atomic<uint32_t> cutscene_state{0};              // byte 0x8266EF30 
 inline std::atomic<uint64_t> dialog_type_calls{0};           // quadros em que uma caixa de texto digitou
 inline std::atomic<uint32_t> dialog_box{0};                  // última caixa de texto (ponteiro convidado)
 inline std::atomic<uint64_t> dialog_hold_calls{0};           // quadros de espera de legenda com tempo (estado 3)
+inline std::atomic<uint64_t> dialog_last_update{0};          // logic_updates da última vez que uma caixa escreveu/esperou
+inline std::atomic<uint32_t> dialog_dilation{1};             // 1 = ritmo normal; 2/3 = jogo 2x/3x mais lento (legenda lenta)
+inline std::atomic<uint64_t> dialog_dilated_presents{0};     // quadros apresentados com o ritmo reduzido pela legenda
 
 // Entrada "CONFIGURAÇÕES DE PC" (no fim de AJUDA E OPÇÕES da pausa; id de
 // texto novo kPcMenuEntryStringId, devolvido pelo gancho GetString em pc_hooks.cpp).

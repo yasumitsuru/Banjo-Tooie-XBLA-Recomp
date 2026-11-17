@@ -1004,7 +1004,22 @@ Função `0x8225D580` (caixa em `r31`; estado em `+0x1C9`):
   (`0x82000B98`) segundos; a cada quadro `0x8225DB64` (`fsubs f0,f0,f29`, `0xEC00E828`)
   desconta o tempo do quadro e, abaixo de 0.0 (`0x82000734`), a caixa vai ao estado 4 e avança
   sozinha. Apertar A pula a espera (`0x8225DB04`). Sem a marca, a caixa vai direto ao estado 4.
-  O gancho `PcHook_DialogHold` desconta só `1/fator` do quadro nos modos lentos: a legenda
-  fica **2× (Lenta)** ou **3× (Muito lenta)** mais tempo na tela. Os modos rápidos não mudam a espera.
+  O gancho `PcHook_DialogHold` marca a legenda como ativa (não muda mais o desconto).
+- **Sequências com tempo fixo** (2026-11-17, sonda `--probe-dialog-scene`: jogo novo, introdução
+  sem nenhuma entrada): a introdução troca de cenário num tempo fixo — mapa `0xA1` → `0xA8` aos
+  **65,1 s** nas velocidades Original e Muito lenta — e, na troca, a caixa vai ao estado 6 (fecha)
+  mesmo no meio da escrita. Só atrasar as letras fazia o Muito lento mostrar 5 das 7 páginas do
+  primeiro trecho (a 5ª cortada em 6/25 letras) e perder frases nos trechos seguintes.
+- **Modos lentos agora** (`DialogDilation`, `pc_hooks.cpp`): enquanto uma caixa escreve ou espera
+  (ganchos acima chamados nos últimos 2 quadros da lógica), o runtime espaça os **VBlanks do
+  convidado** para 60/2 ou 60/3 Hz (cvar de sessão `guest_vblank_divisor`, rexglue-sdk
+  `graphics_system.cpp`). O jogo espera um número fixo de VBlanks por quadro e avança o próprio
+  tempo por quadro, então **tudo** anda 2×/3× mais devagar junto — letras, espera e a cena — e
+  nada é cortado. Fora das legendas, ritmo normal. (Mudar só o intervalo de apresentação
+  `0x822F9F18` não desacelera: a introdução durou os mesmos 62,5 s.)
+- **Medido** (`_audit/out/dialogo_cena/`, mapas `0xA1` e `0xA8`): as 26 páginas aparecem inteiras
+  nas três velocidades; tempo médio de cada legenda na tela **1,46 s** (Original), **2,89 s**
+  (Lenta), **4,33 s** (Muito lenta); 0,082 / 0,164 / 0,245 s por letra; primeiro trecho 62,8 /
+  74,2 / 85,6 s. Diálogos comuns (que esperam A): 13,4–14,3 letras/s no Original, 6,6–7,2 na Lenta.
 - Configuração `dialog_speed`: 0 Original, 1 Rápida, 2 Muito rápida, 3 Instantânea, 4 Lenta,
   5 Muito lenta (menus mostram na ordem Muito lenta → Instantânea).

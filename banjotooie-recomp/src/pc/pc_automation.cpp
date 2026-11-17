@@ -1192,6 +1192,7 @@ Options ParseCommandLine() {
     else if (a == L"--probe-items") o.probe_items = argv[++i];
     else if (a == L"--probe-scan") o.probe_scan = argv[++i];
     else if (a == L"--probe-dialog") o.probe_dialog = argv[++i];
+    else if (a == L"--probe-dialog-scene") o.probe_dialog_scene = argv[++i];
     else if (a == L"--probe-scenes") o.probe_scenes = argv[++i];
     else if (a == L"--probe-drawdistance") o.probe_drawdistance = argv[++i];
     else if (a == L"--probe-menu") o.probe_menu = argv[++i];
@@ -1771,6 +1772,75 @@ void Start(const Options& opts, rex::ui::WindowedAppContext* ui,
         png.replace_extension(".png");
         WritePng(png, shot.width, shot.height, shot.data.data(), shot.stride);
       }
+      Finish(0);
+    }
+
+    // Sonda das legendas nas cenas: título -> JOGAR -> JOGO 1 (jogo novo, pasta de teste) e a
+    // introdução corre SEM nenhuma entrada por --measure-secs segundos. A cada mudança da caixa
+    // de texto (ponteiro, estado +0x1C9, total +0x1F4, texto +0x1F8) grava um evento; uma página
+    // é "cortada" quando muda ou a caixa sai da escrita/espera com letras ainda por mostrar.
+    if (!opts.probe_dialog_scene.empty()) {
+      input::SetActive(true);
+      constexpr uint16_t kTitleMap = 0x14F;
+      constexpr uint32_t kSceneAddr = 0x8266EF30;
+      while (ReadU16(kMapIdAddr) != kTitleMap && steady_clock::now() - t0 < seconds(90))
+        std::this_thread::sleep_for(milliseconds(20));
+      WaitFrames(90);
+      Tap(input::kStart);
+      WaitFrames(100);
+      Tap(input::kA);  // JOGAR
+      WaitFrames(100);
+      Tap(input::kA);  // JOGO 1 (vazio = jogo novo)
+      // a partir daqui, nenhum botão (o controle sintético continua ligado e parado)
+      const auto ts = steady_clock::now();
+      std::ostringstream ev;
+      int events = 0, pages = 0, cut = 0, full = 0;
+      uint32_t last_box = 0, last_ptr = 0;
+      uint8_t last_st = 0xFF, last_total = 0, last_shown = 0;
+      std::ostringstream cuts;
+      auto page_end = [&](const char* why) {
+        if (!last_box || last_total == 0) return;
+        ++pages;
+        if (last_shown < last_total && (last_st == 2 || last_st == 3)) {
+          ++cut;
+          if (cut <= 40)
+            cuts << (cut > 1 ? "," : "") << "{\"shown\":" << int(last_shown) << ",\"total\":"
+                 << int(last_total) << ",\"state\":" << int(last_st) << ",\"why\":\"" << why
+                 << "\",\"t\":" << duration<double>(steady_clock::now() - ts).count() << "}";
+        } else {
+          ++full;
+        }
+      };
+      while (steady_clock::now() - ts < seconds(opts.measure_secs)) {
+        const uint32_t box = state::dialog_box.load();
+        if (box) {
+          const uint8_t st = ReadU8(box + 0x1C9), total = ReadU8(box + 0x1F4), shown = ReadU8(box + 0x1F6);
+          const uint32_t ptr = ReadU32(box + 0x1F8);
+          const bool changed = box != last_box || st != last_st || total != last_total || ptr != last_ptr;
+          if (changed) {
+            if (box != last_box || ptr != last_ptr || total != last_total) page_end("pagina trocada");
+            else if ((last_st == 2 || last_st == 3) && st != 2 && st != 3 && st != 4) page_end("caixa saiu");
+            if (events < 1500) {
+              ev << (events ? "," : "") << "{\"t\":" << duration<double>(steady_clock::now() - ts).count()
+                 << ",\"box\":" << box << ",\"st\":" << int(st) << ",\"total\":" << int(total)
+                 << ",\"shown\":" << int(shown) << ",\"prev_shown\":" << int(last_shown)
+                 << ",\"ptr\":" << ptr << ",\"scene\":" << int(ReadU8(kSceneAddr))
+                 << ",\"map\":" << ReadU16(kMapIdAddr) << "}";
+              ++events;
+            }
+          }
+          last_box = box; last_st = st; last_total = total; last_ptr = ptr; last_shown = shown;
+        }
+        std::this_thread::sleep_for(milliseconds(1));
+      }
+      std::ofstream(opts.probe_dialog_scene)
+          << "{\"version\":1,\"dialog_speed\":" << pc::Get().dialog_speed << ",\"factor\":"
+          << pc::DialogSpeedFactor(pc::Get().dialog_speed) << ",\"pages\":" << pages
+          << ",\"full\":" << full << ",\"cut\":" << cut << ",\"cuts\":[" << cuts.str()
+          << "],\"type_calls\":" << state::dialog_type_calls.load()
+          << ",\"dilated_presents\":" << state::dialog_dilated_presents.load()
+          << ",\"presents\":" << state::guest_swaps.load() << ",\"events\":[" << ev.str()
+          << "]}\n";
       Finish(0);
     }
 

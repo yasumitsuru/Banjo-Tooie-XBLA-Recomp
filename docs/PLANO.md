@@ -639,3 +639,20 @@ Logs lidos: `out/native/logs/banjotooie_281..293.log`, `banjotooie_boot.json`,
 - **Fica em aberto:** teste num Windows limpo (sem Visual Studio); remapear botões do controle físico
   (o runtime não oferece); volumes de música/efeitos continuam no menu do próprio jogo.
 - **Inglês no launcher (2026-11-16):** seletor IDIOMA · LANGUAGE (PT-BR/English, gravado no `config\launcher.ini`; padrão = idioma do Windows), interface, mensagens e diagnóstico traduzidos, `README-EN.txt`/`CREDITS-EN.txt` no pacote; bateria 56/56 (`docs/LAUNCHER-RELATORIO.md`, seção Idioma inglês).
+
+## Logo do Xbox Live Arcade com pontos e manchas (pedido de 2026-11-16, picture-7)
+
+- **Sintoma:** na abertura, o logo "XBOX LIVE arcade" saía com pontinhos, manchas magenta e pretas
+  e riscos ao lado das letras. Igual em 720p e 4K, com e sem FXAA/anisotrópica: não era filtro nem
+  escala, era a imagem já decodificada errada.
+- **Causa:** o logo é `RAWFiles\ArcadeWide.ptc` (formato PTC da Microsoft), decodificado pelo código do
+  próprio jogo (`sub_8227D340` carrega, `sub_823B5578` decodifica na textura travada). Esse
+  decodificador usa `vaddsws` 46 vezes, e a tradução do recompilador (`rexglue-sdk`
+  `src/codegen/builders/vector.cpp`) escolhia o valor saturado byte a byte com uma máscara que só
+  vale no bit 31 de cada palavra: somas normais com vai-um entre bytes viravam lixo.
+- **Correção:** máscara de estouro espalhada pela palavra (`srai 31`) antes da escolha — commit
+  `2c0f0e6` no `rexglue-sdk` (branch `ptbr-port-banjo3`); gerador recompilado, código do jogo
+  regenerado (`tools\build_port.cmd sdk` + `codegen`) e `npm run build`.
+- **Prova:** capturas da abertura antes/depois em `_audit/out/xbla_logo/` (`cmp_antes_depois.png`,
+  `cmp_inteiro.png`; não versionadas, são imagem do jogo): logo limpo em 720p e em 4K com FXAA;
+  check do Craft com auto-teste 10/10. A correção vale para todo `vaddsws` do jogo.

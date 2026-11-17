@@ -26,6 +26,26 @@ docs/evidencias/**/textos_*_ptbr.txt
 docs/evidencias/**/user/
 docs/evidencias/**/cache/
 
+# Arquivos do jogo nunca entram no repositório (a pessoa usa a própria cópia, fora do app/)
+*.xex
+*.cmp
+*.ptc
+RAWFiles/
+X360_strings.dat
+savegame.dat*
+
+# Locais, nunca publicados (revisão de 2026-11-17): memória/fila local do Understory, sobras de
+# rodadas automáticas (caminhos da máquina, logs do npm, textos e capturas do jogo) e notas de
+# auditoria locais
+.understory/
+.understory-project-id
+docs/evidencias/check4/
+docs/evidencias/m00-atual-20261110/
+_audit/*.md
+_audit/mission00/
+_audit/mission00-current-20261113/
+_audit/mission03/
+
 # Editor / OS
 .vs/
 .vscode/

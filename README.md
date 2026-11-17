@@ -23,6 +23,12 @@ saves com backup e auto-teste `--self-test`. **Estado atual, provas e próximos 
 
 ## Launcher portátil (2026-11-16)
 
+**Onde está:** `app\out\portable\Banjo-Tooie-PT-BR-Recompiled\Banjo-Tooie PT-BR Recompiled.exe`
+(pasta pronta para usar) e o mesmo pacote em ZIP:
+`app\out\portable\Banjo-Tooie-PT-BR-Recompiled-1.0.0-win64.zip`. Os dois são refeitos a cada
+`npm run build` (ou `tools\build_launcher.cmd`). Não confundir com `app\Build\banjotooie.exe`,
+o lançador usado pelas verificações do Craft.
+
 `out\portable\Banjo-Tooie-PT-BR-Recompiled-1.0.0-win64.zip` (gerado por `npm run build` ou
 `tools\build_launcher.cmd`): extraia, abra `Banjo-Tooie PT-BR Recompiled.exe`, escolha a pasta do
 seu Banjo-Tooie XBLA descompactado (`default.xex` + `RAWFiles`), **PREPARAR MEU JOGO** e **JOGAR**.

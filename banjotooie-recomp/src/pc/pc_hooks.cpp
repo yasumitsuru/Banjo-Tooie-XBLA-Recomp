@@ -80,24 +80,6 @@ uint32_t BootFastForward() {
 
 void SetFloat(PPCRegister& f, float v) { f.f64 = static_cast<double>(v); }
 
-// Diálogos Lenta/Muito lenta: muitas sequências (a introdução, por exemplo) trocam de cenário
-// num tempo fixo e fecham a caixa de texto no meio da frase se ela foi escrita mais devagar
-// (medido com --probe-dialog-scene: troca do mapa 0xA1 -> 0xA8 aos 65,1 s nas duas velocidades;
-// no Muito lento 3 páginas cortadas e as seguintes nunca mostradas). Por isso, nesses modos, o
-// JOGO INTEIRO anda 2x/3x mais devagar enquanto uma caixa escreve ou espera (estados 2 e 3):
-// cada quadro do jogo dura 2x/3x mais VBlanks com o mesmo passo, então a cena, as letras e a
-// espera da legenda ficam mais lentas juntas e nada é cortado. Fora das legendas, ritmo normal.
-// Mudar só o intervalo de apresentação NÃO desacelera (medido: a introdução durou os mesmos
-// 62,5 s): o jogo espera VBlanks; por isso os VBlanks é que ficam espaçados (rexglue-sdk,
-// cvar guest_vblank_divisor).
-uint32_t DialogDilation() {
-  const uint32_t m = static_cast<uint32_t>(pc::DialogHoldFactor(pc::Get().dialog_speed));
-  if (m <= 1) return 1;
-  const uint64_t last = pc::state::dialog_last_update.load(std::memory_order_relaxed);
-  const uint64_t now = pc::state::logic_updates.load(std::memory_order_relaxed);
-  return (last && now - last <= 2) ? m : 1;
-}
-
 }  // namespace
 
 // ---------------------------------------------------------------- tempo de quadro
@@ -303,11 +285,6 @@ void PcHook_PresentInterval(PPCRegister& r11) {
   }
   pc::state::cutscene_state.store(ReadU8(kCutsceneStateAddr), std::memory_order_relaxed);
   if (Fps60()) r11.u64 = StepFor60();
-  // Legenda lenta (DialogDilation): VBlanks do convidado a 60/N Hz enquanto ela está na tela.
-  const uint32_t d = DialogDilation();
-  if (d > 1) pc::state::dialog_dilated_presents.fetch_add(1, std::memory_order_relaxed);
-  if (pc::state::dialog_dilation.exchange(d, std::memory_order_relaxed) != d)
-    rex::cvar::SetFlagByName("guest_vblank_divisor", std::to_string(d));
 }
 
 // Constantes por quadro trocadas pelo patch de 60 FPS (original -> 60 FPS).
@@ -350,10 +327,6 @@ PC_K(821129B8, f0, pc::mechanics::K_821129B8)   // 0.028 (0x82000974) -> 1/70 (0
 void PcHook_DialogSpeed(PPCRegister& f13, PPCRegister& f29, PPCRegister& r31) {
   pc::state::dialog_type_calls.fetch_add(1, std::memory_order_relaxed);
   pc::state::dialog_box.store(r31.u32, std::memory_order_relaxed);
-  pc::state::dialog_last_update.store(pc::state::logic_updates.load(std::memory_order_relaxed),
-                                      std::memory_order_relaxed);
-  // Lenta/Muito lenta: o jogo inteiro já anda mais devagar (DialogDilation), letras incluídas.
-  if (pc::DialogHoldFactor(pc::Get().dialog_speed) > 1.0f) return;
   const float k = pc::DialogSpeedFactor(pc::Get().dialog_speed);
   if (k == 1.0f) return;
   SetFloat(f13, static_cast<float>(f13.f64 + f29.f64 * static_cast<double>(k - 1.0f)));
@@ -365,12 +338,9 @@ void PcHook_DialogSpeed(PPCRegister& f13, PPCRegister& f29, PPCRegister& r31) {
 // a legenda fica na tela 2x (Lenta) ou 3x (Muito lenta) mais tempo. A pode pular, como antes.
 void PcHook_DialogHold(PPCRegister& f0, PPCRegister& f29) {
   pc::state::dialog_hold_calls.fetch_add(1, std::memory_order_relaxed);
-  pc::state::dialog_last_update.store(pc::state::logic_updates.load(std::memory_order_relaxed),
-                                      std::memory_order_relaxed);
-  // A espera mais longa vem do ritmo reduzido do jogo inteiro (DialogDilation): descontar menos
-  // aqui também a deixaria 4x/9x maior. O gancho fica para marcar a legenda como ativa.
-  (void)f0;
-  (void)f29;
+  const float h = pc::DialogHoldFactor(pc::Get().dialog_speed);
+  if (h <= 1.0f) return;
+  SetFloat(f0, static_cast<float>(f0.f64 + f29.f64 * (1.0 - 1.0 / static_cast<double>(h))));
 }
 
 // ---------------------------------------------------------------- distância de desenho

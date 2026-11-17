@@ -32,9 +32,6 @@ struct Options {
   std::filesystem::path probe_items;
   std::filesystem::path probe_scan;
   std::filesystem::path probe_dialog;
-  // Legendas das cenas sem entrada: jogo novo, introdução sem apertar nada; registra cada página
-  // da caixa de texto (letras mostradas x total) e se a cena a trocou/fechou antes do fim.
-  std::filesystem::path probe_dialog_scene;
   std::filesystem::path probe_scenes;  // linha do tempo das cenas sem entrada (ritmo a 30 x 60)
   std::filesystem::path probe_drawdistance;  // mesma cena nos 3 perfis de distância de desenho
   std::filesystem::path probe_menu;  // estado vivo do menu de pausa/totais (itens, tabelas, cursor)
@@ -87,7 +84,6 @@ struct Options {
            !probe_game.empty() || !probe_pause.empty() || !probe_focus.empty() ||
            !probe_save.empty() || !probe_totals.empty() || !probe_quit.empty() ||
            !probe_items.empty() || !probe_scan.empty() || !probe_dialog.empty() ||
-           !probe_dialog_scene.empty() ||
            !probe_scenes.empty() || !probe_drawdistance.empty() || !probe_menu.empty() ||
            !probe_titlepc.empty() || !probe_titlemenu.empty() || !probe_pcpages.empty() || !probe_fullscreen.empty() || !probe_menucursor.empty() || !probe_gamepad.empty() || !probe_dd_maps.empty() ||
            !probe_dd_worlds.empty() || !probe_testpad.empty() || !probe_save_sim.empty() ||

@@ -27,10 +27,9 @@ struct Settings {
   bool show_collectibles = false;
   bool pc_menu_entry = true;  // camada de menus: título sem CLASSIFICAÇÕES + CONFIGURAÇÃO DA RECOMPILAÇÃO; pausa sem CLASSIFICAÇÕES, CONFIGURAÇÕES DE PC em AJUDA E OPÇÕES
   // Diálogos: 0 = Original (1x), 1 = Rápida (2x), 2 = Muito rápida (4x), 3 = Instantânea,
-  // 4 = Lenta, 5 = Muito lenta. Os rápidos multiplicam o tempo que a caixa acumula por letra
-  // (gancho 0x8225D8A8). Nos lentos, enquanto uma caixa escreve ou espera (ganchos 0x8225D8A8 e
-  // 0x8225DB64) o jogo inteiro anda 2x/3x mais devagar (VBlanks do convidado a 30/20 Hz): letras,
-  // espera e a cena juntas, então as cenas com tempo fixo não cortam mais a frase.
+  // 4 = Lenta (letras a 1/2 e legendas com tempo ficam 2x mais na tela), 5 = Muito lenta (1/3 e
+  // 3x). Multiplica o tempo que a caixa acumula por letra (gancho 0x8225D8A8) e, nos modos
+  // lentos, a espera das legendas que avançam sozinhas (gancho 0x8225DB64).
   int dialog_speed = 0;
   // Vídeo (aplicados ao runtime; resolução exige reiniciar)
   Resolution resolution = Resolution::R1440p;

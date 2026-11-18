@@ -353,11 +353,13 @@ def main():
         check(f"créditos ({lang}): sem a linha da tradução PT-BR",
               not any(x.startswith("Tradução PT-BR:") or x.startswith("PT-BR translation:") for x in t["textos"]))
     t = textos_ui(root2, "u_lentas", "--idioma", "pt")
-    check("diálogos: opções Lenta e Muito lenta no launcher",
-          any(x.startswith("Lenta (legendas 2×") for x in t["textos"]) and any(x.startswith("Muito lenta (legendas 3×") for x in t["textos"]))
-    d = teste(root2, "v_dialogo_lento", "--opcoes", "dialog_speed=5")
+    check("diálogos: opções 0,5×, 1× e 2× mais lenta no launcher",
+          any(x.startswith("0,5× mais lenta (legendas 1,5×") for x in t["textos"])
+          and any(x.startswith("1× mais lenta (legendas 2×") for x in t["textos"])
+          and any(x.startswith("2× mais lenta (legendas 3×") for x in t["textos"]))
+    d = teste(root2, "v_dialogo_lento", "--opcoes", "dialog_speed=6")
     pcs = d.get("opcoes", {}).get("pc_settings", "")
-    check("diálogos: Muito lenta grava dialog_speed = 5 no pc_settings.toml", "dialog_speed = 5" in pcs and not d.get("opcoes", {}).get("diferencas"))
+    check("diálogos: 0,5× mais lenta grava dialog_speed = 6 no pc_settings.toml", "dialog_speed = 6" in pcs and not d.get("opcoes", {}).get("diferencas"))
     teste(root2, "w_dialogo_volta", "--opcoes", "dialog_speed=1")
     return finish()
 

@@ -998,13 +998,17 @@ Função `0x8225D580` (caixa em `r31`; estado em `+0x1C9`):
 - **Estado 2 (digitando):** `0x8225D8A8` soma o tempo do quadro (`f29`) ao cronômetro `+0x22C`;
   cada vez que ele passa do intervalo por letra (`+0x230`) aparece mais uma letra (`+0x1F6`).
   O gancho `PcHook_DialogSpeed` multiplica essa parcela (Rápida 2×, Muito rápida 4×,
-  Instantânea; Lenta ½, Muito lenta ⅓).
+  Instantânea; 0,5× mais lenta 1/1,5, 1× mais lenta ½, 2× mais lenta ⅓). Medido com
+  `--probe-dialog`: Original 13,4–14,3 letras/s; 0,5× mais lenta 9,2–9,6 letras/s.
 - **Estado 3 (legenda com tempo):** quando a página termina e a caixa tem a marca de avanço
   automático (`+0x248` bits 0x400/0x8000), `0x8225DAC4` grava `+0x21C = byte(+0x224) × 1/60`
   (`0x82000B98`) segundos; a cada quadro `0x8225DB64` (`fsubs f0,f0,f29`, `0xEC00E828`)
   desconta o tempo do quadro e, abaixo de 0.0 (`0x82000734`), a caixa vai ao estado 4 e avança
   sozinha. Apertar A pula a espera (`0x8225DB04`). Sem a marca, a caixa vai direto ao estado 4.
   O gancho `PcHook_DialogHold` desconta só `1/fator` do quadro nos modos lentos: a legenda
-  fica **2× (Lenta)** ou **3× (Muito lenta)** mais tempo na tela. Os modos rápidos não mudam a espera.
-- Configuração `dialog_speed`: 0 Original, 1 Rápida, 2 Muito rápida, 3 Instantânea, 4 Lenta,
-  5 Muito lenta (menus mostram na ordem Muito lenta → Instantânea).
+  fica **1,5× (0,5× mais lenta)**, **2× (1× mais lenta)** ou **3× (2× mais lenta)** mais tempo
+  na tela. Os modos rápidos não mudam a espera.
+- Configuração `dialog_speed`: 0 Original, 1 Rápida, 2 Muito rápida, 3 Instantânea,
+  6 0,5× mais lenta, 4 1× mais lenta, 5 2× mais lenta (menus mostram na ordem
+  2× mais lenta → 1× → 0,5× → Original → Instantânea). Nas sequências com tempo marcado
+  (ex.: abertura), os modos lentos ainda podem cortar a frase quando a cena fecha a caixa.

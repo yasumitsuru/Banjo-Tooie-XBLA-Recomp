@@ -1555,14 +1555,15 @@ std::vector<Row> BuildGame() {
                                             {"RÁPIDOS", "FAST"},
                                             {"MUITO RÁPIDOS", "VERY FAST"},
                                             {"INSTANTÂNEOS", "INSTANT"},
-                                            {"LENTOS", "SLOW"},
-                                            {"MUITO LENTOS", "VERY SLOW"}};
+                                            {"LENTOS 1X", "SLOWER 1X"},
+                                            {"LENTOS 2X", "SLOWER 2X"},
+                                            {"LENTOS 0,5X", "SLOWER 0.5X"}};
                  return Tx({"DIÁLOGOS", "DIALOGUE"}) + " : " +
-                        Tx(kNames[std::clamp(pc::Get().dialog_speed, 0, 5)]);
+                        Tx(kNames[std::clamp(pc::Get().dialog_speed, 0, 6)]);
                },
                [](int dir) {
                  auto& s = pc::Get();
-                 s.dialog_speed = pc::DialogSpeedStep(std::clamp(s.dialog_speed, 0, 5), dir);
+                 s.dialog_speed = pc::DialogSpeedStep(std::clamp(s.dialog_speed, 0, 6), dir);
                  RequestSave();
                  return true;
                }});

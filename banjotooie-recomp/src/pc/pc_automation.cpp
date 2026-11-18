@@ -1638,7 +1638,7 @@ void Start(const Options& opts, rex::ui::WindowedAppContext* ui,
     double guest_fps = 0, logic_fps = 0;
     rex::ui::HostPresentStats host;
 
-    if (opts.dialog_speed >= 0) pc::Get().dialog_speed = std::clamp(opts.dialog_speed, 0, 5);
+    if (opts.dialog_speed >= 0) pc::Get().dialog_speed = std::clamp(opts.dialog_speed, 0, 6);
 
     // Sonda das cenas: sem nenhuma entrada, registra por --measure-secs segundos (desde o
     // início do processo de automação) cada mudança do estado de cena 0x8266EF30, com o

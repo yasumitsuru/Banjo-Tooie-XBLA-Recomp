@@ -65,6 +65,9 @@ Para baixar e compilar: `git clone --recursive https://github.com/yasumitsuru/Ba
   GitHub, sabendo que o programa do jogo fica público.
 - Nova varredura antes de abrir: autores genéricos nos commits, nenhum e-mail ou nome de usuário,
   caminhos pessoais trocados por `<usuario>`/`%USERPROFILE%`, nenhum arquivo do jogo versionado.
+- **Releases públicas (2026-11-18, depois):** a pessoa pediu que as releases fiquem públicas para
+  qualquer um baixar, ciente de que o ZIP leva o programa com código recompilado do jogo. As duas
+  saíram do rascunho: `launcher-v1.0.1` (Latest, tag no commit `b3a6e3e`) e `launcher-v1.0.0`.
 - O **fork do SDK continua privado** (não foi pedido): quem não tem acesso não baixa o submódulo
   (o `README.md` explica a alternativa com o SDK público de base).
 

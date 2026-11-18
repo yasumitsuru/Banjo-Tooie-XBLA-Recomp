@@ -42,9 +42,11 @@ partir da **sua própria cópia** e os dados são lidos dela, sem alterações.
 
 ## Como usar (launcher)
 
-1. Gere o pacote com `tools\build_native.cmd` (veja "O que é preciso para compilar") e extraia o ZIP
-   `out\portable\Banjo-Tooie-PT-BR-Recompiled-1.0.1-win64.zip` numa pasta gravável. O ZIP não é
-   publicado em público: o programa do jogo dentro dele contém código recompilado do jogo.
+1. Baixe `Banjo-Tooie-PT-BR-Recompiled-1.0.1-win64.zip` em
+   [Releases](https://github.com/yasumitsuru/Banjo-Tooie-XBLA-Recomp/releases/latest) (ou gere o
+   pacote com `tools\build_native.cmd`, em `out\portable\`) e extraia numa pasta gravável. O ZIP não
+   traz nenhum arquivo do jogo; o programa dentro dele contém código recompilado do jogo, para uso
+   pessoal com a sua própria cópia.
 2. Abra `Banjo-Tooie PT-BR Recompiled.exe` e, em **Jogar**, escolha a pasta do jogo descompactado
    (**Procurar pasta…**; **Conferir** mostra se a pasta serve e qual versão é).
 3. Clique em **PREPARAR MEU JOGO** (os arquivos originais nunca são alterados) e depois em **JOGAR**.

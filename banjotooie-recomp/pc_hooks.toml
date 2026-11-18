@@ -139,16 +139,6 @@ name = "PcHook_DialogSpeed"
 registers = ["f13", "f29", "r31"]
 after_instruction = true
 
-# Espera das legendas com tempo: estado 3 da caixa (+0x1C9). Depois de mostrar a página toda,
-# caixas com tempo esperam caixa+0x21C segundos (caixa+0x224 quadros x 1/60, 0x82000B98) e
-# "fsubs f0,f0,f29" desconta o tempo do quadro; abaixo de 0 a caixa segue para o estado 4.
-# O gancho desconta menos nos modos Lenta/Muito lenta (mais tempo para ler).
-[[midasm_hook]]
-address = 0x8225DB64
-name = "PcHook_DialogHold"
-registers = ["f0", "f29"]
-after_instruction = true
-
 # ---------------------------------------------------------------- Distância de desenho
 # 0x82240DE8: retorna (base & 0x3fffffff) << 2 = alcance de surgimento/desenho do ator.
 [[midasm_hook]]

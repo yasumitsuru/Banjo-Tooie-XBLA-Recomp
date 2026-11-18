@@ -72,7 +72,7 @@ struct Options {
   int probe_saves_wait = 0;
   std::filesystem::path user_data_root;  // preenchido pelo app (pasta dos saves e backups)
   bool self_test_f1 = false;  // --self-test-f1: o auto-teste também prova o F1 no jogo livre (até 120 s)
-  int dialog_speed = -1;  // --dialog-speed N (0..6) força a velocidade só nesta execução
+  int dialog_speed = -1;  // --dialog-speed N (0..3) força a velocidade só nesta execução
   std::string probe_display_set_resolution;
   int frames = 120;
   int measure_secs = 5;

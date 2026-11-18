@@ -64,9 +64,6 @@ const char* DialogSpeedName(int speed) {
     case 1: return "Rápida (2x)";
     case 2: return "Muito rápida (4x)";
     case 3: return "Instantânea";
-    case 6: return "0,5x mais lenta (1,5x o tempo)";
-    case 4: return "1x mais lenta (2x o tempo)";
-    case 5: return "2x mais lenta (3x o tempo)";
     default: return "Original";
   }
 }
@@ -76,28 +73,8 @@ float DialogSpeedFactor(int speed) {
     case 1: return 2.0f;
     case 2: return 4.0f;
     case 3: return 1000.0f;
-    case 4: return 0.5f;
-    case 5: return 1.0f / 3.0f;
-    case 6: return 1.0f / 1.5f;
     default: return 1.0f;
   }
-}
-
-float DialogHoldFactor(int speed) {
-  switch (speed) {
-    case 4: return 2.0f;
-    case 5: return 3.0f;
-    case 6: return 1.5f;
-    default: return 1.0f;
-  }
-}
-
-int DialogSpeedStep(int speed, int dir) {
-  int i = 3;  // Original
-  for (int k = 0; k < kDialogSpeedCount; ++k)
-    if (kDialogSpeedOrder[k] == speed) i = k;
-  i = ((i + (dir < 0 ? -1 : 1)) % kDialogSpeedCount + kDialogSpeedCount) % kDialogSpeedCount;
-  return kDialogSpeedOrder[i];
 }
 
 const char* DrawDistanceName(DrawDistance d) {
@@ -151,7 +128,11 @@ bool Load() {
     else if (k == "show_perf_stats") s.show_perf_stats = ParseBool(v);
     else if (k == "show_collectibles") s.show_collectibles = ParseBool(v);
     else if (k == "pc_menu_entry") s.pc_menu_entry = ParseBool(v);
-    else if (k == "dialog_speed") s.dialog_speed = ClampInt(std::atoi(v.c_str()), 0, 6);
+    else if (k == "dialog_speed") {
+      // 0..3; os códigos lentos antigos (4/5/6) e valores inválidos voltam a Original.
+      const int d = std::atoi(v.c_str());
+      s.dialog_speed = d >= 0 && d < kDialogSpeedCount ? d : 0;
+    }
     else if (k == "volume_master") s.volume_master = ClampInt(std::atoi(v.c_str()), 0, 100);
     else if (k == "display_mode") s.display_mode = v == "TelaCheia" ? DisplayMode::TelaCheia
                                                  : v == "SemBordas" ? DisplayMode::SemBordas
@@ -211,7 +192,7 @@ std::string Serialize(const Settings& s) {
     << "show_perf_stats = " << (s.show_perf_stats ? "true" : "false") << "\n"
     << "show_collectibles = " << (s.show_collectibles ? "true" : "false") << "\n"
     << "pc_menu_entry = " << (s.pc_menu_entry ? "true" : "false") << "  # entrada de PC nos menus do jogo\n"
-    << "dialog_speed = " << s.dialog_speed << "  # 0 Original, 1 Rápida, 2 Muito rápida, 3 Instantânea, 6 0,5x mais lenta, 4 1x mais lenta, 5 2x mais lenta\n"
+    << "dialog_speed = " << s.dialog_speed << "  # 0 Original, 1 Rápida, 2 Muito rápida, 3 Instantânea\n"
     << "[video]\n"
     << "resolution = \"" << ResolutionName(s.resolution) << "\"\n"
     << "resolution_auto = " << (s.resolution_auto ? "true" : "false") << "\n"

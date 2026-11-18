@@ -337,13 +337,7 @@ namespace BanjoLauncher {
    // JOGO, ÁUDIO E QUALIDADE DE VIDA
    G("Jogo|ÁUDIO",Option.Choice("pc","volume_master",L.T("Volume geral","Master volume"),Enumerable.Range(0,11).Select(i=>(i*10)+"%").ToArray(),Enumerable.Range(0,11).Select(i=>(i*10).ToString(CultureInfo.InvariantCulture)).ToArray(),"100",false));
    G("Jogo|ÁUDIO",Option.Flag("rt","audio_mute",L.T("Silenciar tudo","Mute everything"),false));
-   // 0,5x / 1x / 2x mais lenta (códigos 6/4/5): letras mais devagar e as legendas que avançam
-   // sozinhas ficam 1,5x/2x/3x mais tempo na tela (ganchos 0x8225D8A8 e 0x8225DB64, MECHANICS.md §24).
-   G("Jogo|QUALIDADE DE VIDA",Option.Choice("pc","dialog_speed",L.T("Velocidade dos diálogos e legendas","Dialogue and subtitle speed"),
-    A(L.T("2× mais lenta (legendas 3× mais tempo na tela)","2× slower (subtitles stay 3× longer)"),L.T("1× mais lenta (legendas 2× mais tempo na tela)","1× slower (subtitles stay 2× longer)"),
-      L.T("0,5× mais lenta (legendas 1,5× mais tempo na tela)","0.5× slower (subtitles stay 1.5× longer)"),
-      "Original",L.T("Rápida (2×)","Fast (2×)"),L.T("Muito rápida (4×)","Very fast (4×)"),L.T("Instantânea","Instant")),
-    A("5","4","6","0","1","2","3"),"0",false));
+   G("Jogo|QUALIDADE DE VIDA",Option.Choice("pc","dialog_speed",L.T("Velocidade dos diálogos","Dialogue speed"),A("Original",L.T("Rápida (2×)","Fast (2×)"),L.T("Muito rápida (4×)","Very fast (4×)"),L.T("Instantânea","Instant")),A("0","1","2","3"),"0",false));
    G("Jogo|QUALIDADE DE VIDA",Option.Flag("pc","skip_intro_logos",L.T("Início rápido (acelera os logos de abertura)","Quick start (speeds up the opening logos)"),false));
    G("Jogo|QUALIDADE DE VIDA",Option.Flag("pc","pause_on_focus_loss",L.T("Pausar ao minimizar ou trocar de janela","Pause when minimized or switching windows"),true));
    G("Jogo|QUALIDADE DE VIDA",Option.Flag("pc","show_collectibles",L.T("Rastreador de colecionáveis por mundo","Per-world collectibles tracker"),false));

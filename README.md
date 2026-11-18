@@ -22,7 +22,7 @@ partir da **sua própria cópia** e os dados são lidos dela, sem alterações.
   nos menus do próprio jogo.
 - **Controles:** teclado e mouse (teclas remapeáveis, câmera pelo mouse com sensibilidade,
   inversão e suavização) e controle de Xbox/XInput (zona morta, sensibilidade, vibração).
-- **Qualidade de vida:** velocidade dos diálogos e legendas (Muito lenta a Instantânea), início
+- **Qualidade de vida:** velocidade dos diálogos (Original, Rápida, Muito rápida ou Instantânea), início
   rápido, pausa ao perder o foco, contador de FPS, estatísticas de desempenho, rastreador de
   colecionáveis por mundo e lista de conquistas em português.
 - **Saves** no formato do jogo com backups automáticos e restauração pelo menu; registro de cada

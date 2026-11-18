@@ -335,7 +335,7 @@ def main():
           and teste(root2, "s_depois_troca").get("opcoes_atuais", {}).get("swap_post_effect") == "fxaa")
 
     # 15. Pedido de 2026-11-17: página Jogar sem rolagem em qualquer tamanho, créditos sem a linha
-    # da tradução PT-BR e velocidades Lenta/Muito lenta (legendas mais tempo na tela).
+    # da tradução PT-BR. Velocidades lentas dos diálogos retiradas a pedido: só Original e rápidas.
     for size in ("800x600", "1220x900", "2400x1300"):
         png = WORK / "ui" / f"resp-jogar-{size}.png"
         if png.exists():
@@ -353,13 +353,12 @@ def main():
         check(f"créditos ({lang}): sem a linha da tradução PT-BR",
               not any(x.startswith("Tradução PT-BR:") or x.startswith("PT-BR translation:") for x in t["textos"]))
     t = textos_ui(root2, "u_lentas", "--idioma", "pt")
-    check("diálogos: opções 0,5×, 1× e 2× mais lenta no launcher",
-          any(x.startswith("0,5× mais lenta (legendas 1,5×") for x in t["textos"])
-          and any(x.startswith("1× mais lenta (legendas 2×") for x in t["textos"])
-          and any(x.startswith("2× mais lenta (legendas 3×") for x in t["textos"]))
-    d = teste(root2, "v_dialogo_lento", "--opcoes", "dialog_speed=6")
+    check("diálogos: só Original e rápidas no launcher (sem opções lentas)",
+          not any("mais lenta" in x or x.startswith("Lenta") or x.startswith("Muito lenta") for x in t["textos"])
+          and any(x.startswith("Rápida (2×)") for x in t["textos"]) and any(x == "Instantânea" for x in t["textos"]))
+    d = teste(root2, "v_dialogo_rapido", "--opcoes", "dialog_speed=2")
     pcs = d.get("opcoes", {}).get("pc_settings", "")
-    check("diálogos: 0,5× mais lenta grava dialog_speed = 6 no pc_settings.toml", "dialog_speed = 6" in pcs and not d.get("opcoes", {}).get("diferencas"))
+    check("diálogos: Muito rápida grava dialog_speed = 2 no pc_settings.toml", "dialog_speed = 2" in pcs and not d.get("opcoes", {}).get("diferencas"))
     teste(root2, "w_dialogo_volta", "--opcoes", "dialog_speed=1")
     return finish()
 

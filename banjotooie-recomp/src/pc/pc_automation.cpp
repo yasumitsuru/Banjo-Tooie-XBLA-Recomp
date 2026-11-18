@@ -1638,7 +1638,7 @@ void Start(const Options& opts, rex::ui::WindowedAppContext* ui,
     double guest_fps = 0, logic_fps = 0;
     rex::ui::HostPresentStats host;
 
-    if (opts.dialog_speed >= 0) pc::Get().dialog_speed = std::clamp(opts.dialog_speed, 0, 6);
+    if (opts.dialog_speed >= 0) pc::Get().dialog_speed = std::clamp(opts.dialog_speed, 0, 3);
 
     // Sonda das cenas: sem nenhuma entrada, registra por --measure-secs segundos (desde o
     // início do processo de automação) cada mudança do estado de cena 0x8266EF30, com o
@@ -1739,7 +1739,7 @@ void Start(const Options& opts, rex::ui::WindowedAppContext* ui,
         const uint64_t frames = state::guest_swaps.load() - fs;
         const int typed = int(total) - int(shown0);
         // Legenda com tempo (estado 3): a caixa espera caixa+0x224 quadros/60 s e segue sozinha.
-        // Mede quanto tempo ela fica (sem apertar nada); nos modos lentos deve ser 2x/3x.
+        // Mede quanto tempo ela fica (sem apertar nada); deve ser igual ao original.
         const uint8_t after = ReadU8(box + 0x1C9);
         const uint8_t hold_frames = ReadU8(box + 0x224);
         double hold_secs = -1;
@@ -1761,9 +1761,7 @@ void Start(const Options& opts, rex::ui::WindowedAppContext* ui,
         Tap(input::kA);  // próxima página
         WaitFrames(20);
       }
-      o << "],\"type_calls\":" << state::dialog_type_calls.load()
-        << ",\"hold_factor\":" << pc::DialogHoldFactor(pc::Get().dialog_speed)
-        << ",\"hold_calls\":" << state::dialog_hold_calls.load() << "}\n";
+      o << "],\"type_calls\":" << state::dialog_type_calls.load() << "}\n";
       std::ofstream(opts.probe_dialog) << o.str();
       if (shot.width) {
         ReduceTo1920(shot);

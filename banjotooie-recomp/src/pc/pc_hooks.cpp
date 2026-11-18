@@ -332,17 +332,6 @@ void PcHook_DialogSpeed(PPCRegister& f13, PPCRegister& f29, PPCRegister& r31) {
   SetFloat(f13, static_cast<float>(f13.f64 + f29.f64 * static_cast<double>(k - 1.0f)));
 }
 
-// Depois do "fsubs f0,f0,f29" real do jogo em 0x8225DB64 (estado 3 da caixa): caixas com tempo
-// (legendas que avançam sozinhas) esperam caixa+0x21C segundos (= caixa+0x224 quadros / 60)
-// depois de mostrar a página toda. Nos modos lentos o jogo desconta só 1/fator do tempo do quadro:
-// a legenda fica na tela 2x (Lenta) ou 3x (Muito lenta) mais tempo. A pode pular, como antes.
-void PcHook_DialogHold(PPCRegister& f0, PPCRegister& f29) {
-  pc::state::dialog_hold_calls.fetch_add(1, std::memory_order_relaxed);
-  const float h = pc::DialogHoldFactor(pc::Get().dialog_speed);
-  if (h <= 1.0f) return;
-  SetFloat(f0, static_cast<float>(f0.f64 + f29.f64 * (1.0 - 1.0 / static_cast<double>(h))));
-}
-
 // ---------------------------------------------------------------- distância de desenho
 // Alcance "Total" por mapa = valores do Draw Distance Hack (maior alcance já testado
 // pela comunidade Xenia); mapas 0x112/0x128 têm alcance menor por segurança.

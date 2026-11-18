@@ -998,17 +998,16 @@ Função `0x8225D580` (caixa em `r31`; estado em `+0x1C9`):
 - **Estado 2 (digitando):** `0x8225D8A8` soma o tempo do quadro (`f29`) ao cronômetro `+0x22C`;
   cada vez que ele passa do intervalo por letra (`+0x230`) aparece mais uma letra (`+0x1F6`).
   O gancho `PcHook_DialogSpeed` multiplica essa parcela (Rápida 2×, Muito rápida 4×,
-  Instantânea; 0,5× mais lenta 1/1,5, 1× mais lenta ½, 2× mais lenta ⅓). Medido com
-  `--probe-dialog`: Original 13,4–14,3 letras/s; 0,5× mais lenta 9,2–9,6 letras/s.
+  Instantânea). Medido com `--probe-dialog`: Original 13,4–14,3 letras/s.
 - **Estado 3 (legenda com tempo):** quando a página termina e a caixa tem a marca de avanço
   automático (`+0x248` bits 0x400/0x8000), `0x8225DAC4` grava `+0x21C = byte(+0x224) × 1/60`
   (`0x82000B98`) segundos; a cada quadro `0x8225DB64` (`fsubs f0,f0,f29`, `0xEC00E828`)
   desconta o tempo do quadro e, abaixo de 0.0 (`0x82000734`), a caixa vai ao estado 4 e avança
   sozinha. Apertar A pula a espera (`0x8225DB04`). Sem a marca, a caixa vai direto ao estado 4.
-  O gancho `PcHook_DialogHold` desconta só `1/fator` do quadro nos modos lentos: a legenda
-  fica **1,5× (0,5× mais lenta)**, **2× (1× mais lenta)** ou **3× (2× mais lenta)** mais tempo
-  na tela. Os modos rápidos não mudam a espera.
-- Configuração `dialog_speed`: 0 Original, 1 Rápida, 2 Muito rápida, 3 Instantânea,
-  6 0,5× mais lenta, 4 1× mais lenta, 5 2× mais lenta (menus mostram na ordem
-  2× mais lenta → 1× → 0,5× → Original → Instantânea). Nas sequências com tempo marcado
-  (ex.: abertura), os modos lentos ainda podem cortar a frase quando a cena fecha a caixa.
+  O port não muda essa espera (nenhuma velocidade altera o tempo das legendas que avançam sozinhas).
+- Configuração `dialog_speed`: 0 Original, 1 Rápida, 2 Muito rápida, 3 Instantânea.
+- Velocidades lentas (Lenta/Muito lenta e depois 0,5×/1×/2× mais lenta, códigos 4/5/6, com o gancho
+  `PcHook_DialogHold` em `0x8225DB64`) foram testadas em 2026-11-17 e **retiradas** a pedido: nas
+  sequências com tempo marcado (ex.: abertura) a cena fecha a caixa no horário dela e cortava a
+  frase, e deixar o jogo inteiro mais lento durante a legenda ficou ruim visualmente e na jogabilidade.
+  Arquivos salvos com 4/5/6 voltam a Original ao abrir.

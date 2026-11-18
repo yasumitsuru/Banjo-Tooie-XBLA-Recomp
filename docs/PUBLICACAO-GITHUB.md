@@ -53,6 +53,21 @@ Apague quando não precisar mais.
 Para baixar e compilar: `git clone --recursive https://github.com/yasumitsuru/Banjo-Tooie-XBLA-Recomp.git`
 (conta com acesso aos dois repositórios privados) e seguir "Como compilar e rodar" do `README.md`.
 
+## Repositório público (2026-11-18)
+
+- Pedido: verificar se precisava de uma release nova e deixar o repositório público.
+- **Release nova: sim.** A `launcher-v1.0.0` (commit `1dc3c30`) ainda trazia as velocidades
+  Lenta/Muito lenta, retiradas depois a pedido (`d9ca4fa`). Gerada a `launcher-v1.0.1`
+  (`Banjo-Tooie-PT-BR-Recompiled-1.0.1-win64.zip`, 44 arquivos, nenhum arquivo do jogo).
+- **Releases como rascunho:** o ZIP leva o `banjotooie.exe`, que contém código recompilado do jogo
+  ("uso pessoal, não redistribua"). Com o repositório público, a `1.0.0` virou rascunho e a `1.0.1`
+  foi criada como rascunho: só a dona da conta vê e baixa. Para publicar, basta tirar o rascunho no
+  GitHub, sabendo que o programa do jogo fica público.
+- Nova varredura antes de abrir: autores genéricos nos commits, nenhum e-mail ou nome de usuário,
+  caminhos pessoais trocados por `<usuario>`/`%USERPROFILE%`, nenhum arquivo do jogo versionado.
+- O **fork do SDK continua privado** (não foi pedido): quem não tem acesso não baixa o submódulo
+  (o `README.md` explica a alternativa com o SDK público de base).
+
 ## Pontos que continuam com a pessoa
 
 - A base do port não tem licença: publicar o código em público exige a permissão do autor.

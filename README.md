@@ -42,7 +42,9 @@ partir da **sua própria cópia** e os dados são lidos dela, sem alterações.
 
 ## Como usar (launcher)
 
-1. Extraia o ZIP `Banjo-Tooie-PT-BR-Recompiled-1.0.0-win64.zip` numa pasta gravável.
+1. Gere o pacote com `tools\build_native.cmd` (veja "O que é preciso para compilar") e extraia o ZIP
+   `out\portable\Banjo-Tooie-PT-BR-Recompiled-1.0.1-win64.zip` numa pasta gravável. O ZIP não é
+   publicado em público: o programa do jogo dentro dele contém código recompilado do jogo.
 2. Abra `Banjo-Tooie PT-BR Recompiled.exe` e, em **Jogar**, escolha a pasta do jogo descompactado
    (**Procurar pasta…**; **Conferir** mostra se a pasta serve e qual versão é).
 3. Clique em **PREPARAR MEU JOGO** (os arquivos originais nunca são alterados) e depois em **JOGAR**.
@@ -73,7 +75,10 @@ Windows.
 
 ## O que é preciso para compilar
 
-- Windows 10/11 x64 e Git (com submódulos).
+- Windows 10/11 x64 e Git (com submódulos). O submódulo `rexglue-sdk` aponta para o fork do SDK
+  com as correções deste port, que por enquanto é **privado**: sem acesso a ele, use o SDK
+  público de base [iron-jay/rexglue-sdk](https://github.com/iron-jay/rexglue-sdk) (commit `035aa25`)
+  por sua conta, sem as correções (como a do logo do Xbox Live Arcade).
 - Visual Studio 2022 Build Tools com MSVC, Windows SDK e as ferramentas Clang (Clang 19).
 - CMake e Ninja (os scripts usam `C:\Program Files\CMake` e `C:\msys64\clang64\bin\ninja.exe`).
 - Python 3.

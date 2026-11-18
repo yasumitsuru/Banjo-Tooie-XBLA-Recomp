@@ -32,7 +32,7 @@ using System.Web.Script.Serialization;
 namespace BanjoLauncher {
  static class Paths {
   public const string AppName="Banjo-Tooie PT-BR Recompiled";
-  public const string Version="1.0.0";
+  public const string Version="1.0.1";
   public static string Root {get{return Path.GetFullPath(AppDomain.CurrentDomain.BaseDirectory).TrimEnd('\\');}}
   public static string Bin {get{return Path.Combine(Root,"bin");}}
   public static string GameExe {get{return Path.Combine(Bin,"banjotooie.exe");}}

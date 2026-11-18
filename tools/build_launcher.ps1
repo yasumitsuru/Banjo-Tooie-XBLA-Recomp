@@ -11,7 +11,7 @@ param([switch]$SoCompilar)
 $ErrorActionPreference = 'Stop'
 $app = Split-Path -Parent $PSScriptRoot
 $src = Join-Path $app 'launcher'
-$version = '1.0.0'
+$version = '1.0.1'
 $exeName = 'Banjo-Tooie PT-BR Recompiled.exe'
 
 $fw = Join-Path $env:WINDIR 'Microsoft.NET\Framework64\v4.0.30319'
